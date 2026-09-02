@@ -1,10 +1,16 @@
 from fastapi import FastAPI
 
+from app.api.v1.productos.router import router as productos_router
+
 app = FastAPI(
-    title="Catálogo de Productos API",
-    description="API profesional con arquitectura de capas para el TP de Productos"
+    title="API de Productos",
+    description="API REST para gestionar productos y categorías, con persistencia en memoria.",
 )
 
-@app.get("/")
+
+@app.get("/", tags=["Root"])
 def read_root():
-    return {"message": "¡Servidor de TP Productos funcionando correctamente!"}
+    return {"mensaje": "Bienvenido a la API de Productos 🚀"}
+
+
+app.include_router(productos_router)
