@@ -11,22 +11,30 @@ Gestión de préstamos y venta de juegos de mesa modernos.
 | Estefania Mercado| @Estefania-Mercado-tec
 | Lidia Areco      | @Florare83    
 
+## Colaboradores
+![Colaboradores](./docs/capturas/colaboradores.jpeg)
+
 ## Instrucciones de uso
-1. Clonar el repositorio
-2. Crear entorno virtual: `python -m venv venv`
-3. Activar entorno virtual
-4. Instalar dependencias: `pip install -r requirements.txt`
-5. Levantar el servidor: `fastapi dev app/main.py`
+1. Clonar el repositorio: git clone https://github.com/Florare83/ControlAR.git
+2. Crear entorno virtual: python -m venv venv
+3. Activar entorno virtual: venv\Scripts\activate
+4. Instalar dependencias: pip install "fastapi[standard]"
+5. Levantar el servidor: fastapi dev main.py
+
+## Diagrama de estructura de carpetas
+![Estructura](./docs/capturas/estructura.png)
 
 ## Endpoints
-| Método | Ruta         | Código de estado | Descripción           |
-|--------|--------------|-------------------|------------------------|
-| GET    | /items       | 200               | Lista todos los items |
-| POST   | /items       | 201               | Crea un item          |
-| GET    | /items/{id}  | 200 / 404         | Obtiene un item       |
-| PUT    | /items/{id}  | 200 / 404         | Actualiza un item      |
-| DELETE | /items/{id}  | 204 / 404         | Elimina un item        |
+| Método | Ruta           | Código de estado | Descripción           
+|--------|----------------|-------------------|-----------------------
+| GET    | /productos     | 200               | Lista todos los items 
+| POST   | /productos     | 201               | Crea un item          
+| GET    | /productos/{id}| 200 / 404         | Obtiene un item       
+| PUT    | /productos/{id}| 200 / 404         | Actualiza un item     
+| DELETE | /productos/{id}| 204 / 404         | Elimina un item        
 
+## Historial de commits
+![Commits](./docs/capturas/commits1.png)
 
 ## 🧪 Pruebas de Funcionamiento de la API (Swagger UI)
 
@@ -56,4 +64,3 @@ Validación de la lógica `exclude_unset` en el repositorio, la cual permite cam
 Demostración de consistencia lógica: la primera eliminación devuelve una respuesta exitosa sin contenido y los intentos posteriores son interceptados con un error de recurso no encontrado.
 ![Eliminar Producto](./docs/capturas/06_eliminar_producto.png) 
 
-### conclusión: con todo esto podemos asegurar el funcionamiento de la api en nuestra página web 
