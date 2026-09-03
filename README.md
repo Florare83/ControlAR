@@ -1,3 +1,33 @@
+# Nombre del Proyecto: ControlAR
+
+## Descripción
+Gestión de préstamos y venta de juegos de mesa modernos.
+
+## Integrantes
+| Nombre           | Usuario GitHub 
+|------------------|----------------
+| Albaro Rodo      | @albarorodo1234-oss
+| Silvia Duran     | @1silviaduran 
+| Estefania Mercado| @Estefania-Mercado-tec
+| Lidia Areco      | @Florare83    
+
+## Instrucciones de uso
+1. Clonar el repositorio
+2. Crear entorno virtual: `python -m venv venv`
+3. Activar entorno virtual
+4. Instalar dependencias: `pip install -r requirements.txt`
+5. Levantar el servidor: `fastapi dev app/main.py`
+
+## Endpoints
+| Método | Ruta         | Código de estado | Descripción           |
+|--------|--------------|-------------------|------------------------|
+| GET    | /items       | 200               | Lista todos los items |
+| POST   | /items       | 201               | Crea un item          |
+| GET    | /items/{id}  | 200 / 404         | Obtiene un item       |
+| PUT    | /items/{id}  | 200 / 404         | Actualiza un item      |
+| DELETE | /items/{id}  | 204 / 404         | Elimina un item        |
+
+
 ## 🧪 Pruebas de Funcionamiento de la API (Swagger UI)
 
 A continuación, se documentan las pruebas de control de calidad realizadas sobre los endpoints interactivos en `/docs`.
