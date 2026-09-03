@@ -55,3 +55,5 @@ Validación de la lógica `exclude_unset` en el repositorio, la cual permite cam
 ### f) Ciclo de Eliminación Completo (Status 204 y 404)
 Demostración de consistencia lógica: la primera eliminación devuelve una respuesta exitosa sin contenido y los intentos posteriores son interceptados con un error de recurso no encontrado.
 ![Eliminar Producto](./docs/capturas/06_eliminar_producto.png) 
+
+### conclusión: con todo esto podemos asegurar el funcionamiento de la api en nuestra página web 
