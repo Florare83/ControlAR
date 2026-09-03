@@ -22,7 +22,7 @@ Gestión de préstamos y venta de juegos de mesa modernos.
 5. Levantar el servidor: fastapi dev main.py
 
 ## Diagrama de estructura de carpetas
-![Estructura](./docs/capturas/estructura.png)
+![Estructura](./docs/capturas/Estructura.jpeg)
 
 ## Endpoints
 | Método | Ruta           | Código de estado | Descripción           
@@ -34,7 +34,9 @@ Gestión de préstamos y venta de juegos de mesa modernos.
 | DELETE | /productos/{id}| 204 / 404         | Elimina un item        
 
 ## Historial de commits
-![Commits](./docs/capturas/commits1.png)
+![Commits3](./docs/capturas/estef2.jpeg)
+
+
 
 ## 🧪 Pruebas de Funcionamiento de la API (Swagger UI)
 
