@@ -34,17 +34,18 @@ a {
    Barra de navegación
    ============================================ */
 .navbar {
-  background: var(--azul-marino);
-  color: var(--blanco);
+  background: #161c3f;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 14px 32px;
 }
 
+
 .navbar .marca {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 35px;
 }
 
 .navbar .links {
@@ -68,8 +69,8 @@ a {
 }
 
 .navbar .btn-login {
-  background: var(--blanco);
-  color: var(--azul-marino);
+  background: #ffffff;
+  color: #161c3f;
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 14px;
@@ -90,10 +91,14 @@ a {
   margin-bottom: 6px;
 }
 
-.pagina .subtitulo {
+.pagina .subtitle {
   color: var(--texto-suave);
   margin-bottom: 28px;
-  max-width: 60ch;
+}
+
+.pagina p {
+  margin-bottom: 20px;
+  line-height: 2;
 }
 
 /* ============================================
@@ -210,7 +215,8 @@ a {
    Formularios (contacto, login)
    ============================================ */
 .formulario {
-  max-width: 420px;
+  max-width: 500px;     /* Ancho máximo cómodo para el formulario */
+  margin: 0 auto;
 }
 
 .campo {
@@ -279,7 +285,7 @@ a {
 .acordeon-respuesta {
   padding: 0 0 14px;
   color: var(--texto-suave);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 /* ============================================
@@ -297,18 +303,56 @@ body.oscuro {
 .boton-tema {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  color: var(--blanco);
+  color: #ffffff;
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
 }
 
+
+____________________________________
+EXTRAS
+____________________________________
 .error {
   color: #e63946;
   font-size: 0.85rem;
   margin-top: 4px;
   display: block;
+}
+
+.contenedor-imagen img {
+  display: block;    /* Hace que la imagen ocupe todo el ancho disponible */
+  margin-left: auto;  /* Centra horizontalmente */
+  margin-right: auto;
+
+  /* Opcional: para que no se vea gigante */
+  
+  width: 800px;
+  max-width: 100%;   /* Evita que se salga del contenedor */
+  height: auto;       /* Mantiene la proporción */
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--borde, #ccc);
+  border-radius: 8px;
+}
+
+.tarjeta-contenido {
+  flex: 1;
+}
+
+.tarjeta-imagen {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 /* ============================================

@@ -1,29 +1,28 @@
 import { useState } from "react";
-
+import grupo from "../img/grupo.jpeg";
 
 // Preguntas frecuentes. Cada una tiene su pregunta y su respuesta.
-// Si mañana quieren agregar una pregunta nueva, alcanza con
-// agregar un objeto más a este array.
+
 const preguntas = [
   {
-    pregunta: "¿Cuáles son los horarios del club?",
+    pregunta: "¿Cuándo se juntan a jugar juegos de mesa?",
     respuesta:
-      "Abrimos de martes a sábado de 17 a 22 hs. Los domingos por la tarde organizamos torneos especiales.",
+      "Organizamos una juntada mensual que siempre cae un sábado o domingo.",
   },
   {
-    pregunta: "¿Cómo funciona la membresía?",
+    pregunta: "¿Para asistir a los eventos debo pagar algo?",
     respuesta:
-      "Podés sumarte con una cuota mensual que incluye préstamo ilimitado de juegos dentro del club.",
+      "Las tardes de juegos no tienen un costo fijo, sólo pedimos una colaboración a voluntad para sostener la movida. La colaboración recomendada es de $1.000 por persona.",
   },
   {
     pregunta: "¿Puedo pedir préstamos de juegos?",
     respuesta:
-      "Sí, cualquier socio puede solicitar el préstamo de un juego disponible desde la sección Juegos.",
+      "Sí, pero cabe aclarar que el préstamo sólo se realiza en los eventos y en el lugar destinado a los mismos, no fuera de ellos.",
   },
   {
-    pregunta: "¿Cómo reservo una mesa para un evento o taller?",
+    pregunta: "¿Cómo reservo una mesa para un evento?",
     respuesta:
-      "Escribinos desde la sección Contacto indicando el evento y la cantidad de personas.",
+      "En el caso de las tardes de juegos no hay reserva, sólo basta con asistir directamente. En cambio, en el caso de los torneos se solicita inscripción previa.",
   },
 ];
 
@@ -40,18 +39,23 @@ function Nosotros() {
   return (
     <div className="pagina">
       <h1>Quiénes somos</h1>
-      <p className="subtitulo">
-        El Rincón de Hermes es un club de juegos de mesa en Salta, pensado
-        para reunir a la comunidad alrededor de una buena partida, cualquiera
-        sea tu nivel de experiencia.
+      <p>
+        El Rincón de Hermes es un club de juegos de mesa modernos ubicado en Salta, pensado para reunir a la comunidad a pasar un rato socializando, compartiendo y disfutando, cualquiera sea tu nivel de experiencia.
+      </p>
+      <p>  
+        Nuestra misión es acercar el juego de mesa como una forma de compartir tiempo real con otras personas, en un espacio cómodo y
+        con una ludoteca que sigue creciendo.
+      </p>
+      <p>
+        Iniciamos en el año 2017, ¡este año estaremos cumpliendo 9 años en Octubre!
       </p>
 
-
-      <p className="subtitulo">
-        Nuestra misión es acercar el juego de mesa como una forma de
-        compartir tiempo real con otras personas, en un espacio cómodo y
-        con una biblioteca de juegos en constante crecimiento.
-      </p>
+    <div className="contenedor-imagen">
+      <img 
+          src={grupo} 
+          alt="Equipo del Rincón de Hermes"
+      />
+    </div>
 
       <h2 style={{ marginTop: 40, marginBottom: 12 }}>
         Preguntas frecuentes

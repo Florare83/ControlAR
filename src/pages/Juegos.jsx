@@ -55,8 +55,7 @@ function Juegos() {
     <div className="pagina">
       <h1>Catálogo de juegos</h1>
       <p className="subtitulo">
-        Explorá y reservá el juego que quieras disfrutar en tu próxima
-        visita al club.
+        Explorá los juegos que forman parte de nuestra ludoteca y/o de nuestra tienda.
       </p>
 
       <div className="filtros">

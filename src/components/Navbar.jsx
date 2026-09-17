@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import logoImg from "../img/logo.png"
+import logo from "../img/logo.png"
 
 // NavLink es como un <a>, pero React Router le agrega
 // automáticamente la clase "active" cuando estamos parados
@@ -10,9 +10,8 @@ function Navbar({ modoOscuro, onCambiarTema }) {
     <nav className="navbar">
       
       <img 
-          src={logoImg} 
+          src={logo} 
           alt="Logo de El Rincón de Hermes" 
-          className="logo-navbar" 
         />
         <span className="marca">El Rincón de Hermes</span>
 

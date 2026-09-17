@@ -16,7 +16,7 @@ function Login() {
     <div className="pagina">
       <div className="tarjeta tarjeta-central">
         <h2>Iniciar sesión</h2>
-        <p className="subtitulo">Bienvenido de nuevo, ¡te esperábamos!</p>
+        <p className="subtitulo">Bienvenido Equipo</p>
 
         <form className="formulario" onSubmit={manejarEnvio}>
           <div className="campo" style={{ textAlign: "left" }}>

@@ -40,7 +40,7 @@ Gestión de préstamos y venta de juegos de mesa modernos.
 
 
 
-## 🧪 Pruebas de Funcionamiento de la API (Swagger UI)
+## Pruebas de Funcionamiento de la API (Swagger UI)
 
 A continuación, se documentan las pruebas de control de calidad realizadas sobre los endpoints interactivos en `/docs`.
 
@@ -73,24 +73,35 @@ Demostración de consistencia lógica: la primera eliminación devuelve una resp
 ### SEMANA 1:
 
 
-### ControlAR — Frontend
+## ControlAR — Frontend
 
 Frontend de ControlAR  hecho con React + Vite y React Router. Por ahora usa datos de ejemplo (src/data/juegos.js); en la Entrega 5 se va a conectar contra la API real.
 
-Cómo levantarlo
+### Cómo levantarlo:
+
 Instalar las dependencias (solo la primera vez):
+
    npm install
+
 Levantar el servidor de desarrollo:
+
    npm run dev
+
 Abrir la URL que muestra la terminal (por defecto http://localhost:5173).
 
-Estructura de carpetas
+## Estructura de carpetas
+
 src/
   components/   -> piezas reutilizables (Navbar, TarjetaJuego)
+
   pages/        -> una página por cada sección del sitio
+
   data/         -> datos de ejemplo (se reemplaza por la API luego)
+
   App.jsx       -> define las rutas de la app
+
   main.jsx      -> punto de entrada, monta todo en el HTML
+
   index.css     -> estilos de toda la app
 
 ## Páginas
@@ -105,6 +116,6 @@ src/
 
 /login	Inicio de sesión
 
-### Link de Figma:
+## Link de Figma:
 https://www.figma.com/design/hQ57pUiLWMExiycWbQKpGj/ControlAR?node-id=1-2723&t=uNablvEeJrcQvXxc-1
 
