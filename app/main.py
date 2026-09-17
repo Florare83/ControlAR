@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-
 from app.api.v1.productos.router import router as productos_router
+
 
 app = FastAPI(
     title="API de Juegos de Mesa",
