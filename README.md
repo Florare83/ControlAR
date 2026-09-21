@@ -89,7 +89,7 @@ Levantar el servidor de desarrollo:
 
 Abrir la URL que muestra la terminal (por defecto http://localhost:5173).
 
-## Estructura de carpetas
+### Estructura de carpetas
 
 src/
   components/   -> piezas reutilizables (Navbar, TarjetaJuego)
@@ -104,7 +104,7 @@ src/
 
   index.css     -> estilos de toda la app
 
-## Páginas
+### Páginas
 (Ruta	y Página)
 /nosotros	Quiénes somos + preguntas frecuentes
 
@@ -116,6 +116,6 @@ src/
 
 /login	Inicio de sesión
 
-## Link de Figma:
+### Link de Figma:
 https://www.figma.com/design/hQ57pUiLWMExiycWbQKpGj/ControlAR?node-id=1-2723&t=uNablvEeJrcQvXxc-1
 

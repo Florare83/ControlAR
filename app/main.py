@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.v1.productos.router import router as productos_router
+from app.api.v1.juegos.router import router as juegos_router
 
 
 app = FastAPI(
@@ -10,7 +10,7 @@ app = FastAPI(
 
 @app.get("/", tags=["Root"])
 def read_root():
-    return {"mensaje": "Bienvenido a la API de Productos 🚀"}
+    return {"Bienvenido a la API de Juegos"}
 
 
-app.include_router(productos_router)
+app.include_router(juegos_router)

@@ -1,33 +1,20 @@
-from app.models.categoria import Categoria
-from app.models.producto import Producto
+import os
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# ---------- "Tablas" en memoria ----------
+load_dotenv()
 
-categorias: list[Categoria] = [
-    Categoria(id=1, nombre="INFANTIL"),
-    Categoria(id=2, nombre="FAMILIAR"),
-    Categoria(id=3, nombre="EXPERTO"),
-]
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-productos: list[Producto] = [
-    Producto(id=1, nombre="EL LAVARROPAS", precio=32600.0, stock=10, categoria_id=1),
-    Producto(id=2, nombre="EL TIBURON", precio=42000.0, stock=30, categoria_id=1),
-    Producto(id=3, nombre="VIRUS", precio=31100.0, stock=15, categoria_id=2),
-    Producto(id=4, nombre="ACTUA RAPIDO", precio=20700.0, stock=8, categoria_id=2),
-    Producto(id=5, nombre="FARAWAY", precio=55000.0, stock=20, categoria_id=3),
-    Producto(id=6, nombre="IERUSALEM: ANNO DOMINI", precio=100000.0, stock=50, categoria_id=3),
-]
-
-# ---------- Simulación de SERIAL ----------
-
-_ultimo_id_producto: int = max((p.id for p in productos), default=0)
+engine = create_engine(DATABASE_URL, echo=True)  # echo=True: muestra el SQL en la terminal, útil para aprender
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 
-def bump_producto_id() -> int:
-    """
-    Devuelve el próximo id disponible para un Producto y lo incrementa,
-    simulando el comportamiento de un SERIAL/AUTOINCREMENT de una BD real.
-    """
-    global _ultimo_id_producto
-    _ultimo_id_producto += 1
-    return _ultimo_id_producto
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
