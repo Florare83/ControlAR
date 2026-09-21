@@ -1,0 +1,373 @@
+/* ============================================
+   Variables de color y fuente
+   Cambiar acá adentro cambia el look de toda la app.
+   ============================================ */
+:root {
+  --azul-marino: #161c3f;
+  --azul-marino-hover: #232a5c;
+  --fondo: #f4f4f2;
+  --blanco: #ffffff;
+  --texto: #1d2321;
+  --texto-suave: #6b7280;
+  --borde: #e2e2df;
+  --exito: #1f9d55;
+  --alerta: #c0392b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ============================================
+   Barra de navegación
+   ============================================ */
+.navbar {
+  background: #161c3f;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+}
+
+
+.navbar .marca {
+  font-weight: 700;
+  font-size: 35px;
+}
+
+.navbar .links {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar .links a {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.navbar .links a:hover,
+.navbar .links a.activo {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.navbar .btn-login {
+  background: #ffffff;
+  color: #161c3f;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ============================================
+   Layout general de página
+   ============================================ */
+.pagina {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 60px;
+}
+
+.pagina h1 {
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+
+.pagina .subtitle {
+  color: var(--texto-suave);
+  margin-bottom: 28px;
+}
+
+.pagina p {
+  margin-bottom: 20px;
+  line-height: 2;
+}
+
+/* ============================================
+   Tarjetas (juegos, eventos, etc.)
+   ============================================ */
+.tarjeta {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.grilla-juegos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 18px;
+}
+
+.tarjeta-juego img {
+  width: 100%;
+  border-radius: 8px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.tarjeta-juego h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.tarjeta-juego .detalle {
+  font-size: 13px;
+  color: var(--texto-suave);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.tarjeta-juego .precio {
+  font-weight: 700;
+  font-size: 15px;
+  margin: 8px 0;
+}
+
+.etiqueta {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.etiqueta.disponible {
+  background: #e5f6ec;
+  color: var(--exito);
+}
+
+.etiqueta.no-disponible {
+  background: #fbe9e7;
+  color: var(--alerta);
+}
+
+/* ============================================
+   Botones
+   ============================================ */
+.boton {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  background: var(--azul-marino);
+  color: var(--blanco);
+  border: none;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton:hover {
+  background: var(--azul-marino-hover);
+}
+
+.boton:disabled {
+  background: #b8b8b8;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Filtros del catálogo
+   ============================================ */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.filtros input,
+.filtros select {
+  padding: 9px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.filtros input {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* ============================================
+   Formularios (contacto, login)
+   ============================================ */
+.formulario {
+  max-width: 500px;     /* Ancho máximo cómodo para el formulario */
+  margin: 0 auto;
+}
+
+.campo {
+  margin-bottom: 16px;
+}
+
+.campo label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.campo input,
+.campo textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.campo textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+/* Tarjeta centrada, usada en el login */
+.tarjeta-central {
+  max-width: 380px;
+  margin: 40px auto 0;
+  text-align: center;
+}
+
+.tarjeta-central h2 {
+  margin-bottom: 4px;
+}
+
+.tarjeta-central .subtitulo {
+  margin-bottom: 20px;
+}
+
+/* ============================================
+   Acordeón de preguntas frecuentes (Nosotros)
+   ============================================ */
+.acordeon-item {
+  border-bottom: 1px solid var(--borde);
+}
+
+.acordeon-pregunta {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 14px 0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--texto);
+}
+
+.acordeon-respuesta {
+  padding: 0 0 14px;
+  color: var(--texto-suave);
+  font-size: 15px;
+}
+
+/* ============================================
+   Modo oscuro / claro
+   Se activa agregando la clase "oscuro" al <body>
+   ============================================ */
+body.oscuro {
+  --fondo: #14181a;
+  --blanco: #1f2427;
+  --texto: #eceeec;
+  --texto-suave: #9aa3a0;
+  --borde: #343b38;
+}
+
+.boton-tema {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+
+____________________________________
+EXTRAS
+____________________________________
+.error {
+  color: #e63946;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.contenedor-imagen img {
+  display: block;    /* Hace que la imagen ocupe todo el ancho disponible */
+  margin-left: auto;  /* Centra horizontalmente */
+  margin-right: auto;
+
+  /* Opcional: para que no se vea gigante */
+  
+  width: 800px;
+  max-width: 100%;   /* Evita que se salga del contenedor */
+  height: auto;       /* Mantiene la proporción */
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--borde, #ccc);
+  border-radius: 8px;
+}
+
+.tarjeta-contenido {
+  flex: 1;
+}
+
+.tarjeta-imagen {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+/* ============================================
+   Responsive: en pantallas chicas, la navbar
+   se acomoda en columna
+   ============================================ */
+@media (max-width: 640px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .navbar .links {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+}

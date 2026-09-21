@@ -1,4 +1,3 @@
-# app/models/producto.py
 from dataclasses import dataclass
 
 

@@ -1,4 +1,3 @@
-# app/models/categoria.py
 from dataclasses import dataclass
 
 
