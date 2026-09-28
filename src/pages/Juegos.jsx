@@ -1,10 +1,71 @@
-import { useState } from "react";
-import { juegos, categorias } from "../data/juegos.js";
+import { useEffect, useState } from "react";
+import {
+  listarJuegos,
+  listarCategorias,
+  crearJuego,
+  actualizarJuego,
+  eliminarJuego,
+} from "../api/api.js";
 import TarjetaJuego from "../components/TarjetaJuego.jsx";
+import FormularioJuego from "../components/FormularioJuego.jsx";
 
 const JUEGOS_POR_PAGINA = 6;
 
 function Juegos() {
+  // Datos que vienen de la API (base de datos en Render).
+  const [juegos, setJuegos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState("");
+
+  // Formulario: null = cerrado, "nuevo" = crear, o el juego que se está editando.
+  const [formulario, setFormulario] = useState(null);
+
+  async function cargarDatos() {
+    setErrorCarga("");
+    try {
+      const [listaJuegos, listaCategorias] = await Promise.all([
+        listarJuegos(),
+        listarCategorias(),
+      ]);
+      setJuegos(listaJuegos);
+      setCategorias(listaCategorias);
+    } catch (e) {
+      setErrorCarga(e.message);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  // Se ejecuta una sola vez, cuando la página aparece en pantalla.
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  // CREATE y UPDATE: si hay un juego en edición usamos PUT, si no POST.
+  async function guardarJuego(datos) {
+    if (formulario === "nuevo") {
+      await crearJuego(datos);
+    } else {
+      await actualizarJuego(formulario.id, datos);
+    }
+    setFormulario(null);
+    await cargarDatos(); // volvemos a pedir la lista para ver el cambio
+  }
+
+  // DELETE
+  async function borrarJuego(juego) {
+    if (!window.confirm(`¿Eliminar "${juego.titulo}"? No se puede deshacer.`)) {
+      return;
+    }
+    try {
+      await eliminarJuego(juego.id);
+      await cargarDatos();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
   // Guardamos en variables de estado lo que el usuario va eligiendo:
   // qué escribió en el buscador, qué categoría eligió, y en qué
   // página del listado está parado.
@@ -16,12 +77,12 @@ function Juegos() {
   // Esto se vuelve a calcular cada vez que cambia busqueda,
   // categoriaElegida o la lista de juegos.
   const juegosFiltrados = juegos.filter((juego) => {
-    const coincideNombre = juego.nombre
+    const coincideNombre = juego.titulo
       .toLowerCase()
       .includes(busqueda.toLowerCase());
 
     const coincideCategoria =
-      categoriaElegida === "Todas" || juego.categoria === categoriaElegida;
+      categoriaElegida === "Todas" || juego.categoria.nombre === categoriaElegida;
 
     return coincideNombre && coincideCategoria;
   });
@@ -72,19 +133,55 @@ function Juegos() {
         >
           <option value="Todas">Todas las categorías</option>
           {categorias.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
+            <option key={cat.id} value={cat.nombre}>
+              {cat.nombre}
             </option>
           ))}
         </select>
       </div>
 
-      {juegosDeEstaPagina.length === 0 ? (
+      {formulario === null ? (
+        <button
+          className="boton"
+          style={{ width: "auto", marginBottom: 22 }}
+          onClick={() => setFormulario("nuevo")}
+        >
+          Agregar juego
+        </button>
+      ) : (
+        <FormularioJuego
+          key={formulario === "nuevo" ? "nuevo" : formulario.id}
+          juego={formulario === "nuevo" ? null : formulario}
+          categorias={categorias}
+          onGuardar={guardarJuego}
+          onCancelar={() => setFormulario(null)}
+        />
+      )}
+
+      {cargando ? (
+        <p>Cargando juegos... la primera vez puede tardar hasta un minuto.</p>
+      ) : errorCarga ? (
+        <div>
+          <span className="error">{errorCarga}</span>
+          <button
+            className="boton"
+            style={{ width: "auto", marginTop: 12 }}
+            onClick={cargarDatos}
+          >
+            Reintentar
+          </button>
+        </div>
+      ) : juegosDeEstaPagina.length === 0 ? (
         <p>No encontramos juegos con ese filtro.</p>
       ) : (
         <div className="grilla-juegos">
           {juegosDeEstaPagina.map((juego) => (
-            <TarjetaJuego juego={juego} key={juego.id} />
+            <TarjetaJuego
+              juego={juego}
+              key={juego.id}
+              onEditar={setFormulario}
+              onEliminar={borrarJuego}
+            />
           ))}
         </div>
       )}
