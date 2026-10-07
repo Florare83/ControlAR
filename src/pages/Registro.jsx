@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { registrarUsuario } from "../api/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
-function Login() {
+function Registro() {
+  const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [contrasena, setContrasena] = useState("");
-  const [recordarme, setRecordarme] = useState(false);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
   const { login } = useAuth();
@@ -16,7 +17,8 @@ function Login() {
     setError("");
     setEnviando(true);
     try {
-      await login(email, contrasena, recordarme);
+      await registrarUsuario({ nombre, email, contrasena });
+      await login(email, contrasena, false); // entra directo después de registrarse
       navegar("/juegos");
     } catch (e) {
       setError(e.message);
@@ -28,10 +30,20 @@ function Login() {
   return (
     <div className="pagina">
       <div className="tarjeta tarjeta-central">
-        <h2>Iniciar sesión</h2>
-        <p className="subtitulo">Bienvenido Equipo</p>
+        <h2>Crear cuenta</h2>
 
         <form className="formulario" onSubmit={manejarEnvio}>
+          <div className="campo" style={{ textAlign: "left" }}>
+            <label htmlFor="nombre">Nombre</label>
+            <input
+              id="nombre"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              required
+              minLength={2}
+            />
+          </div>
+
           <div className="campo" style={{ textAlign: "left" }}>
             <label htmlFor="email">Correo electrónico</label>
             <input
@@ -44,50 +56,30 @@ function Login() {
           </div>
 
           <div className="campo" style={{ textAlign: "left" }}>
-            <label htmlFor="contrasena">Contraseña</label>
+            <label htmlFor="contrasena">Contraseña (mínimo 8 caracteres)</label>
             <input
               id="contrasena"
               type="password"
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
               required
+              minLength={8}
             />
-          </div>
-
-          <div
-            className="campo"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: 13,
-            }}
-          >
-            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={recordarme}
-                onChange={(e) => setRecordarme(e.target.checked)}
-                style={{ width: "auto" }}
-              />
-              Recordarme
-            </label>
-            <a href="#">¿Olvidaste tu contraseña?</a>
           </div>
 
           {error && <span className="error">{error}</span>}
 
           <button type="submit" className="boton" disabled={enviando}>
-            {enviando ? "Ingresando..." : "Iniciar sesión"}
+            {enviando ? "Creando..." : "Crear cuenta"}
           </button>
         </form>
 
         <p style={{ marginTop: 16, fontSize: 13 }}>
-          ¿No tenés cuenta? <Link to="/registro">Crear cuenta</Link>
+          ¿Ya tenés cuenta? <Link to="/login">Iniciar sesión</Link>
         </p>
       </div>
     </div>
   );
 }
 
-export default Login;
+export default Registro;

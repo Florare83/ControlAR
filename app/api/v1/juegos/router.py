@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.db import get_db
-from . import repository as repo
+from app.api.v1.auth.dependencies import require_admin
+from ....core import repository as repo
 from .schemas import JuegoCreate, JuegoUpdate, JuegoResponse
 
 router = APIRouter(prefix="/juegos", tags=["Juegos"])
@@ -23,7 +24,7 @@ def obtener(juego_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=JuegoResponse, status_code=201)
-def crear(datos: JuegoCreate, db: Session = Depends(get_db)):
+def crear(datos: JuegoCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
     ok, error = repo.ensure_categoria(db, datos.categoria_id)
     if not ok:
         raise HTTPException(status_code=400, detail=error)
@@ -31,7 +32,9 @@ def crear(datos: JuegoCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{juego_id}", response_model=JuegoResponse)
-def actualizar(juego_id: int, datos: JuegoUpdate, db: Session = Depends(get_db)):
+def actualizar(
+    juego_id: int, datos: JuegoUpdate, db: Session = Depends(get_db), _=Depends(require_admin)
+):
     if datos.categoria_id is not None:
         ok, error = repo.ensure_categoria(db, datos.categoria_id)
         if not ok:
@@ -44,7 +47,7 @@ def actualizar(juego_id: int, datos: JuegoUpdate, db: Session = Depends(get_db))
 
 
 @router.delete("/{juego_id}", status_code=204)
-def eliminar(juego_id: int, db: Session = Depends(get_db)):
+def eliminar(juego_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
     eliminado = repo.delete(db, juego_id)
     if not eliminado:
         raise HTTPException(status_code=404, detail="Juego no encontrado")
