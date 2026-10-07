@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.api.v1.auth.dependencies import require_admin
-from ....core import repository as repo
+from . import repository as repo
 from .schemas import JuegoCreate, JuegoUpdate, JuegoResponse
 
 router = APIRouter(prefix="/juegos", tags=["Juegos"])
