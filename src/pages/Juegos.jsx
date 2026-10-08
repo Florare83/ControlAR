@@ -6,12 +6,16 @@ import {
   actualizarJuego,
   eliminarJuego,
 } from "../api/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import TarjetaJuego from "../components/TarjetaJuego.jsx";
 import FormularioJuego from "../components/FormularioJuego.jsx";
 
 const JUEGOS_POR_PAGINA = 6;
 
 function Juegos() {
+  const { usuario } = useAuth();
+  const esAdmin = Boolean(usuario?.es_admin);
+
   // Datos que vienen de la API (base de datos en Render).
   const [juegos, setJuegos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -140,7 +144,7 @@ function Juegos() {
         </select>
       </div>
 
-      {formulario === null ? (
+      {!esAdmin ? null : formulario === null ? (
         <button
           className="boton"
           style={{ width: "auto", marginBottom: 22 }}
@@ -179,6 +183,7 @@ function Juegos() {
             <TarjetaJuego
               juego={juego}
               key={juego.id}
+              esAdmin={esAdmin}
               onEditar={setFormulario}
               onEliminar={borrarJuego}
             />

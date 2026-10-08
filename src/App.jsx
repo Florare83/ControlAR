@@ -7,6 +7,7 @@ import Club from "./pages/Club.jsx";
 import Juegos from "./pages/Juegos.jsx";
 import Contacto from "./pages/Contacto.jsx";
 import Login from "./pages/Login.jsx";
+import Registro from "./pages/Registro.jsx";
 
 function App() {
   // El modo oscuro vive acá (en App) porque el botón para
@@ -33,6 +34,7 @@ function App() {
         <Route path="/juegos" element={<Juegos />} />
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/registro" element={<Registro />} />
       </Routes>
     </>
   );

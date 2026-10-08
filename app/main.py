@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.auth.router import router as auth_router
 from app.api.v1.categorias import router as categorias_router
 from app.api.v1.juegos.router import router as juegos_router
 
@@ -32,5 +33,6 @@ def read_root():
     return {"Bienvenido a la API de Juegos"}
 
 
+app.include_router(auth_router)
 app.include_router(juegos_router)
 app.include_router(categorias_router)

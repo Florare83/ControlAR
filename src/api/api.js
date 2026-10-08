@@ -7,12 +7,35 @@ const API_URL = (
   import.meta.env.VITE_API_URL ?? "http://localhost:8000"
 ).replace(/\/$/, "");
 
+// El token JWT se guarda en localStorage ("recordarme") o sessionStorage
+// (se borra al cerrar la pestaña). Lo leemos de los dos lugares.
+const CLAVE_TOKEN = "controlar_token";
+
+export function obtenerToken() {
+  return localStorage.getItem(CLAVE_TOKEN) ?? sessionStorage.getItem(CLAVE_TOKEN);
+}
+
+export function guardarToken(token, recordar) {
+  borrarToken();
+  (recordar ? localStorage : sessionStorage).setItem(CLAVE_TOKEN, token);
+}
+
+export function borrarToken() {
+  localStorage.removeItem(CLAVE_TOKEN);
+  sessionStorage.removeItem(CLAVE_TOKEN);
+}
+
 async function pedir(ruta, opciones = {}) {
   let respuesta;
+  const token = obtenerToken();
   try {
     respuesta = await fetch(`${API_URL}${ruta}`, {
-      headers: { "Content-Type": "application/json" },
       ...opciones,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...opciones.headers,
+      },
     });
   } catch {
     throw new Error("No se pudo conectar con el servidor. Probá de nuevo en unos segundos.");
@@ -53,3 +76,18 @@ export const actualizarJuego = (id, datos) =>
 export const eliminarJuego = (id) => pedir(`/juegos/${id}`, { method: "DELETE" });
 
 export const listarCategorias = () => pedir("/categorias/");
+// --- Autenticación ---
+
+// FastAPI espera el login como formulario (OAuth2): el campo se llama
+// "username" pero acá le mandamos el correo electrónico.
+export const iniciarSesion = (email, contrasena) =>
+  pedir("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ username: email, password: contrasena }),
+  });
+
+export const registrarUsuario = (datos) =>
+  pedir("/auth/register", { method: "POST", body: JSON.stringify(datos) });
+
+export const obtenerPerfil = () => pedir("/auth/me");

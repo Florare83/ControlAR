@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 import logo from "../img/logo.png"
 
 // NavLink es como un <a>, pero React Router le agrega
@@ -6,6 +7,14 @@ import logo from "../img/logo.png"
 // en esa página. Por eso la usamos en vez de <Link> acá.
 
 function Navbar({ modoOscuro, onCambiarTema }) {
+  const { usuario, logout } = useAuth();
+  const navegar = useNavigate();
+
+  function cerrarSesion() {
+    logout();
+    navegar("/login");
+  }
+
   return (
     <nav className="navbar">
       
@@ -54,9 +63,15 @@ function Navbar({ modoOscuro, onCambiarTema }) {
           </button>
         </li>
         <li>
-          <NavLink to="/login" className="btn-login">
-            Iniciar sesión
-          </NavLink>
+          {usuario ? (
+            <button className="btn-login" onClick={cerrarSesion}>
+              Cerrar sesión ({usuario.nombre})
+            </button>
+          ) : (
+            <NavLink to="/login" className="btn-login">
+              Iniciar sesión
+            </NavLink>
+          )}
         </li>
       </ul>
     </nav>

@@ -4,7 +4,7 @@ import { imagenDeJuego } from "../api/imagenes.js";
 // duracion_minutos, stock, categoria: {id, nombre}...) y lo muestra.
 // Los botones Editar / Eliminar avisan a la página con onEditar / onEliminar.
 
-function TarjetaJuego({ juego, onEditar, onEliminar }) {
+function TarjetaJuego({ juego, esAdmin, onEditar, onEliminar }) {
   const disponible = juego.stock > 0;
 
   return (
@@ -38,6 +38,7 @@ function TarjetaJuego({ juego, onEditar, onEliminar }) {
         {disponible ? "Solicitar préstamo" : "No disponible"}
       </button>
 
+      {esAdmin && (
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button className="boton" onClick={() => onEditar(juego)}>
           Editar
@@ -50,6 +51,7 @@ function TarjetaJuego({ juego, onEditar, onEliminar }) {
           Eliminar
         </button>
       </div>
+      )}
     </div>
   );
 }
