@@ -34,9 +34,10 @@ function TarjetaJuego({ juego, esAdmin, onEditar, onEliminar }) {
 
       <p className="precio">${juego.precio.toFixed(2)}</p>
 
-      <button className="boton" disabled={!disponible}>
-        {disponible ? "Solicitar préstamo" : "No disponible"}
-      </button>
+      <p className="detalle" aria-label="Disponibilidad del juego">
+        <span>Estado</span>
+        <span>{disponible ? "Disponible para préstamo" : "No disponible"}</span>
+      </p>
 
       {esAdmin && (
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>

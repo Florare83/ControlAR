@@ -8,8 +8,11 @@ import Juegos from "./pages/Juegos.jsx";
 import Contacto from "./pages/Contacto.jsx";
 import Login from "./pages/Login.jsx";
 import Registro from "./pages/Registro.jsx";
+import Prestamos from "./pages/Prestamos.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
 
 function App() {
+  const { usuario, cargando } = useAuth();
   // El modo oscuro vive acá (en App) porque el botón para
   // cambiarlo está en la Navbar, pero el efecto (agregar la
   // clase "oscuro" al body) afecta a toda la página.
@@ -35,6 +38,10 @@ function App() {
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
+        <Route
+          path="/prestamos"
+          element={cargando ? <p className="pagina">Verificando sesión...</p> : usuario?.es_admin ? <Prestamos /> : <Navigate to={usuario ? "/juegos" : "/login"} replace />}
+        />
       </Routes>
     </>
   );

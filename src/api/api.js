@@ -1,85 +1,80 @@
-// Todas las llamadas al backend viven acá. Las páginas y componentes
-// no usan fetch directamente: usan estas funciones.
+// src/api/api.js
+// Todas las llamadas al backend de ControlAR se centralizan en este archivo.
 
-// En desarrollo la URL sale de .env.development; en Render, de la
-// variable de entorno VITE_API_URL del Static Site.
-const API_URL = (
-  import.meta.env.VITE_API_URL ?? "http://localhost:8000"
-).replace(/\/$/, "");
-
-// El token JWT se guarda en localStorage ("recordarme") o sessionStorage
-// (se borra al cerrar la pestaña). Lo leemos de los dos lugares.
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
 const CLAVE_TOKEN = "controlar_token";
 
 export function obtenerToken() {
-  return localStorage.getItem(CLAVE_TOKEN) ?? sessionStorage.getItem(CLAVE_TOKEN);
+  try {
+    return window.localStorage.getItem(CLAVE_TOKEN) || window.sessionStorage.getItem(CLAVE_TOKEN);
+  } catch {
+    return null;
+  }
 }
 
-export function guardarToken(token, recordar) {
+export function guardarToken(token, recordar = false) {
   borrarToken();
-  (recordar ? localStorage : sessionStorage).setItem(CLAVE_TOKEN, token);
+  const almacenamiento = recordar ? window.localStorage : window.sessionStorage;
+  almacenamiento.setItem(CLAVE_TOKEN, token);
 }
 
 export function borrarToken() {
-  localStorage.removeItem(CLAVE_TOKEN);
-  sessionStorage.removeItem(CLAVE_TOKEN);
+  try {
+    window.localStorage.removeItem(CLAVE_TOKEN);
+    window.sessionStorage.removeItem(CLAVE_TOKEN);
+  } catch {
+    // No hacemos nada si el navegador bloquea el almacenamiento.
+  }
 }
 
 async function pedir(ruta, opciones = {}) {
-  let respuesta;
   const token = obtenerToken();
+  const headers = new Headers(opciones.headers || {});
+
+  // No forzar JSON para formularios URL-encoded (inicio de sesión).
+  if (opciones.body && !(opciones.body instanceof URLSearchParams) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  let respuesta;
   try {
-    respuesta = await fetch(`${API_URL}${ruta}`, {
-      ...opciones,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...opciones.headers,
-      },
-    });
+    respuesta = await fetch(`${API_URL}${ruta}`, { ...opciones, headers });
   } catch {
-    throw new Error("No se pudo conectar con el servidor. Probá de nuevo en unos segundos.");
+    throw new Error(`No se pudo conectar con la API (${API_URL}). Verificá que el backend esté funcionando y que VITE_API_URL sea correcta.`);
   }
 
   if (!respuesta.ok) {
-    let mensaje = `Error ${respuesta.status}`;
+    let mensaje = `Error ${respuesta.status}: ${respuesta.statusText || "No se pudo completar la operación"}`;
     try {
       const cuerpo = await respuesta.json();
       if (typeof cuerpo.detail === "string") {
-        mensaje = cuerpo.detail; // errores 400 / 404 de la API
+        mensaje = cuerpo.detail;
       } else if (Array.isArray(cuerpo.detail)) {
-        // errores 422 de validación (Pydantic)
         mensaje = cuerpo.detail
-          .map((d) => `${d.loc[d.loc.length - 1]}: ${d.msg}`)
+          .map((item) => `${Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : "Campo"}: ${item.msg}`)
           .join("; ");
       }
     } catch {
-      // la respuesta no traía JSON: dejamos el mensaje genérico
+      // La respuesta no contiene JSON; usamos el mensaje HTTP.
     }
     throw new Error(mensaje);
   }
 
-  if (respuesta.status === 204) return null; // DELETE no devuelve cuerpo
-  return respuesta.json();
+  if (respuesta.status === 204) return null;
+  if (respuesta.status === 205) return null;
+  const texto = await respuesta.text();
+  return texto ? JSON.parse(texto) : null;
 }
 
-// OJO: la ruta lleva "/" al final ("/juegos/") porque así está definida
-// en FastAPI. Sin esa barra, el servidor redirige y en Render puede fallar.
+// Juegos y categorías. La API del proyecto usa estas rutas.
 export const listarJuegos = () => pedir("/juegos/");
-
-export const crearJuego = (datos) =>
-  pedir("/juegos/", { method: "POST", body: JSON.stringify(datos) });
-
-export const actualizarJuego = (id, datos) =>
-  pedir(`/juegos/${id}`, { method: "PUT", body: JSON.stringify(datos) });
-
+export const crearJuego = (datos) => pedir("/juegos/", { method: "POST", body: JSON.stringify(datos) });
+export const actualizarJuego = (id, datos) => pedir(`/juegos/${id}`, { method: "PUT", body: JSON.stringify(datos) });
 export const eliminarJuego = (id) => pedir(`/juegos/${id}`, { method: "DELETE" });
-
 export const listarCategorias = () => pedir("/categorias/");
-// --- Autenticación ---
 
-// FastAPI espera el login como formulario (OAuth2): el campo se llama
-// "username" pero acá le mandamos el correo electrónico.
+// Autenticación. FastAPI recibe el login como formulario OAuth2.
 export const iniciarSesion = (email, contrasena) =>
   pedir("/auth/login", {
     method: "POST",
@@ -91,3 +86,13 @@ export const registrarUsuario = (datos) =>
   pedir("/auth/register", { method: "POST", body: JSON.stringify(datos) });
 
 export const obtenerPerfil = () => pedir("/auth/me");
+
+// Préstamos. El backend debe validar que el usuario sea administrador.
+export const listarPrestamos = () => pedir("/prestamos/");
+export const crearPrestamo = (datos) =>
+  pedir("/prestamos/", { method: "POST", body: JSON.stringify(datos) });
+export const actualizarDevolucion = (id, devuelto) =>
+  pedir(`/prestamos/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ devuelto }),
+  });

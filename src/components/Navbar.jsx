@@ -49,6 +49,16 @@ function Navbar({ modoOscuro, onCambiarTema }) {
             JUEGOS
           </NavLink>
         </li>
+        {usuario?.es_admin && (
+          <li>
+            <NavLink
+              to="/prestamos"
+              className={({ isActive }) => (isActive ? "activo" : "")}
+            >
+              PRÉSTAMOS
+            </NavLink>
+          </li>
+        )}
         <li>
           <NavLink
             to="/contacto"
@@ -68,9 +78,14 @@ function Navbar({ modoOscuro, onCambiarTema }) {
               Cerrar sesión ({usuario.nombre})
             </button>
           ) : (
-            <NavLink to="/login" className="btn-login">
-              Iniciar sesión
-            </NavLink>
+            <>
+              <NavLink to="/login" className="btn-login">
+                Iniciar sesión
+              </NavLink>
+              <NavLink to="/registro" className="btn-login">
+                Registrarse
+              </NavLink>
+            </>
           )}
         </li>
       </ul>

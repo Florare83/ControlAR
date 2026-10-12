@@ -21,6 +21,7 @@ function Juegos() {
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
   // Formulario: null = cerrado, "nuevo" = crear, o el juego que se está editando.
   const [formulario, setFormulario] = useState(null);
@@ -48,13 +49,19 @@ function Juegos() {
 
   // CREATE y UPDATE: si hay un juego en edición usamos PUT, si no POST.
   async function guardarJuego(datos) {
-    if (formulario === "nuevo") {
+    const esNuevo = formulario === "nuevo";
+    if (esNuevo) {
       await crearJuego(datos);
     } else {
       await actualizarJuego(formulario.id, datos);
     }
     setFormulario(null);
-    await cargarDatos(); // volvemos a pedir la lista para ver el cambio
+    setPagina(1);
+    setBusqueda("");
+    setCategoriaElegida("Todas");
+    await cargarDatos(); // actualizamos la lista después de guardar
+    setMensaje(esNuevo ? "Juego creado" : "Juego editado");
+    window.setTimeout(() => setMensaje(""), 3500);
   }
 
   // DELETE
@@ -65,6 +72,8 @@ function Juegos() {
     try {
       await eliminarJuego(juego.id);
       await cargarDatos();
+      setMensaje("Juego eliminado");
+      window.setTimeout(() => setMensaje(""), 3500);
     } catch (e) {
       alert(e.message);
     }
@@ -122,6 +131,12 @@ function Juegos() {
       <p className="subtitulo">
         Explorá los juegos que forman parte de nuestra ludoteca y/o de nuestra tienda.
       </p>
+
+      {mensaje && (
+        <div className="mensaje-exito" role="status" aria-live="polite">
+          {mensaje}
+        </div>
+      )}
 
       <div className="filtros">
         <input
