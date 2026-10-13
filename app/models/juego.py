@@ -1,4 +1,4 @@
-# app/models/juego.py
+
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.db import Base
@@ -17,5 +17,9 @@ class Juego(Base):
     stock = Column(Integer, nullable=False, default=0)
     precio = Column(Float, nullable=False)
 
+    # URL opcional de la imagen personalizada del juego.
+    imagen_url = Column(String(1000), nullable=True)
+
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
     categoria = relationship("Categoria")
+    

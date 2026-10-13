@@ -167,10 +167,7 @@ export const quitarFavorito = (juegoId) =>
   pedir(`/favoritos/${juegoId}`, { method: "DELETE" });
 
 // Cuenta
-export const cambiarContrasena = (
-  contrasenaActual,
-  contrasenaNueva
-) =>
+export const cambiarContrasena = (contrasenaActual, contrasenaNueva) =>
   pedir("/auth/cambiar-contrasena", {
     method: "POST",
     body: JSON.stringify({

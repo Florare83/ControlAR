@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -11,6 +10,8 @@ import Club from "./pages/Club.jsx";
 import Juegos from "./pages/Juegos.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
 import Cuenta from "./pages/Cuenta.jsx";
+import CambiarContrasena from "./pages/CambiarContrasena.jsx";
+import EliminarCuenta from "./pages/EliminarCuenta.jsx";
 import Contacto from "./pages/Contacto.jsx";
 import Login from "./pages/Login.jsx";
 import Registro from "./pages/Registro.jsx";
@@ -67,6 +68,24 @@ function App() {
           />
 
           <Route
+            path="/cambiar-contrasena"
+            element={
+              <RutaProtegida roles={["cliente", "admin"]}>
+                <CambiarContrasena />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="/eliminar-cuenta"
+            element={
+              <RutaProtegida roles={["cliente", "admin"]}>
+                <EliminarCuenta />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
             path="/panel"
             element={<RutaProtegida roles={["operador", "admin"]} />}
           >
@@ -78,9 +97,7 @@ function App() {
 
               <Route path="prestamos" element={<Prestamos />} />
 
-              <Route
-                element={<RutaProtegida roles={["admin"]} />}
-              >
+              <Route element={<RutaProtegida roles={["admin"]} />}>
                 <Route path="resumen" element={<PanelResumen />} />
               </Route>
             </Route>

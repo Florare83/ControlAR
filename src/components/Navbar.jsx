@@ -23,7 +23,7 @@ function Navbar({ modoOscuro, onCambiarTema }) {
     navegar("/login");
   }
 
-  function irAOpcionCuenta() {
+  function cerrarMenuCuenta() {
     setMenuCuentaAbierto(false);
   }
 
@@ -121,7 +121,7 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                     top: "100%",
                     right: 0,
                     zIndex: 1000,
-                    minWidth: 210,
+                    minWidth: 220,
                     marginTop: 8,
                     padding: 8,
                     background: "var(--fondo, #fff)",
@@ -134,18 +134,27 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   }}
                 >
                   <NavLink
-                    to="/cuenta#cambiar-contrasena"
+                    to="/cuenta"
                     className={clase}
-                    onClick={irAOpcionCuenta}
+                    onClick={cerrarMenuCuenta}
+                    style={{ padding: 10 }}
+                  >
+                    👤 Mi cuenta
+                  </NavLink>
+
+                  <NavLink
+                    to="/cambiar-contrasena"
+                    className={clase}
+                    onClick={cerrarMenuCuenta}
                     style={{ padding: 10 }}
                   >
                     🔑 Cambiar contraseña
                   </NavLink>
 
                   <NavLink
-                    to="/cuenta#eliminar-cuenta"
+                    to="/eliminar-cuenta"
                     className={clase}
-                    onClick={irAOpcionCuenta}
+                    onClick={cerrarMenuCuenta}
                     style={{ padding: 10 }}
                   >
                     🗑️ Eliminar cuenta
