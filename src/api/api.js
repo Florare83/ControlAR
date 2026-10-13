@@ -1,12 +1,16 @@
-// src/api/api.js
-// Todas las llamadas al backend de ControlAR se centralizan en este archivo.
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:8000"
+).replace(/\/$/, "");
+
 const CLAVE_TOKEN = "controlar_token";
 
 export function obtenerToken() {
   try {
-    return window.localStorage.getItem(CLAVE_TOKEN) || window.sessionStorage.getItem(CLAVE_TOKEN);
+    return (
+      window.localStorage.getItem(CLAVE_TOKEN) ||
+      window.sessionStorage.getItem(CLAVE_TOKEN)
+    );
   } catch {
     return null;
   }
@@ -14,7 +18,11 @@ export function obtenerToken() {
 
 export function guardarToken(token, recordar = false) {
   borrarToken();
-  const almacenamiento = recordar ? window.localStorage : window.sessionStorage;
+
+  const almacenamiento = recordar
+    ? window.localStorage
+    : window.sessionStorage;
+
   almacenamiento.setItem(CLAVE_TOKEN, token);
 }
 
@@ -22,77 +30,157 @@ export function borrarToken() {
   try {
     window.localStorage.removeItem(CLAVE_TOKEN);
     window.sessionStorage.removeItem(CLAVE_TOKEN);
-  } catch {
-    // No hacemos nada si el navegador bloquea el almacenamiento.
-  }
+  } catch {}
 }
 
 async function pedir(ruta, opciones = {}) {
   const token = obtenerToken();
   const headers = new Headers(opciones.headers || {});
 
-  // No forzar JSON para formularios URL-encoded (inicio de sesión).
-  if (opciones.body && !(opciones.body instanceof URLSearchParams) && !headers.has("Content-Type")) {
+  if (
+    opciones.body &&
+    !(opciones.body instanceof URLSearchParams) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
 
   let respuesta;
+
   try {
-    respuesta = await fetch(`${API_URL}${ruta}`, { ...opciones, headers });
+    respuesta = await fetch(`${API_URL}${ruta}`, {
+      ...opciones,
+      headers,
+    });
   } catch {
-    throw new Error(`No se pudo conectar con la API (${API_URL}). Verificá que el backend esté funcionando y que VITE_API_URL sea correcta.`);
+    throw new Error(
+      `No se pudo conectar con la API (${API_URL}). ` +
+      "Verificá que el backend esté funcionando y que VITE_API_URL sea correcta."
+    );
   }
 
   if (!respuesta.ok) {
-    let mensaje = `Error ${respuesta.status}: ${respuesta.statusText || "No se pudo completar la operación"}`;
+    let mensaje =
+      `Error ${respuesta.status}: ` +
+      (respuesta.statusText || "No se pudo completar la operación");
+
     try {
       const cuerpo = await respuesta.json();
+
       if (typeof cuerpo.detail === "string") {
         mensaje = cuerpo.detail;
       } else if (Array.isArray(cuerpo.detail)) {
         mensaje = cuerpo.detail
-          .map((item) => `${Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : "Campo"}: ${item.msg}`)
+          .map(
+            (item) =>
+              `${Array.isArray(item.loc)
+                ? item.loc[item.loc.length - 1]
+                : "Campo"}: ${item.msg}`
+          )
           .join("; ");
       }
-    } catch {
-      // La respuesta no contiene JSON; usamos el mensaje HTTP.
-    }
+    } catch {}
+
     throw new Error(mensaje);
   }
 
-  if (respuesta.status === 204) return null;
-  if (respuesta.status === 205) return null;
+  if (respuesta.status === 204 || respuesta.status === 205) {
+    return null;
+  }
+
   const texto = await respuesta.text();
   return texto ? JSON.parse(texto) : null;
 }
 
-// Juegos y categorías. La API del proyecto usa estas rutas.
 export const listarJuegos = () => pedir("/juegos/");
-export const crearJuego = (datos) => pedir("/juegos/", { method: "POST", body: JSON.stringify(datos) });
-export const actualizarJuego = (id, datos) => pedir(`/juegos/${id}`, { method: "PUT", body: JSON.stringify(datos) });
-export const eliminarJuego = (id) => pedir(`/juegos/${id}`, { method: "DELETE" });
+
+export const crearJuego = (datos) =>
+  pedir("/juegos/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+
+export const actualizarJuego = (id, datos) =>
+  pedir(`/juegos/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(datos),
+  });
+
+export const eliminarJuego = (id) =>
+  pedir(`/juegos/${id}`, { method: "DELETE" });
+
 export const listarCategorias = () => pedir("/categorias/");
 
-// Autenticación. FastAPI recibe el login como formulario OAuth2.
 export const iniciarSesion = (email, contrasena) =>
   pedir("/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ username: email, password: contrasena }),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      username: email,
+      password: contrasena,
+    }),
   });
 
 export const registrarUsuario = (datos) =>
-  pedir("/auth/register", { method: "POST", body: JSON.stringify(datos) });
+  pedir("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
 
 export const obtenerPerfil = () => pedir("/auth/me");
 
-// Préstamos. La API solo deja usarlos a operadores y administradores.
-// estado (opcional): "activo" o "cerrado".
 export const listarPrestamos = (estado) =>
-  pedir(estado ? `/prestamos/?estado=${estado}` : "/prestamos/");
+  pedir(
+    estado ? `/prestamos/?estado=${estado}` : "/prestamos/"
+  );
+
 export const registrarPrestamo = (datos) =>
-  pedir("/prestamos/", { method: "POST", body: JSON.stringify(datos) });
+  pedir("/prestamos/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+
 export const cambiarJuegoPrestamo = (id, juegoId) =>
-  pedir(`/prestamos/${id}/juego`, { method: "PUT", body: JSON.stringify({ juego_id: juegoId }) });
-export const devolverPrestamo = (id) => pedir(`/prestamos/${id}/devolver`, { method: "POST" });
+  pedir(`/prestamos/${id}/juego`, {
+    method: "PUT",
+    body: JSON.stringify({ juego_id: juegoId }),
+  });
+
+export const devolverPrestamo = (id) =>
+  pedir(`/prestamos/${id}/devolver`, {
+    method: "POST",
+  });
+
+// Favoritos
+export const listarFavoritos = () => pedir("/favoritos/");
+
+export const agregarFavorito = (juegoId) =>
+  pedir(`/favoritos/${juegoId}`, { method: "POST" });
+
+export const quitarFavorito = (juegoId) =>
+  pedir(`/favoritos/${juegoId}`, { method: "DELETE" });
+
+// Cuenta
+export const cambiarContrasena = (
+  contrasenaActual,
+  contrasenaNueva
+) =>
+  pedir("/auth/cambiar-contrasena", {
+    method: "POST",
+    body: JSON.stringify({
+      contrasena_actual: contrasenaActual,
+      contrasena_nueva: contrasenaNueva,
+    }),
+  });
+
+export const eliminarCuenta = (contrasena) =>
+  pedir("/auth/me", {
+    method: "DELETE",
+    body: JSON.stringify({ contrasena }),
+  });

@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
+
 import {
   listarJuegos,
   listarCategorias,
   crearJuego,
   actualizarJuego,
   eliminarJuego,
+  listarFavoritos,
+  agregarFavorito,
+  quitarFavorito,
 } from "../api/api.js";
+
+
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import TarjetaJuego from "../components/TarjetaJuego.jsx";
@@ -16,7 +22,7 @@ const JUEGOS_POR_PAGINA = 6;
 function Juegos() {
   // Cualquiera (con o sin cuenta) ve el catálogo. El alta, edición y baja de juegos
   // (el "CRUD") solo se muestran si el usuario logueado es administrador.
-  const { esAdmin } = useAuth();
+  const { esAdmin, usuario } = useAuth();
   const toast = useToast();
 
   // Datos que vienen de la API (base de datos en Render).
@@ -24,6 +30,8 @@ function Juegos() {
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState("");
+  const [favoritos, setFavoritos] = useState([]);
+  const [cargandoFavoritos, setCargandoFavoritos] = useState(false);
 
   // Formulario: null = cerrado, "nuevo" = crear, o el juego que se está editando.
   const [formulario, setFormulario] = useState(null);
@@ -53,6 +61,78 @@ function Juegos() {
   useEffect(() => {
     cargarDatos();
   }, []);
+
+
+// Cargar los favoritos del usuario que inició sesión.
+useEffect(() => {
+  let activo = true;
+
+  async function cargarFavoritosUsuario() {
+    if (!usuario) {
+      setFavoritos([]);
+      setCargandoFavoritos(false);
+      return;
+    }
+
+    setCargandoFavoritos(true);
+
+    try {
+      const ids = await listarFavoritos();
+
+      if (activo) {
+        setFavoritos(ids);
+      }
+    } catch (error) {
+      if (activo) {
+        setFavoritos([]);
+        toast.error(
+          "No se pudieron cargar los favoritos: " + error.message
+        );
+      }
+    } finally {
+      if (activo) {
+        setCargandoFavoritos(false);
+      }
+    }
+  }
+
+  cargarFavoritosUsuario();
+
+  return () => {
+    activo = false;
+  };
+}, [usuario]);
+
+
+
+// Agregar o quitar un juego de favoritos.
+async function alternarFavorito(juego) {
+  if (!usuario) {
+    toast.error("Iniciá sesión para guardar tus juegos favoritos.");
+    return;
+  }
+
+  const yaEsFavorito = favoritos.includes(juego.id);
+
+  try {
+    if (yaEsFavorito) {
+      await quitarFavorito(juego.id);
+      setFavoritos((actuales) =>
+        actuales.filter((id) => id !== juego.id)
+      );
+      toast.exito("Juego quitado de favoritos.");
+    } else {
+      await agregarFavorito(juego.id);
+      setFavoritos((actuales) =>
+        [...actuales, juego.id]
+      );
+      toast.exito("Juego agregado a favoritos.");
+    }
+  } catch (error) {
+    toast.error(error.message);
+  }
+}
+
 
   // CREATE y UPDATE: si hay un juego en edición usamos PUT, si no POST.
   // Si la API falla, el error vuelve al formulario (que lo muestra); acá solo avisamos si salió bien.
@@ -192,13 +272,18 @@ function Juegos() {
       ) : (
         <div className="grilla-juegos">
           {juegosDeEstaPagina.map((juego) => (
-            <TarjetaJuego
-              juego={juego}
-              key={juego.id}
-              esAdmin={esAdmin}
-              onEditar={setFormulario}
-              onEliminar={borrarJuego}
-            />
+
+        <TarjetaJuego
+          juego={juego}
+          key={juego.id}
+          esAdmin={esAdmin}
+          esFavorito={favoritos.includes(juego.id)}
+          cargandoFavoritos={cargandoFavoritos}
+          onToggleFavorito={() => alternarFavorito(juego)}
+          onEditar={setFormulario}
+          onEliminar={borrarJuego}
+        />
+
           ))}
         </div>
       )}
