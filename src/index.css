@@ -1,6 +1,6 @@
+
 /* ============================================
    Variables de color y fuente
-   Cambiar acá adentro cambia el look de toda la app.
    ============================================ */
 :root {
   --azul-marino: #161c3f;
@@ -42,7 +42,6 @@ a {
   padding: 14px 32px;
 }
 
-
 .navbar .marca {
   font-weight: 700;
   font-size: 35px;
@@ -77,11 +76,40 @@ a {
   font-weight: 600;
 }
 
+.navbar .marca-contenedor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+}
+
+.navbar .acciones-sesion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar .btn-registro {
+  background: transparent;
+  color: #ffffff;
+  padding: 7px 16px;
+  border: 1px solid #ffffff;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.navbar .carrito-indicador {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* ============================================
    Layout general de página
    ============================================ */
 .pagina {
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 32px 24px 60px;
 }
@@ -102,7 +130,7 @@ a {
 }
 
 /* ============================================
-   Tarjetas (juegos, eventos, etc.)
+   Tarjetas generales
    ============================================ */
 .tarjeta {
   background: var(--blanco);
@@ -111,13 +139,47 @@ a {
   padding: 16px;
 }
 
-.grilla-juegos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 18px;
+.tarjeta-contenido {
+  flex: 1;
 }
 
+.tarjeta-imagen {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+/* ============================================
+   Cuadrícula del catálogo de juegos
+   5 tarjetas por fila en pantallas grandes
+   ============================================ */
+.grilla-juegos {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+  grid-auto-flow: row;
+}
+
+.grilla-juegos > * {
+  min-width: 0;
+}
+
+/* Las tarjetas del catálogo apilan su contenido */
+.tarjeta.tarjeta-juego {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Imágenes de los juegos */
 .tarjeta-juego img {
+  display: block;
   width: 100%;
   border-radius: 8px;
   aspect-ratio: 4 / 3;
@@ -128,6 +190,7 @@ a {
 .tarjeta-juego h3 {
   margin: 0 0 6px;
   font-size: 16px;
+  overflow-wrap: anywhere;
 }
 
 .tarjeta-juego .detalle {
@@ -135,13 +198,29 @@ a {
   color: var(--texto-suave);
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 4px;
+}
+
+.tarjeta-juego .detalle span:last-child {
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .tarjeta-juego .precio {
   font-weight: 700;
   font-size: 15px;
   margin: 8px 0;
+}
+
+/* ============================================
+   Etiquetas del catálogo
+   ============================================ */
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .etiqueta {
@@ -152,6 +231,10 @@ a {
   margin-bottom: 8px;
 }
 
+.etiquetas .etiqueta {
+  margin-bottom: 0;
+}
+
 .etiqueta.disponible {
   background: #e5f6ec;
   color: var(--exito);
@@ -160,6 +243,11 @@ a {
 .etiqueta.no-disponible {
   background: #fbe9e7;
   color: var(--alerta);
+}
+
+.etiqueta.neutra {
+  background: var(--borde);
+  color: var(--texto-suave);
 }
 
 /* ============================================
@@ -212,10 +300,10 @@ a {
 }
 
 /* ============================================
-   Formularios (contacto, login)
+   Formularios
    ============================================ */
 .formulario {
-  max-width: 500px;     /* Ancho máximo cómodo para el formulario */
+  max-width: 500px;
   margin: 0 auto;
 }
 
@@ -240,12 +328,41 @@ a {
   font-family: inherit;
 }
 
+.campo select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.campo [aria-invalid="true"] {
+  border-color: #e63946;
+}
+
 .campo textarea {
   resize: vertical;
   min-height: 90px;
 }
 
-/* Tarjeta centrada, usada en el login */
+.ayuda {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+.error {
+  color: #e63946;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ============================================
+   Login y registro
+   ============================================ */
 .tarjeta-central {
   max-width: 380px;
   margin: 40px auto 0;
@@ -260,8 +377,50 @@ a {
   margin-bottom: 20px;
 }
 
+.tarjeta.tarjeta-central {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  padding: 32px 36px;
+  margin: 40px auto 0;
+}
+
+.tarjeta-central .titulo-tarjeta {
+  font-size: 24px;
+  margin: 0 0 4px;
+}
+
+.tarjeta-central .formulario {
+  max-width: none;
+  width: 100%;
+}
+
+.tarjeta-central .error {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.tarjeta.tarjeta-columna {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
 /* ============================================
-   Acordeón de preguntas frecuentes (Nosotros)
+   Imágenes de contenido
+   ============================================ */
+.contenedor-imagen img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 800px;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================
+   Acordeón de preguntas frecuentes
    ============================================ */
 .acordeon-item {
   border-bottom: 1px solid var(--borde);
@@ -290,7 +449,6 @@ a {
 
 /* ============================================
    Modo oscuro / claro
-   Se activa agregando la clase "oscuro" al <body>
    ============================================ */
 body.oscuro {
   --fondo: #14181a;
@@ -310,93 +468,9 @@ body.oscuro {
   cursor: pointer;
 }
 
-
 /* ============================================
-   EXTRAS
+   Avisos
    ============================================ */
-.error {
-  color: #e63946;
-  font-size: 0.85rem;
-  margin-top: 4px;
-  display: block;
-}
-
-.contenedor-imagen img {
-  display: block;    /* Hace que la imagen ocupe todo el ancho disponible */
-  margin-left: auto;  /* Centra horizontalmente */
-  margin-right: auto;
-
-  /* Opcional: para que no se vea gigante */
-  
-  width: 800px;
-  max-width: 100%;   /* Evita que se salga del contenedor */
-  height: auto;       /* Mantiene la proporción */
-}
-
-.tarjeta {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--borde, #ccc);
-  border-radius: 8px;
-}
-
-.tarjeta-contenido {
-  flex: 1;
-}
-
-.tarjeta-imagen {
-  width: 180px;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-/* ============================================
-   Responsive: en pantallas chicas, la navbar
-   se acomoda en columna
-   ============================================ */
-@media (max-width: 640px) {
-  .navbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .navbar .links {
-    flex-wrap: wrap;
-    gap: 14px;
-  }
-}
-
-/* Las tarjetas del catálogo deben apilar su contenido y ocupar una celda propia. */
-.grilla-juegos {
-  align-items: stretch;
-  grid-auto-flow: row;
-}
-
-.grilla-juegos > * {
-  min-width: 0;
-}
-
-.tarjeta.tarjeta-juego {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  min-width: 0;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.tarjeta-juego .detalle span:last-child {
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-
 .mensaje-exito {
   margin: 0 0 18px;
   padding: 12px 16px;
@@ -407,87 +481,9 @@ body.oscuro {
   font-weight: 600;
 }
 
-
-/* ---------- Barra de navegación: marca pegada al logo y botones separados ---------- */
-.navbar .marca-contenedor {
-  display: flex;
-  align-items: center;
-  gap: 8px;            /* distancia entre el logo y el texto */
-  color: #ffffff;
-}
-
-.navbar .acciones-sesion {
-  display: flex;
-  align-items: center;
-  gap: 12px;           /* distancia entre "Iniciar sesión" y "Registrarse" */
-}
-
-.navbar .btn-registro {
-  background: transparent;
-  color: #ffffff;
-  padding: 7px 16px;
-  border: 1px solid #ffffff;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 1;
-}
-
-.navbar .carrito-indicador {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* ---------- Iniciar sesión y Registrarse: tarjeta más ancha, el contenido no se sale ---------- */
-.tarjeta.tarjeta-central {
-  display: block;        /* la regla general de .tarjeta la ponía en fila y desbordaba */
-  width: 100%;
-  max-width: 480px;
-  padding: 32px 36px;
-  margin: 40px auto 0;
-}
-
-.tarjeta-central .titulo-tarjeta {
-  font-size: 24px;
-  margin: 0 0 4px;
-}
-
-.tarjeta-central .formulario {
-  max-width: none;
-  width: 100%;
-}
-
-.tarjeta-central .error {
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-
-/* Tarjeta que apila su contenido en columna (formularios y paneles) */
-.tarjeta.tarjeta-columna {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-}
-
-/* ---------- Etiquetas del catálogo ---------- */
-.etiquetas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.etiquetas .etiqueta {
-  margin-bottom: 0;
-}
-
-.etiqueta.neutra {
-  background: var(--borde);
-  color: var(--texto-suave);
-}
-
-/* ---------- Avisos (toasts) ---------- */
+/* ============================================
+   Notificaciones
+   ============================================ */
 .toasts {
   position: fixed;
   right: 16px;
@@ -512,9 +508,17 @@ body.oscuro {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
-.toast-exito { background: #1f7a45; }
-.toast-error { background: #b3261e; }
-.toast-info  { background: #161c3f; }
+.toast-exito {
+  background: #1f7a45;
+}
+
+.toast-error {
+  background: #b3261e;
+}
+
+.toast-info {
+  background: #161c3f;
+}
 
 .toast-cerrar {
   background: none;
@@ -526,7 +530,9 @@ body.oscuro {
   padding: 0 2px;
 }
 
-/* ---------- Estado de carga ---------- */
+/* ============================================
+   Estado de carga
+   ============================================ */
 .cargando {
   display: flex;
   align-items: center;
@@ -545,14 +551,20 @@ body.oscuro {
 }
 
 @keyframes giro {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spinner { animation-duration: 3s; }
+  .spinner {
+    animation-duration: 3s;
+  }
 }
 
-/* ---------- Paneles (operador y administrador) ---------- */
+/* ============================================
+   Paneles de operador y administrador
+   ============================================ */
 .pagina.panel {
   display: grid;
   grid-template-columns: 220px 1fr;
@@ -612,11 +624,9 @@ body.oscuro {
   min-width: 0;
 }
 
-@media (max-width: 760px) {
-  .pagina.panel { grid-template-columns: 1fr; }
-}
-
-/* ---------- Tabla de préstamos ---------- */
+/* ============================================
+   Tabla de préstamos
+   ============================================ */
 .tabla {
   width: 100%;
   border-collapse: collapse;
@@ -645,7 +655,9 @@ body.oscuro {
   max-width: 180px;
 }
 
-/* ---------- Accesibilidad ---------- */
+/* ============================================
+   Accesibilidad
+   ============================================ */
 .solo-lectores {
   position: absolute;
   width: 1px;
@@ -683,22 +695,65 @@ main:focus {
   outline-offset: 2px;
 }
 
-.ayuda {
-  display: block;
-  margin-top: 4px;
-  font-size: 12.5px;
-  color: var(--texto-suave);
+/* ============================================
+   Responsive
+   ============================================ */
+
+/* Pantallas medianas: 3 juegos por fila */
+@media (max-width: 1000px) {
+  .grilla-juegos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pagina.panel {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
 }
 
-.campo select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  font-size: 14px;
-  font-family: inherit;
-}
+/* Tablets y celulares: 2 juegos por fila */
+@media (max-width: 640px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 
-.campo [aria-invalid="true"] {
-  border-color: #e63946;
+  .navbar .links {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .grilla-juegos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .pagina {
+    padding: 24px 12px 40px;
+  }
+
+  .pagina.panel {
+    grid-template-columns: 1fr;
+  }
+
+  .tarjeta.tarjeta-central {
+    padding: 24px 18px;
+  }
+
+  .tarjeta.tarjeta-juego {
+    padding: 10px;
+  }
+
+  .tarjeta-juego h3 {
+    font-size: 14px;
+  }
+
+  .tarjeta-juego .detalle {
+    font-size: 12px;
+  }
+
+  .tarjeta-juego .boton {
+    padding: 9px 6px;
+    font-size: 12px;
+  }
 }

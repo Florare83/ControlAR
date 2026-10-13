@@ -36,7 +36,7 @@ function Login() {
     <div className="pagina">
       <div className="tarjeta tarjeta-central">
         <h1 className="titulo-tarjeta">Iniciar sesión</h1>
-        <p className="subtitulo">Bienvenido Equipo</p>
+        <p className="subtitulo">Bienvenido</p>
 
         <form className="formulario" onSubmit={manejarEnvio} aria-busy={enviando}>
           <div className="campo" style={{ textAlign: "left" }}>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -52,14 +51,6 @@ function Navbar({ modoOscuro, onCambiarTema }) {
             JUEGOS
           </NavLink>
         </li>
-
-        {usuario && (
-          <li>
-            <NavLink to="/favoritos" className={clase}>
-              ❤️ MIS FAVORITOS
-            </NavLink>
-          </li>
-        )}
 
         {puedeOperar && (
           <li>
@@ -140,6 +131,15 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                     style={{ padding: 10 }}
                   >
                     👤 Mi cuenta
+                  </NavLink>
+
+                  <NavLink
+                    to="/favoritos"
+                    className={clase}
+                    onClick={cerrarMenuCuenta}
+                    style={{ padding: 10 }}
+                  >
+                    ❤️ Mis favoritos
                   </NavLink>
 
                   <NavLink

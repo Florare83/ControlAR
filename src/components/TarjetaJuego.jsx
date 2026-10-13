@@ -1,3 +1,5 @@
+
+import { useState } from "react";
 import { imagenDeJuego } from "../api/imagenes.js";
 import { useCarrito } from "../context/CarritoContext.jsx";
 
@@ -17,12 +19,29 @@ function TarjetaJuego({
   const sinStock = juego.stock <= 0;
   const idTitulo = `juego-${juego.id}-titulo`;
 
+  const [imagenFallida, setImagenFallida] = useState(false);
+
+  const imagenAlternativa = imagenDeJuego(juego.titulo);
+
+  const imagen =
+    juego.imagen_url?.trim() && !imagenFallida
+      ? juego.imagen_url.trim()
+      : imagenAlternativa;
+
   return (
     <article
       className="tarjeta tarjeta-juego"
       aria-labelledby={idTitulo}
     >
-      <img src={imagenDeJuego(juego.titulo)} alt="" />
+      <img
+        src={imagen}
+        alt={`Imagen de ${juego.titulo}`}
+        onError={() => {
+          if (juego.imagen_url && !imagenFallida) {
+            setImagenFallida(true);
+          }
+        }}
+      />
 
       <div className="etiquetas">
         <span
@@ -63,7 +82,6 @@ function TarjetaJuego({
         <span>{juego.categoria.nombre}</span>
       </div>
 
-      {/* Botón de favoritos */}
       <button
         type="button"
         className="boton"
@@ -92,9 +110,7 @@ function TarjetaJuego({
             </span>
           </div>
 
-          <p className="precio">
-            ${juego.precio.toFixed(2)}
-          </p>
+          <p className="precio">${juego.precio.toFixed(2)}</p>
 
           <button
             type="button"
