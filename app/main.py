@@ -8,6 +8,7 @@ from app.api.v1.auth.router import router as auth_router
 from app.api.v1.categorias import router as categorias_router
 from app.api.v1.juegos.router import router as juegos_router
 from app.api.v1.prestamos import router as prestamos_router
+from app.api.v1.favoritos import router as favoritos_router
 
 
 app = FastAPI(
@@ -53,3 +54,4 @@ app.include_router(auth_router)
 app.include_router(juegos_router)
 app.include_router(categorias_router)
 app.include_router(prestamos_router)
+app.include_router(favoritos_router)
