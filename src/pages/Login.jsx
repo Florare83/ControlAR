@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { rolDe, useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -9,18 +10,24 @@ function Login() {
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
   const { login } = useAuth();
+  const toast = useToast();
   const navegar = useNavigate();
+  const ubicacion = useLocation();
 
   async function manejarEnvio(evento) {
     evento.preventDefault();
     setError("");
     setEnviando(true);
     try {
-      await login(email, contrasena, recordarme);
-      navegar("/juegos");
+      const perfil = await login(email, contrasena, recordarme);
+      toast.exito(`¡Hola, ${perfil.nombre}!`);
+      // Si lo mandaron al login desde una página protegida, vuelve a ella.
+      // Si no: operador y admin van al panel; el resto, al catálogo.
+      const rol = rolDe(perfil);
+      const porDefecto = rol === "admin" || rol === "operador" ? "/panel" : "/juegos";
+      navegar(ubicacion.state?.desde ?? porDefecto, { replace: true });
     } catch (e) {
       setError(e.message);
-    } finally {
       setEnviando(false);
     }
   }
@@ -28,17 +35,20 @@ function Login() {
   return (
     <div className="pagina">
       <div className="tarjeta tarjeta-central">
-        <h2>Iniciar sesión</h2>
+        <h1 className="titulo-tarjeta">Iniciar sesión</h1>
         <p className="subtitulo">Bienvenido Equipo</p>
 
-        <form className="formulario" onSubmit={manejarEnvio}>
+        <form className="formulario" onSubmit={manejarEnvio} aria-busy={enviando}>
           <div className="campo" style={{ textAlign: "left" }}>
             <label htmlFor="email">Correo electrónico</label>
             <input
               id="email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? "error-login" : undefined}
               required
             />
           </div>
@@ -48,8 +58,11 @@ function Login() {
             <input
               id="contrasena"
               type="password"
+              autoComplete="current-password"
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? "error-login" : undefined}
               required
             />
           </div>
@@ -60,10 +73,12 @@ function Login() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: 8,
               fontSize: 13,
             }}
           >
-            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 0 }}>
               <input
                 type="checkbox"
                 checked={recordarme}
@@ -75,7 +90,11 @@ function Login() {
             <a href="#">¿Olvidaste tu contraseña?</a>
           </div>
 
-          {error && <span className="error">{error}</span>}
+          {error && (
+            <span id="error-login" className="error" role="alert">
+              {error}
+            </span>
+          )}
 
           <button type="submit" className="boton" disabled={enviando}>
             {enviando ? "Ingresando..." : "Iniciar sesión"}

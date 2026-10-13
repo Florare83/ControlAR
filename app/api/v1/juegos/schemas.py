@@ -40,6 +40,7 @@ class JuegoResponse(JuegoBase):
     id: int
     en_venta: bool
     stock: int
+    en_prestamo: bool = False  # ← NUEVA: True si tiene un préstamo activo
     categoria: CategoriaOut  # objeto anidado, no el id pelado
 
     model_config = ConfigDict(from_attributes=True)

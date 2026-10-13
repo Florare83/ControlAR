@@ -12,6 +12,8 @@ class UsuarioOut(BaseModel):
     nombre: str
     email: EmailStr
     es_admin: bool
+    es_operador: bool
+    rol: str  # "admin", "operador" o "cliente"
 
     model_config = ConfigDict(from_attributes=True)
 

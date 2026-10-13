@@ -32,3 +32,9 @@ def require_admin(usuario: Usuario = Depends(get_current_user)) -> Usuario:
     if not usuario.es_admin:
         raise HTTPException(status_code=403, detail="Necesitás permisos de administrador")
     return usuario
+
+def require_operador(usuario: Usuario = Depends(get_current_user)) -> Usuario:
+    """Deja pasar al operador (voluntario) y también al administrador."""
+    if not (usuario.es_admin or usuario.es_operador):
+        raise HTTPException(status_code=403, detail="Necesitás permisos de operador")
+    return usuario

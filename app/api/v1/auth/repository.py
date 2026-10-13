@@ -12,12 +12,20 @@ def get_by_id(db: Session, usuario_id: int) -> Usuario | None:
     return db.query(Usuario).filter(Usuario.id == usuario_id).first()
 
 
-def create(db: Session, nombre: str, email: str, contrasena: str, es_admin: bool = False) -> Usuario:
+def create(
+    db: Session,
+    nombre: str,
+    email: str,
+    contrasena: str,
+    es_admin: bool = False,
+    es_operador: bool = False,
+) -> Usuario:
     nuevo = Usuario(
         nombre=nombre,
         email=email.lower(),
         contrasena_hash=hashear_contrasena(contrasena),
         es_admin=es_admin,
+        es_operador=es_operador,
     )
     db.add(nuevo)
     db.commit()

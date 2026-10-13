@@ -48,6 +48,12 @@ def actualizar(
 
 @router.delete("/{juego_id}", status_code=204)
 def eliminar(juego_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
-    eliminado = repo.delete(db, juego_id)
-    if not eliminado:
+    if repo.get_by_id(db, juego_id) is None:
         raise HTTPException(status_code=404, detail="Juego no encontrado")
+    # Un juego con préstamos (activos o históricos) no se borra: se perdería el registro.
+    if repo.tiene_prestamos(db, juego_id):
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede eliminar: el juego tiene préstamos registrados",
+        )
+    repo.delete(db, juego_id)

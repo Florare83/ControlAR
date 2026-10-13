@@ -87,12 +87,12 @@ export const registrarUsuario = (datos) =>
 
 export const obtenerPerfil = () => pedir("/auth/me");
 
-// Préstamos. El backend debe validar que el usuario sea administrador.
-export const listarPrestamos = () => pedir("/prestamos/");
-export const crearPrestamo = (datos) =>
+// Préstamos. La API solo deja usarlos a operadores y administradores.
+// estado (opcional): "activo" o "cerrado".
+export const listarPrestamos = (estado) =>
+  pedir(estado ? `/prestamos/?estado=${estado}` : "/prestamos/");
+export const registrarPrestamo = (datos) =>
   pedir("/prestamos/", { method: "POST", body: JSON.stringify(datos) });
-export const actualizarDevolucion = (id, devuelto) =>
-  pedir(`/prestamos/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ devuelto }),
-  });
+export const cambiarJuegoPrestamo = (id, juegoId) =>
+  pedir(`/prestamos/${id}/juego`, { method: "PUT", body: JSON.stringify({ juego_id: juegoId }) });
+export const devolverPrestamo = (id) => pedir(`/prestamos/${id}/devolver`, { method: "POST" });

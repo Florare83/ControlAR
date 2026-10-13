@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Formulario para crear un juego nuevo o editar uno existente.
 // - Si recibe "juego", arranca con sus datos (modo edición).
@@ -35,6 +35,12 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
   const [form, setForm] = useState(desdeJuego(juego));
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const campoTitulo = useRef(null);
+
+  // Al abrir el formulario, el cursor va al primer campo (ayuda a teclado y lectores de pantalla).
+  useEffect(() => {
+    campoTitulo.current?.focus();
+  }, []);
 
   function cambiar(campo, valor) {
     setForm({ ...form, [campo]: valor });
@@ -67,14 +73,15 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
   }
 
   return (
-    <div className="tarjeta" style={{ marginBottom: 24 }}>
+    <div className="tarjeta tarjeta-columna" style={{ marginBottom: 24 }}>
       <h2>{juego ? `Editar "${juego.titulo}"` : "Agregar juego"}</h2>
 
-      <form className="formulario" onSubmit={enviar}>
+      <form className="formulario" onSubmit={enviar} aria-busy={guardando}>
         <div className="campo">
           <label htmlFor="titulo">Título</label>
           <input
             id="titulo"
+            ref={campoTitulo}
             value={form.titulo}
             minLength={2}
             maxLength={100}
@@ -111,13 +118,17 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
         </div>
 
         <div className="campo">
-          <label htmlFor="jugadores">Cantidad de jugadores (ej: 2-4)</label>
+          <label htmlFor="jugadores">Cantidad de jugadores</label>
           <input
             id="jugadores"
             value={form.cantidad_jugadores}
             onChange={(e) => cambiar("cantidad_jugadores", e.target.value)}
+            aria-describedby="ayuda-jugadores"
             required
           />
+          <small id="ayuda-jugadores" className="ayuda">
+            Por ejemplo: 2-4
+          </small>
         </div>
 
         <div className="campo">
@@ -176,12 +187,20 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
               checked={form.en_venta}
               onChange={(e) => cambiar("en_venta", e.target.checked)}
               style={{ width: "auto" }}
+              aria-describedby="ayuda-en-venta"
             />
             Está en venta
           </label>
+          <small id="ayuda-en-venta" className="ayuda">
+            Solo los juegos en venta muestran stock, precio y el botón "Agregar al carrito".
+          </small>
         </div>
 
-        {error && <span className="error">{error}</span>}
+        {error && (
+          <span className="error" role="alert">
+            {error}
+          </span>
+        )}
 
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button className="boton" type="submit" disabled={guardando}>
