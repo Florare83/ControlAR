@@ -18,7 +18,7 @@ app = FastAPI(
 )
 
 
-# Configuración CORS: permite que el frontend acceda al backend.
+# Configuración CORS
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -39,16 +39,25 @@ app.add_middleware(
 )
 
 
-# Corrige la columna que falta en la tabla de préstamos.
+# Actualiza las columnas faltantes de la tabla prestamos.
 @app.on_event("startup")
-def corregir_columna_juego_id():
+def corregir_tabla_prestamos():
     with engine.begin() as conn:
+        # Agrega juego_id si todavía no existe.
         conn.execute(text("""
             ALTER TABLE prestamos
             ADD COLUMN IF NOT EXISTS juego_id INTEGER
             REFERENCES juegos(id)
         """))
 
+        # Agrega estado con un valor predeterminado.
+        conn.execute(text("""
+            ALTER TABLE prestamos
+            ADD COLUMN IF NOT EXISTS estado VARCHAR(10)
+            NOT NULL DEFAULT 'activo'
+        """))
+
+        # Los préstamos deben estar asociados a un juego.
         conn.execute(text("""
             ALTER TABLE prestamos
             ALTER COLUMN juego_id SET NOT NULL
@@ -60,7 +69,7 @@ def read_root():
     return {"Bienvenido a la API de Juegos"}
 
 
-# Registro de rutas.
+# Rutas de la API
 app.include_router(auth_router)
 app.include_router(juegos_router)
 app.include_router(categorias_router)
