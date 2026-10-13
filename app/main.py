@@ -1,8 +1,11 @@
+
 import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
+from app.core.db import engine
 from app.api.v1.auth.router import router as auth_router
 from app.api.v1.categorias import router as categorias_router
 from app.api.v1.juegos.router import router as juegos_router
@@ -14,12 +17,19 @@ app = FastAPI(
     description="API REST para gestionar juegos modernos y categorías.",
 )
 
-# Orígenes (páginas web) que tienen permiso para llamar a esta API desde el navegador.
-# Local: el frontend con Vite. En Render: agregá la URL del Static Site en la
-# variable de entorno CORS_ORIGINS (separadas por coma si son varias).
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+# Configuración CORS: permite que el frontend acceda al backend.
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 extra = os.getenv("CORS_ORIGINS", "")
-origins += [o.strip().rstrip("/") for o in extra.split(",") if o.strip()]
+origins += [
+    origen.strip().rstrip("/")
+    for origen in extra.split(",")
+    if origen.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,11 +39,28 @@ app.add_middleware(
 )
 
 
+# Corrige la columna que falta en la tabla de préstamos.
+@app.on_event("startup")
+def corregir_columna_juego_id():
+    with engine.begin() as conn:
+        conn.execute(text("""
+            ALTER TABLE prestamos
+            ADD COLUMN IF NOT EXISTS juego_id INTEGER
+            REFERENCES juegos(id)
+        """))
+
+        conn.execute(text("""
+            ALTER TABLE prestamos
+            ALTER COLUMN juego_id SET NOT NULL
+        """))
+
+
 @app.get("/", tags=["Root"])
 def read_root():
     return {"Bienvenido a la API de Juegos"}
 
 
+# Registro de rutas.
 app.include_router(auth_router)
 app.include_router(juegos_router)
 app.include_router(categorias_router)
