@@ -1,3 +1,4 @@
+
 import os
 
 from fastapi import FastAPI
@@ -6,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.auth.router import router as auth_router
 from app.api.v1.categorias import router as categorias_router
 from app.api.v1.juegos.router import router as juegos_router
+from app.api.v1.prestamos import router as prestamos_router
+from app.api.v1.favoritos import router as favoritos_router
 
 
 app = FastAPI(
@@ -13,16 +16,29 @@ app = FastAPI(
     description="API REST para gestionar juegos modernos y categorías.",
 )
 
-# Orígenes (páginas web) que tienen permiso para llamar a esta API desde el navegador.
-# Local: el frontend con Vite. En Render: agregá la URL del Static Site en la
-# variable de entorno CORS_ORIGINS (separadas por coma si son varias).
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+# Configuración CORS
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://controlarstaticsite.onrender.com",
+]
+
 extra = os.getenv("CORS_ORIGINS", "")
-origins += [o.strip().rstrip("/") for o in extra.split(",") if o.strip()]
+origins += [
+    origen.strip().rstrip("/")
+    for origen in extra.split(",")
+    if origen.strip()
+]
+
+# Evitar orígenes duplicados
+origins = list(set(origins))
+
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -33,6 +49,9 @@ def read_root():
     return {"Bienvenido a la API de Juegos"}
 
 
+# Rutas de la API
 app.include_router(auth_router)
 app.include_router(juegos_router)
 app.include_router(categorias_router)
+app.include_router(prestamos_router)
+app.include_router(favoritos_router)

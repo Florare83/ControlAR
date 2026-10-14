@@ -1,3 +1,4 @@
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -12,6 +13,7 @@ class UsuarioOut(BaseModel):
     nombre: str
     email: EmailStr
     es_admin: bool
+    rol: str  # "admin" o "cliente"
 
     model_config = ConfigDict(from_attributes=True)
 

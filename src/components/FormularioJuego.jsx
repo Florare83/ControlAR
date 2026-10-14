@@ -1,8 +1,8 @@
-import { useState } from "react";
+
+import { useEffect, useRef, useState } from "react";
 
 // Formulario para crear un juego nuevo o editar uno existente.
-// - Si recibe "juego", arranca con sus datos (modo edición).
-// - Al enviar, llama a onGuardar(datos) y la página se encarga del resto.
+// La imagen es opcional y se guarda como una URL pública.
 
 const VACIO = {
   titulo: "",
@@ -14,10 +14,12 @@ const VACIO = {
   stock: "0",
   en_venta: false,
   categoria_id: "",
+  imagen_url: "",
 };
 
 function desdeJuego(juego) {
-  if (!juego) return VACIO;
+  if (!juego) return { ...VACIO };
+
   return {
     titulo: juego.titulo,
     editorial: juego.editorial ?? "",
@@ -28,24 +30,51 @@ function desdeJuego(juego) {
     stock: String(juego.stock),
     en_venta: juego.en_venta,
     categoria_id: String(juego.categoria.id),
+    imagen_url: juego.imagen_url ?? "",
   };
 }
 
 function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
-  const [form, setForm] = useState(desdeJuego(juego));
+  const [form, setForm] = useState(() => desdeJuego(juego));
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [errorImagen, setErrorImagen] = useState(false);
+  const campoTitulo = useRef(null);
+
+  useEffect(() => {
+    campoTitulo.current?.focus();
+  }, []);
 
   function cambiar(campo, valor) {
-    setForm({ ...form, [campo]: valor });
+    setForm((actual) => ({ ...actual, [campo]: valor }));
+
+    if (campo === "imagen_url") {
+      setErrorImagen(false);
+    }
   }
 
   async function enviar(evento) {
     evento.preventDefault();
     setError("");
+
+    const urlImagen = form.imagen_url.trim();
+
+    if (urlImagen) {
+      try {
+        const url = new URL(urlImagen);
+
+        if (!["http:", "https:"].includes(url.protocol)) {
+          setError("La URL de la imagen debe comenzar con http:// o https://.");
+          return;
+        }
+      } catch {
+        setError("Ingresá una URL válida para la imagen o dejá el campo vacío.");
+        return;
+      }
+    }
+
     setGuardando(true);
 
-    // Los inputs devuelven texto: convertimos a número lo que la API espera así.
     const datos = {
       titulo: form.titulo.trim(),
       editorial: form.editorial.trim() || null,
@@ -56,25 +85,27 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
       stock: Number(form.stock),
       en_venta: form.en_venta,
       categoria_id: Number(form.categoria_id),
+      imagen_url: urlImagen || null,
     };
 
     try {
       await onGuardar(datos);
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "No se pudo guardar el juego.");
       setGuardando(false);
     }
   }
 
   return (
-    <div className="tarjeta" style={{ marginBottom: 24 }}>
+    <div className="tarjeta tarjeta-columna" style={{ marginBottom: 24 }}>
       <h2>{juego ? `Editar "${juego.titulo}"` : "Agregar juego"}</h2>
 
-      <form className="formulario" onSubmit={enviar}>
+      <form className="formulario" onSubmit={enviar} aria-busy={guardando}>
         <div className="campo">
           <label htmlFor="titulo">Título</label>
           <input
             id="titulo"
+            ref={campoTitulo}
             value={form.titulo}
             minLength={2}
             maxLength={100}
@@ -111,13 +142,62 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
         </div>
 
         <div className="campo">
-          <label htmlFor="jugadores">Cantidad de jugadores (ej: 2-4)</label>
+          <label htmlFor="imagen_url">URL de la imagen (opcional)</label>
+          <input
+            id="imagen_url"
+            type="url"
+            value={form.imagen_url}
+            onChange={(e) => cambiar("imagen_url", e.target.value)}
+            placeholder="https://ejemplo.com/imagen.jpg"
+            aria-describedby="ayuda-imagen"
+          />
+          <small id="ayuda-imagen" className="ayuda">
+            Pegá el enlace directo a la imagen. Podés dejarlo vacío.
+          </small>
+
+          {form.imagen_url.trim() && (
+            <div style={{ marginTop: 12 }}>
+              {errorImagen ? (
+                <p className="error" role="status">
+                  No se pudo mostrar la vista previa. Revisá que el enlace
+                  sea público y corresponda a una imagen.
+                </p>
+              ) : (
+                <img
+                  key={form.imagen_url}
+                  src={form.imagen_url.trim()}
+                  alt="Vista previa de la imagen del juego"
+                  onError={() => setErrorImagen(true)}
+                  onLoad={() => setErrorImagen(false)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    maxWidth: 260,
+                    maxHeight: 220,
+                    objectFit: "contain",
+                    borderRadius: 8,
+                    marginTop: 8,
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="campo">
+          <label htmlFor="jugadores">Cantidad de jugadores</label>
           <input
             id="jugadores"
             value={form.cantidad_jugadores}
-            onChange={(e) => cambiar("cantidad_jugadores", e.target.value)}
+            onChange={(e) =>
+              cambiar("cantidad_jugadores", e.target.value)
+            }
+            aria-describedby="ayuda-jugadores"
             required
           />
+          <small id="ayuda-jugadores" className="ayuda">
+            Por ejemplo: 2-4
+          </small>
         </div>
 
         <div className="campo">
@@ -176,18 +256,32 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
               checked={form.en_venta}
               onChange={(e) => cambiar("en_venta", e.target.checked)}
               style={{ width: "auto" }}
+              aria-describedby="ayuda-en-venta"
             />
             Está en venta
           </label>
+          <small id="ayuda-en-venta" className="ayuda">
+            Solo los juegos en venta muestran stock, precio y el botón
+            "Agregar al carrito".
+          </small>
         </div>
 
-        {error && <span className="error">{error}</span>}
+        {error && (
+          <span className="error" role="alert">
+            {error}
+          </span>
+        )}
 
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button className="boton" type="submit" disabled={guardando}>
             {guardando ? "Guardando..." : "Guardar"}
           </button>
-          <button className="boton" type="button" onClick={onCancelar}>
+          <button
+            className="boton"
+            type="button"
+            onClick={onCancelar}
+            disabled={guardando}
+          >
             Cancelar
           </button>
         </div>

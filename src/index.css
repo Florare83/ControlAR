@@ -1,6 +1,6 @@
+
 /* ============================================
    Variables de color y fuente
-   Cambiar acá adentro cambia el look de toda la app.
    ============================================ */
 :root {
   --azul-marino: #161c3f;
@@ -42,7 +42,6 @@ a {
   padding: 14px 32px;
 }
 
-
 .navbar .marca {
   font-weight: 700;
   font-size: 35px;
@@ -77,11 +76,40 @@ a {
   font-weight: 600;
 }
 
+.navbar .marca-contenedor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+}
+
+.navbar .acciones-sesion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar .btn-registro {
+  background: transparent;
+  color: #ffffff;
+  padding: 7px 16px;
+  border: 1px solid #ffffff;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.navbar .carrito-indicador {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* ============================================
    Layout general de página
    ============================================ */
 .pagina {
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 32px 24px 60px;
 }
@@ -102,7 +130,7 @@ a {
 }
 
 /* ============================================
-   Tarjetas (juegos, eventos, etc.)
+   Tarjetas generales
    ============================================ */
 .tarjeta {
   background: var(--blanco);
@@ -111,13 +139,47 @@ a {
   padding: 16px;
 }
 
-.grilla-juegos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 18px;
+.tarjeta-contenido {
+  flex: 1;
 }
 
+.tarjeta-imagen {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+/* ============================================
+   Cuadrícula del catálogo de juegos
+   5 tarjetas por fila en pantallas grandes
+   ============================================ */
+.grilla-juegos {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+  grid-auto-flow: row;
+}
+
+.grilla-juegos > * {
+  min-width: 0;
+}
+
+/* Las tarjetas del catálogo apilan su contenido */
+.tarjeta.tarjeta-juego {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Imágenes de los juegos */
 .tarjeta-juego img {
+  display: block;
   width: 100%;
   border-radius: 8px;
   aspect-ratio: 4 / 3;
@@ -128,6 +190,7 @@ a {
 .tarjeta-juego h3 {
   margin: 0 0 6px;
   font-size: 16px;
+  overflow-wrap: anywhere;
 }
 
 .tarjeta-juego .detalle {
@@ -135,13 +198,29 @@ a {
   color: var(--texto-suave);
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 4px;
+}
+
+.tarjeta-juego .detalle span:last-child {
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .tarjeta-juego .precio {
   font-weight: 700;
   font-size: 15px;
   margin: 8px 0;
+}
+
+/* ============================================
+   Etiquetas del catálogo
+   ============================================ */
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .etiqueta {
@@ -152,6 +231,10 @@ a {
   margin-bottom: 8px;
 }
 
+.etiquetas .etiqueta {
+  margin-bottom: 0;
+}
+
 .etiqueta.disponible {
   background: #e5f6ec;
   color: var(--exito);
@@ -160,6 +243,11 @@ a {
 .etiqueta.no-disponible {
   background: #fbe9e7;
   color: var(--alerta);
+}
+
+.etiqueta.neutra {
+  background: var(--borde);
+  color: var(--texto-suave);
 }
 
 /* ============================================
@@ -212,10 +300,10 @@ a {
 }
 
 /* ============================================
-   Formularios (contacto, login)
+   Formularios
    ============================================ */
 .formulario {
-  max-width: 500px;     /* Ancho máximo cómodo para el formulario */
+  max-width: 500px;
   margin: 0 auto;
 }
 
@@ -240,12 +328,41 @@ a {
   font-family: inherit;
 }
 
+.campo select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.campo [aria-invalid="true"] {
+  border-color: #e63946;
+}
+
 .campo textarea {
   resize: vertical;
   min-height: 90px;
 }
 
-/* Tarjeta centrada, usada en el login */
+.ayuda {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+.error {
+  color: #e63946;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ============================================
+   Login y registro
+   ============================================ */
 .tarjeta-central {
   max-width: 380px;
   margin: 40px auto 0;
@@ -260,8 +377,50 @@ a {
   margin-bottom: 20px;
 }
 
+.tarjeta.tarjeta-central {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  padding: 32px 36px;
+  margin: 40px auto 0;
+}
+
+.tarjeta-central .titulo-tarjeta {
+  font-size: 24px;
+  margin: 0 0 4px;
+}
+
+.tarjeta-central .formulario {
+  max-width: none;
+  width: 100%;
+}
+
+.tarjeta-central .error {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.tarjeta.tarjeta-columna {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
 /* ============================================
-   Acordeón de preguntas frecuentes (Nosotros)
+   Imágenes de contenido
+   ============================================ */
+.contenedor-imagen img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 800px;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================
+   Acordeón de preguntas frecuentes
    ============================================ */
 .acordeon-item {
   border-bottom: 1px solid var(--borde);
@@ -290,7 +449,6 @@ a {
 
 /* ============================================
    Modo oscuro / claro
-   Se activa agregando la clase "oscuro" al <body>
    ============================================ */
 body.oscuro {
   --fondo: #14181a;
@@ -310,55 +468,249 @@ body.oscuro {
   cursor: pointer;
 }
 
-
-____________________________________
-EXTRAS
-____________________________________
-.error {
-  color: #e63946;
-  font-size: 0.85rem;
-  margin-top: 4px;
-  display: block;
-}
-
-.contenedor-imagen img {
-  display: block;    /* Hace que la imagen ocupe todo el ancho disponible */
-  margin-left: auto;  /* Centra horizontalmente */
-  margin-right: auto;
-
-  /* Opcional: para que no se vea gigante */
-  
-  width: 800px;
-  max-width: 100%;   /* Evita que se salga del contenedor */
-  height: auto;       /* Mantiene la proporción */
-}
-
-.tarjeta {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--borde, #ccc);
+/* ============================================
+   Avisos
+   ============================================ */
+.mensaje-exito {
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  border: 1px solid #a7dfbd;
   border-radius: 8px;
-}
-
-.tarjeta-contenido {
-  flex: 1;
-}
-
-.tarjeta-imagen {
-  width: 180px;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 6px;
+  background: #e8f8ee;
+  color: #176b38;
+  font-weight: 600;
 }
 
 /* ============================================
-   Responsive: en pantallas chicas, la navbar
-   se acomoda en columna
+   Notificaciones
    ============================================ */
+.toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.toast {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.toast-exito {
+  background: #1f7a45;
+}
+
+.toast-error {
+  background: #b3261e;
+}
+
+.toast-info {
+  background: #161c3f;
+}
+
+.toast-cerrar {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+/* ============================================
+   Estado de carga
+   ============================================ */
+.cargando {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--texto-suave);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 3px solid var(--borde);
+  border-top-color: var(--azul-marino);
+  border-radius: 50%;
+  animation: giro 0.8s linear infinite;
+}
+
+@keyframes giro {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 3s;
+  }
+}
+
+/* ============================================
+   Paneles de operador y administrador
+   ============================================ */
+.pagina.panel {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  max-width: 1200px;
+  align-items: start;
+}
+
+.panel-menu {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.panel-rol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 12px !important;
+  line-height: 1.4 !important;
+  font-size: 14px;
+}
+
+.panel-rol span {
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.panel-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.panel-menu a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.panel-menu a:hover {
+  background: var(--fondo);
+}
+
+.panel-menu a.activo {
+  background: var(--azul-marino);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.panel-contenido {
+  min-width: 0;
+}
+
+/* ============================================
+   Tabla de préstamos
+   ============================================ */
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--blanco);
+}
+
+.tabla th,
+.tabla td {
+  padding: 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--borde);
+}
+
+.acciones-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.acciones-fila select {
+  padding: 8px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  max-width: 180px;
+}
+
+/* ============================================
+   Accesibilidad
+   ============================================ */
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.saltar-contenido {
+  position: absolute;
+  left: 8px;
+  top: -60px;
+  z-index: 2000;
+  background: #ffffff;
+  color: #161c3f;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.saltar-contenido:focus {
+  top: 8px;
+}
+
+main:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 3px solid #4c8dff;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+
+/* Pantallas medianas: 3 juegos por fila */
+@media (max-width: 1000px) {
+  .grilla-juegos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pagina.panel {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+
+/* Tablets y celulares: 2 juegos por fila */
 @media (max-width: 640px) {
   .navbar {
     flex-direction: column;
@@ -369,5 +721,39 @@ ____________________________________
   .navbar .links {
     flex-wrap: wrap;
     gap: 14px;
+  }
+
+  .grilla-juegos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .pagina {
+    padding: 24px 12px 40px;
+  }
+
+  .pagina.panel {
+    grid-template-columns: 1fr;
+  }
+
+  .tarjeta.tarjeta-central {
+    padding: 24px 18px;
+  }
+
+  .tarjeta.tarjeta-juego {
+    padding: 10px;
+  }
+
+  .tarjeta-juego h3 {
+    font-size: 14px;
+  }
+
+  .tarjeta-juego .detalle {
+    font-size: 12px;
+  }
+
+  .tarjeta-juego .boton {
+    padding: 9px 6px;
+    font-size: 12px;
   }
 }
