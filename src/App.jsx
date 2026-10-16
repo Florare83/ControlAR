@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-
 import Navbar from "./components/Navbar.jsx";
 import RutaProtegida from "./components/RutaProtegida.jsx";
 import PanelLayout from "./components/PanelLayout.jsx";
@@ -88,23 +87,28 @@ function App() {
                 element={<Prestamos />}
               />
 
-          <Route element={<RutaProtegida roles={["admin"]} />}>
-            <Route
-              path="resumen"
-              element={<PanelResumen />}
-            />
+              <Route element={<RutaProtegida roles={["admin"]} />}>
+                <Route
+                  path="resumen"
+                  element={<PanelResumen />}
+                />
 
-            <Route
-              path="mensajes"
-              element={<MensajesContacto />}
-            />
+                <Route
+                  path="mensajes"
+                  element={<MensajesContacto />}
+                />
+              </Route>
+            </Route>
           </Route>
 
           <Route
             path="/prestamos"
-            element={
-              <Navigate to="/panel/prestamos" replace />
-            }
+            element={<Navigate to="/panel/prestamos" replace />}
+          />
+
+          <Route
+            path="*"
+            element={<Navigate to="/nosotros" replace />}
           />
         </Routes>
       </main>
