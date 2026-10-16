@@ -32,16 +32,59 @@ function TarjetaJuego({
     <article
       className="tarjeta tarjeta-juego"
       aria-labelledby={idTitulo}
+      style={{ position: "relative" }}
     >
-      <img
-        src={imagen}
-        alt={`Imagen de ${juego.titulo}`}
-        onError={() => {
-          if (juego.imagen_url && !imagenFallida) {
-            setImagenFallida(true);
-          }
-        }}
-      />
+      <div style={{ position: "relative" }}>
+        <img
+          src={imagen}
+          alt={`Imagen de ${juego.titulo}`}
+          onError={() => {
+            if (juego.imagen_url && !imagenFallida) {
+              setImagenFallida(true);
+            }
+          }}
+        />
+
+        {!esAdmin && (
+          <button
+            type="button"
+            disabled={cargandoFavoritos}
+            onClick={onToggleFavorito}
+            aria-pressed={esFavorito}
+            aria-label={
+              esFavorito
+                ? `Quitar ${juego.titulo} de favoritos`
+                : `Agregar ${juego.titulo} a favoritos`
+            }
+            title={
+              esFavorito
+                ? "Quitar de favoritos"
+                : "Agregar a favoritos"
+            }
+            style={{
+              position: "absolute",
+              top: 10,
+              right: 10,
+              width: 42,
+              height: 42,
+              padding: 0,
+              border: "none",
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.95)",
+              color: esFavorito ? "#e63946" : "#555",
+              fontSize: 27,
+              lineHeight: 1,
+              cursor: cargandoFavoritos ? "default" : "pointer",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {esFavorito ? "♥" : "♡"}
+          </button>
+        )}
+      </div>
 
       <div className="etiquetas">
         <span
@@ -82,25 +125,6 @@ function TarjetaJuego({
         <span>{juego.categoria.nombre}</span>
       </div>
 
-      <button
-        type="button"
-        className="boton"
-        style={{
-          marginTop: 10,
-          background: esFavorito ? "#e63946" : undefined,
-        }}
-        disabled={cargandoFavoritos}
-        aria-pressed={esFavorito}
-        aria-label={
-          esFavorito
-            ? `Quitar ${juego.titulo} de favoritos`
-            : `Agregar ${juego.titulo} a favoritos`
-        }
-        onClick={onToggleFavorito}
-      >
-        {esFavorito ? "❤️ En favoritos" : "♡ Me gusta"}
-      </button>
-
       {enVenta && (
         <>
           <div className="detalle">
@@ -112,19 +136,21 @@ function TarjetaJuego({
 
           <p className="precio">${juego.precio.toFixed(2)}</p>
 
-          <button
-            type="button"
-            className="boton"
-            disabled={sinStock}
-            aria-label={
-              sinStock
-                ? `${juego.titulo}: sin stock`
-                : `Agregar ${juego.titulo} al carrito`
-            }
-            onClick={() => agregar(juego)}
-          >
-            {sinStock ? "Sin stock" : "Agregar al carrito"}
-          </button>
+          {!esAdmin && (
+            <button
+              type="button"
+              className="boton"
+              disabled={sinStock}
+              aria-label={
+                sinStock
+                  ? `${juego.titulo}: sin stock`
+                  : `Agregar ${juego.titulo} al carrito`
+              }
+              onClick={() => agregar(juego)}
+            >
+              {sinStock ? "Sin stock" : "Agregar al carrito"}
+            </button>
+          )}
         </>
       )}
 

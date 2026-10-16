@@ -152,11 +152,11 @@ a {
 
 /* ============================================
    Cuadrícula del catálogo de juegos
-   5 tarjetas por fila en pantallas grandes
+   4 tarjetas por fila en pantallas grandes
    ============================================ */
 .grilla-juegos {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   align-items: stretch;
   grid-auto-flow: row;
@@ -185,6 +185,50 @@ a {
   aspect-ratio: 4 / 3;
   object-fit: cover;
   margin-bottom: 10px;
+}
+
+/* Contenedor de imagen: permite ubicar el corazón encima */
+.tarjeta-juego .imagen-juego-contenedor {
+  position: relative;
+  width: 100%;
+}
+
+/* Si la imagen está dentro del contenedor, ocupa su ancho */
+.tarjeta-juego .imagen-juego-contenedor img {
+  width: 100%;
+}
+
+/* Botón de favoritos sobre la imagen */
+.tarjeta-juego .boton-favorito {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: #d62839;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.tarjeta-juego .boton-favorito:hover {
+  background: #ffffff;
+  transform: scale(1.08);
+}
+
+.tarjeta-juego .boton-favorito:focus-visible {
+  outline: 3px solid #4c8dff;
+  outline-offset: 2px;
 }
 
 .tarjeta-juego h3 {
@@ -560,6 +604,10 @@ body.oscuro {
   .spinner {
     animation-duration: 3s;
   }
+
+  .tarjeta-juego .boton-favorito {
+    transition: none;
+  }
 }
 
 /* ============================================
@@ -567,7 +615,7 @@ body.oscuro {
    ============================================ */
 .pagina.panel {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 24px;
   max-width: 1200px;
   align-items: start;
@@ -699,7 +747,8 @@ main:focus {
    Responsive
    ============================================ */
 
-/* Pantallas medianas: 3 juegos por fila */
+/* Pantallas grandes: 4 juegos por fila.
+   Pantallas medianas: 3 juegos por fila. */
 @media (max-width: 1000px) {
   .grilla-juegos {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -708,19 +757,40 @@ main:focus {
   .pagina.panel {
     grid-template-columns: 220px minmax(0, 1fr);
   }
+
+  .navbar {
+    padding: 14px 20px;
+  }
+
+  .navbar .marca {
+    font-size: 29px;
+  }
+
+  .navbar .links {
+    gap: 16px;
+  }
 }
 
-/* Tablets y celulares: 2 juegos por fila */
+/* Tablets pequeñas y celulares: 2 juegos por fila */
 @media (max-width: 640px) {
   .navbar {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .navbar .marca {
+    font-size: 28px;
   }
 
   .navbar .links {
     flex-wrap: wrap;
     gap: 14px;
+  }
+
+  .navbar .acciones-sesion {
+    flex-wrap: wrap;
   }
 
   .grilla-juegos {
@@ -733,7 +803,7 @@ main:focus {
   }
 
   .pagina.panel {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .tarjeta.tarjeta-central {
@@ -755,5 +825,319 @@ main:focus {
   .tarjeta-juego .boton {
     padding: 9px 6px;
     font-size: 12px;
+  }
+
+  .tarjeta-juego .boton-favorito {
+    width: 34px;
+    height: 34px;
+    font-size: 23px;
+    top: 6px;
+    right: 6px;
+  }
+
+  .filtros input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .tarjeta.tarjeta-central {
+    padding: 24px 18px;
+  }
+
+  .tabla {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+
+
+/* ============================================
+   Catálogo: búsqueda y filtros compactos
+   ============================================ */
+
+.pagina-catalogo .catalogo-busqueda {
+  margin-bottom: 20px;
+}
+
+.pagina-catalogo .catalogo-busqueda label,
+.pagina-catalogo .filtro-campo label,
+.pagina-catalogo .catalogo-orden label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pagina-catalogo .catalogo-busqueda input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font: inherit;
+}
+
+.pagina-catalogo .catalogo-filtros {
+  margin-bottom: 28px;
+  padding: 18px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--blanco);
+}
+
+.pagina-catalogo .catalogo-filtros-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pagina-catalogo .catalogo-filtros-encabezado h2,
+.pagina-catalogo .catalogo-resultados-titulo h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.pagina-catalogo .catalogo-filtros-encabezado p {
+  margin: 4px 0 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pagina-catalogo .filtros-contador {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--fondo);
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pagina-catalogo .catalogo-filtros-principales {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pagina-catalogo .filtro-campo {
+  min-width: 0;
+}
+
+.pagina-catalogo .filtro-campo input,
+.pagina-catalogo .filtro-campo select,
+.pagina-catalogo .catalogo-orden select {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.pagina-catalogo .catalogo-filtros-avanzados {
+  margin-top: 14px;
+  border-top: 1px solid var(--borde);
+}
+
+.pagina-catalogo .catalogo-filtros-avanzados summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 0 4px;
+  cursor: pointer;
+  color: var(--azul-marino);
+  font-size: 14px;
+  font-weight: 600;
+  list-style-position: inside;
+}
+
+body.oscuro .pagina-catalogo .catalogo-filtros-avanzados summary {
+  color: #c5cbff;
+}
+
+.pagina-catalogo .filtros-avanzados-ayuda {
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.pagina-catalogo .catalogo-filtros-secundarios {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding-top: 16px;
+}
+
+.pagina-catalogo .catalogo-filtros-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--borde);
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.pagina-catalogo .boton-limpiar-filtros {
+  padding: 7px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pagina-catalogo .boton-limpiar-filtros:hover:not(:disabled) {
+  background: var(--fondo);
+}
+
+.pagina-catalogo .boton-limpiar-filtros:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Catálogo: resultados y ordenamiento
+   ============================================ */
+
+.pagina-catalogo .catalogo-resultados-encabezado {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.pagina-catalogo .catalogo-resultados-titulo span {
+  display: block;
+  margin-top: 5px;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.pagina-catalogo .catalogo-orden {
+  width: 220px;
+  max-width: 100%;
+}
+
+.pagina-catalogo .boton-agregar-juego {
+  width: auto;
+  margin-bottom: 20px;
+}
+
+.pagina-catalogo .boton-reintentar {
+  width: auto;
+  margin-top: 12px;
+}
+
+.pagina-catalogo .catalogo-sin-resultados {
+  padding: 28px 18px;
+  border: 1px dashed var(--borde);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.pagina-catalogo .catalogo-sin-resultados h3 {
+  margin-top: 0;
+}
+
+.pagina-catalogo .catalogo-sin-resultados p {
+  color: var(--texto-suave);
+  line-height: 1.6;
+}
+
+.pagina-catalogo .catalogo-sin-resultados .boton {
+  width: auto;
+}
+
+.pagina-catalogo .catalogo-paginacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.pagina-catalogo .catalogo-paginacion-info {
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.pagina-catalogo .catalogo-paginacion-botones {
+  display: flex;
+  gap: 8px;
+}
+
+.pagina-catalogo .catalogo-paginacion-botones .boton {
+  width: auto;
+}
+
+/* ============================================
+   Responsive del catálogo
+   ============================================ */
+
+@media (max-width: 1000px) {
+  .pagina-catalogo .catalogo-filtros-secundarios {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .pagina-catalogo .catalogo-filtros {
+    padding: 14px;
+  }
+
+  .pagina-catalogo .catalogo-filtros-principales,
+  .pagina-catalogo .catalogo-filtros-secundarios {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+  }
+
+  .pagina-catalogo .catalogo-resultados-encabezado {
+    align-items: stretch;
+  }
+
+  .pagina-catalogo .catalogo-orden {
+    width: 100%;
+  }
+
+  .pagina-catalogo .catalogo-paginacion {
+    align-items: stretch;
+  }
+
+  .pagina-catalogo .catalogo-paginacion-botones {
+    width: 100%;
+  }
+
+  .pagina-catalogo .catalogo-paginacion-botones .boton {
+    flex: 1;
+  }
+}
+
+@media (max-width: 380px) {
+  .pagina-catalogo .catalogo-filtros-principales,
+  .pagina-catalogo .catalogo-filtros-secundarios {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

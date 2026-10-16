@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -100,7 +101,7 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   setMenuCuentaAbierto((abierto) => !abierto)
                 }
               >
-                Mi cuenta: {usuario.nombre}{" "}
+                {usuario.nombre}{" "}
                 {menuCuentaAbierto ? "▲" : "▼"}
               </button>
 
@@ -125,24 +126,6 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   }}
                 >
                   <NavLink
-                    to="/cuenta"
-                    className={clase}
-                    onClick={cerrarMenuCuenta}
-                    style={{ padding: 10 }}
-                  >
-                    👤 Mi cuenta
-                  </NavLink>
-
-                  <NavLink
-                    to="/favoritos"
-                    className={clase}
-                    onClick={cerrarMenuCuenta}
-                    style={{ padding: 10 }}
-                  >
-                    ❤️ Mis favoritos
-                  </NavLink>
-
-                  <NavLink
                     to="/cambiar-contrasena"
                     className={clase}
                     onClick={cerrarMenuCuenta}
@@ -159,6 +142,17 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   >
                     🗑️ Eliminar cuenta
                   </NavLink>
+
+                  {(usuario?.rol === "admin" || usuario?.es_admin === true) && (
+                    <NavLink
+                      to="/panel/mensajes"
+                      className={clase}
+                      onClick={cerrarMenuCuenta}
+                      style={{ padding: 10 }}
+                    >
+                      ✉️ Mensajes recibidos
+                    </NavLink>
+                  )}
 
                   <button
                     type="button"

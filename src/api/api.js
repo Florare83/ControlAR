@@ -181,3 +181,13 @@ export const eliminarCuenta = (contrasena) =>
     method: "DELETE",
     body: JSON.stringify({ contrasena }),
   });
+
+
+export const enviarMensajeContacto = (datos) =>
+  pedir("/contacto/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+
+export const listarMensajesContacto = () =>
+  pedir("/contacto/");
