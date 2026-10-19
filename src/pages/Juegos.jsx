@@ -35,6 +35,13 @@ function ordenarJuegos(lista, orden) {
   return [...lista].sort((a, b) => {
     if (campo === "titulo") return dir * porTitulo(a, b);
 
+    if (campo === "popularidad") {
+      return (
+        dir * (Number(a.me_gusta || 0) - Number(b.me_gusta || 0)) ||
+        porTitulo(a, b)
+      );
+    }
+
     if (campo === "precio") {
       if (!a.en_venta && !b.en_venta) return porTitulo(a, b);
       if (!a.en_venta) return 1;
@@ -76,7 +83,7 @@ function Juegos() {
   const [edadMax, setEdadMax] = useState("");
 
   const [pagina, setPagina] = useState(1);
-  const [orden, setOrden] = useState("");
+  const [orden, setOrden] = useState("titulo-asc");
   const [verAvanzados, setVerAvanzados] = useState(false);
 
   const porPagina = esAdmin
@@ -387,6 +394,24 @@ function Juegos() {
           Limpiar filtros
         </button>
 
+        {/* Orden: en la misma línea, un poco separado de los filtros */}
+        <div className="orden-inline">
+          <label htmlFor="ordenar-juegos">Ordenar por</label>
+          <select
+            id="ordenar-juegos"
+            value={orden}
+            onChange={(e) => cambiarFiltro(setOrden, e.target.value)}
+          >
+            <option value="titulo-asc">Título (A → Z)</option>
+            <option value="titulo-desc">Título (Z → A)</option>
+            <option value="precio-asc">Precio (menor a mayor)</option>
+            <option value="precio-desc">Precio (mayor a menor)</option>
+            <option value="edad-asc">Edad (menor a mayor)</option>
+            <option value="edad-desc">Edad (mayor a menor)</option>
+            <option value="popularidad-desc">Popularidad (más me gusta)</option>
+          </select>
+        </div>
+
         {verAvanzados && (
           <div id="filtros-avanzados" className="filtros-avanzados">
         <label className="solo-lectores" htmlFor="filtro-tienda">
@@ -512,24 +537,6 @@ function Juegos() {
 
           </div>
         )}
-      </div>
-
-      {/* Orden: aparte de los filtros */}
-      <div className="barra-orden">
-        <label htmlFor="ordenar-juegos">Ordenar por</label>
-        <select
-          id="ordenar-juegos"
-          value={orden}
-          onChange={(e) => cambiarFiltro(setOrden, e.target.value)}
-        >
-          <option value="">Orden original</option>
-          <option value="titulo-asc">Título (A → Z)</option>
-          <option value="titulo-desc">Título (Z → A)</option>
-          <option value="precio-asc">Precio (menor a mayor)</option>
-          <option value="precio-desc">Precio (mayor a menor)</option>
-          <option value="edad-asc">Edad (menor a mayor)</option>
-          <option value="edad-desc">Edad (mayor a menor)</option>
-        </select>
       </div>
 
       {/* Solo los administradores pueden crear o editar juegos. */}

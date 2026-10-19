@@ -80,6 +80,7 @@ class JuegoResponse(JuegoBase):
     en_venta: bool
     stock: int
     en_prestamo: bool = False
+    me_gusta: int = 0  # cantidad de usuarios que lo marcaron como favorito
     categoria: CategoriaOut
 
     model_config = ConfigDict(from_attributes=True)

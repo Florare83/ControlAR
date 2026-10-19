@@ -11,6 +11,7 @@ from app.api.v1.prestamos import router as prestamos_router
 from app.api.v1.favoritos import router as favoritos_router
 from app.api.v1.pedidos import router as pedidos_router, router_pagos
 from app.api.v1.contacto import router as contacto_router
+from app.core.asegurar_esquema import asegurar_esquema
 
 
 app = FastAPI(
@@ -44,6 +45,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def preparar_base_de_datos():
+    # Crea las tablas que falten y completa columnas nuevas (ver asegurar_esquema.py).
+    asegurar_esquema()
 
 
 @app.get("/", tags=["Root"])

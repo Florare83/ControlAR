@@ -7,7 +7,7 @@ import { useToast } from "../context/ToastContext.jsx";
 import logo from "../img/logo.png";
 
 function Navbar({ modoOscuro, onCambiarTema }) {
-  const { usuario, puedeOperar, logout } = useAuth();
+  const { usuario, rol, puedeOperar, logout } = useAuth();
   const { cantidadTotal } = useCarrito();
   const toast = useToast();
   const navegar = useNavigate();
@@ -125,6 +125,17 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                     gap: 4,
                   }}
                 >
+                  {rol === "cliente" && (
+                    <NavLink
+                      to="/favoritos"
+                      className={clase}
+                      onClick={cerrarMenuCuenta}
+                      style={{ padding: 10 }}
+                    >
+                      ❤️ Mis favoritos
+                    </NavLink>
+                  )}
+
                   <NavLink
                     to="/cambiar-contrasena"
                     className={clase}
