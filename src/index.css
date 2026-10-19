@@ -1353,3 +1353,126 @@ main:focus {
   width: auto;
   padding: 10px 24px;
 }
+
+
+/* ============================================
+   Catálogo compacto exclusivo para administradores
+   La vista pública de clientes conserva su diseño.
+   ============================================ */
+.grilla-juegos-admin {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.grilla-juegos-admin > .tarjeta.tarjeta-juego {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 14px;
+  height: auto;
+  min-height: 0;
+  padding: 12px;
+}
+
+/* Contenedor de imagen dentro de la tarjeta administrativa */
+.grilla-juegos-admin > .tarjeta.tarjeta-juego > div:first-child {
+  flex: 0 0 112px;
+  width: 112px;
+  align-self: flex-start;
+}
+
+.grilla-juegos-admin > .tarjeta.tarjeta-juego > div:first-child img {
+  display: block;
+  width: 112px;
+  height: 90px;
+  aspect-ratio: auto;
+  object-fit: cover;
+  margin: 0;
+  border-radius: 6px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  gap: 4px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .etiquetas {
+  margin: 0 0 2px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .caracteristicas-juego {
+  margin: 4px 0 !important;
+  gap: 4px 12px !important;
+  font-size: 13px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .detalle {
+  margin: 2px 0;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .precio {
+  margin: 2px 0 4px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .boton {
+  width: auto;
+  min-width: 88px;
+  padding: 7px 12px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin > div[style*="display: flex"] {
+  margin-top: 4px !important;
+}
+
+/* En pantallas pequeñas, conservar una sola columna y reducir la imagen */
+@media (max-width: 640px) {
+  .grilla-juegos-admin {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .grilla-juegos-admin > .tarjeta.tarjeta-juego {
+    flex-direction: row;
+    gap: 10px;
+    padding: 9px;
+  }
+
+  .grilla-juegos-admin > .tarjeta.tarjeta-juego > div:first-child {
+    flex: 0 0 82px;
+    width: 82px;
+  }
+
+  .grilla-juegos-admin > .tarjeta.tarjeta-juego > div:first-child img {
+    width: 82px;
+    height: 72px;
+  }
+
+  .grilla-juegos-admin .contenido-tarjeta-admin h3 {
+    font-size: 14px;
+  }
+
+  .grilla-juegos-admin .contenido-tarjeta-admin .etiqueta {
+    white-space: normal;
+    font-size: 10px;
+  }
+
+  .grilla-juegos-admin .contenido-tarjeta-admin .caracteristicas-juego {
+    gap: 4px 8px !important;
+    font-size: 12px;
+  }
+
+  .grilla-juegos-admin .contenido-tarjeta-admin .boton {
+    min-width: 0;
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+}
