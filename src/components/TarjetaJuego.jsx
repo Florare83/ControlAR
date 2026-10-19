@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { imagenDeJuego } from "../api/imagenes.js";
 import { useCarrito } from "../context/CarritoContext.jsx";
+import { formatearPrecio } from "./LineaCarrito.jsx";
 
 function TarjetaJuego({
   juego,
@@ -16,7 +17,7 @@ function TarjetaJuego({
 
   const enPrestamo = Boolean(juego.en_prestamo);
   const enVenta = Boolean(juego.en_venta);
-  const sinStock = Number(juego.stock ?? 0) <= 0;
+  const sinStock = juego.stock <= 0;
   const idTitulo = `juego-${juego.id}-titulo`;
 
   const [imagenFallida, setImagenFallida] = useState(false);
@@ -28,233 +29,102 @@ function TarjetaJuego({
       ? juego.imagen_url.trim()
       : imagenAlternativa;
 
-  const categoria = juego.categoria?.nombre ?? "Sin categoría";
-  const cantidadJugadores = juego.cantidad_jugadores ?? "No especificado";
-  const duracion = juego.duracion_minutos ?? "No especificada";
-  const stock = Number(juego.stock ?? 0);
-  const precio = Number(juego.precio ?? 0);
-
   return (
     <article
       className="tarjeta tarjeta-juego"
       aria-labelledby={idTitulo}
-      style={{ position: "relative" }}
     >
-      {/* Imagen del juego */}
-      <div style={{ position: "relative" }}>
-        <img
-          src={imagen}
-          alt={`Imagen de ${juego.titulo}`}
-          onError={() => {
-            if (juego.imagen_url && !imagenFallida) {
-              setImagenFallida(true);
-            }
-          }}
-        />
+      <img
+        src={imagen}
+        alt={`Imagen de ${juego.titulo}`}
+        onError={() => {
+          if (juego.imagen_url && !imagenFallida) {
+            setImagenFallida(true);
+          }
+        }}
+      />
 
-        {/* Favoritos */}
-        {!esAdmin && (
+      <div className="etiquetas">
+        <span
+          className={`etiqueta ${enPrestamo ? "no-disponible" : "disponible"}`}
+        >
+          {enPrestamo ? "Prestado" : "En préstamo"}
+        </span>
+
+        <span className={`etiqueta ${enVenta ? "disponible" : "neutra"}`}>
+          {enVenta ? "En tienda" : "No está en tienda"}
+        </span>
+      </div>
+
+      <h3 id={idTitulo}>{juego.titulo}</h3>
+
+      <p className="datos-juego">
+        <span title="Jugadores">
+          <span role="img" aria-label="Jugadores">👥</span>{" "}
+          {juego.cantidad_jugadores}
+        </span>
+        <span title="Duración">
+          <span role="img" aria-label="Duración">⏱️</span>{" "}
+          {juego.duracion_minutos} min
+        </span>
+        <span title="Categoría">
+          <span role="img" aria-label="Categoría">🏷️</span>{" "}
+          {juego.categoria.nombre}
+        </span>
+      </p>
+
+      {enVenta && (
+        <p className="datos-venta">
+          <span
+            className={sinStock ? "sin-stock" : undefined}
+            title="Stock"
+          >
+            <span role="img" aria-label="Stock">📦</span>{" "}
+            {sinStock ? "Sin stock" : juego.stock}
+          </span>
+          <strong className="precio">{formatearPrecio(juego.precio)}</strong>
+        </p>
+      )}
+
+      <div className="acciones-tarjeta">
+        <button
+          type="button"
+          className={`boton boton-favorito ${esFavorito ? "activo" : ""}`}
+          disabled={cargandoFavoritos}
+          aria-pressed={esFavorito}
+          aria-label={
+            esFavorito
+              ? `Quitar ${juego.titulo} de favoritos`
+              : `Agregar ${juego.titulo} a favoritos`
+          }
+          title={esFavorito ? "Quitar de favoritos" : "Me gusta"}
+          onClick={onToggleFavorito}
+        >
+          {esFavorito ? "❤️" : "♡"}
+        </button>
+
+        {enVenta && (
           <button
             type="button"
-            disabled={cargandoFavoritos}
-            onClick={onToggleFavorito}
-            aria-pressed={esFavorito}
+            className="boton boton-carrito-tarjeta"
+            disabled={sinStock}
             aria-label={
-              esFavorito
-                ? `Quitar ${juego.titulo} de favoritos`
-                : `Agregar ${juego.titulo} a favoritos`
+              sinStock
+                ? `${juego.titulo}: sin stock`
+                : `Agregar ${juego.titulo} al carrito`
             }
-            title={
-              esFavorito
-                ? "Quitar de favoritos"
-                : "Agregar a favoritos"
-            }
-            style={{
-              position: "absolute",
-              top: 10,
-              right: 10,
-              width: 42,
-              height: 42,
-              padding: 0,
-              border: "none",
-              borderRadius: "50%",
-              background: "rgba(255, 255, 255, 0.95)",
-              color: esFavorito ? "#e63946" : "#555",
-              fontSize: 27,
-              lineHeight: 1,
-              cursor: cargandoFavoritos ? "default" : "pointer",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            title={sinStock ? "Sin stock" : "Agregar al carrito"}
+            onClick={() => agregar(juego)}
           >
-            {esFavorito ? "♥" : "♡"}
+            {sinStock ? "Sin stock" : "🛒 Agregar"}
           </button>
         )}
       </div>
 
-      {/* Disponibilidad para préstamo y tienda */}
-      <div
-        className="etiquetas"
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 6,
-          marginTop: 8,
-        }}
-      >
-        <span
-          className={`etiqueta ${
-            enPrestamo ? "no-disponible" : "disponible"
-          }`}
-          title={
-            enPrestamo
-              ? "El juego está en préstamo"
-              : "El juego está disponible para préstamo"
-          }
-        >
-          <span aria-hidden="true">
-            {enPrestamo ? "📤" : "📥"}
-          </span>{" "}
-          {enPrestamo
-            ? "En préstamo"
-            : "Disponible para préstamo"}
-        </span>
-
-        <span
-          className={`etiqueta ${
-            enVenta ? "disponible" : "neutra"
-          }`}
-          title={
-            enVenta
-              ? "Disponible en tienda"
-              : "No disponible en tienda"
-          }
-        >
-          <span aria-hidden="true">
-            {enVenta ? "🛒" : "🚫"}
-          </span>{" "}
-          {enVenta
-            ? "Disponible en tienda"
-            : "No disponible en tienda"}
-        </span>
-      </div>
-
-      {/* Título */}
-      <h3 id={idTitulo}>{juego.titulo}</h3>
-
-      {/* Características compactas */}
-      <div
-        className="caracteristicas-juego"
-        aria-label={`Características de ${juego.titulo}`}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "8px 14px",
-          margin: "10px 0",
-        }}
-      >
-        <span
-          className="caracteristica-juego"
-          title="Cantidad de jugadores"
-          aria-label={`Jugadores: ${cantidadJugadores}`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-          }}
-        >
-          <span aria-hidden="true" style={{ fontSize: 19 }}>
-            ♟
-          </span>
-          <span>{cantidadJugadores}</span>
-        </span>
-
-        <span
-          className="caracteristica-juego"
-          title="Duración de la partida"
-          aria-label={`Duración: ${duracion} minutos`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-          }}
-        >
-          <span aria-hidden="true" style={{ fontSize: 19 }}>
-            ◷
-          </span>
-          <span>
-            {duracion}
-            {typeof duracion === "number" ||
-            !Number.isNaN(Number(duracion))
-              ? " min"
-              : ""}
-          </span>
-        </span>
-
-        <span
-          className="caracteristica-juego"
-          title="Categoría del juego"
-          aria-label={`Categoría: ${categoria}`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-          }}
-        >
-          <span aria-hidden="true" style={{ fontSize: 19 }}>
-            ▦
-          </span>
-          <span>{categoria}</span>
-        </span>
-      </div>
-
-      {/* Información comercial */}
-      {enVenta && (
-        <>
-          <div
-            className="detalle"
-            title="Stock disponible"
-            aria-label={
-              sinStock
-                ? "Sin stock"
-                : `Stock: ${stock} unidades`
-            }
-          >
-            <span aria-hidden="true">📦</span>{" "}
-            <span>
-              {sinStock ? "Sin stock" : `${stock} un.`}
-            </span>
-          </div>
-
-          <p className="precio">${precio.toFixed(2)}</p>
-
-          {!esAdmin && (
-            <button
-              type="button"
-              className="boton"
-              disabled={sinStock}
-              aria-label={
-                sinStock
-                  ? `${juego.titulo}: sin stock`
-                  : `Agregar ${juego.titulo} al carrito`
-              }
-              onClick={() => agregar(juego)}
-            >
-              {sinStock ? "Sin stock" : "Agregar al carrito"}
-            </button>
-          )}
-        </>
-      )}
-
-      {/* Acciones exclusivas del administrador */}
       {esAdmin && (
         <div
           style={{
             display: "flex",
-            flexWrap: "wrap",
             gap: 8,
             marginTop: 8,
           }}

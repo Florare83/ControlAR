@@ -152,11 +152,11 @@ a {
 
 /* ============================================
    Cuadrícula del catálogo de juegos
-   4 tarjetas por fila en pantallas grandes
+   5 tarjetas por fila en pantallas grandes
    ============================================ */
 .grilla-juegos {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   align-items: stretch;
   grid-auto-flow: row;
@@ -182,53 +182,9 @@ a {
   display: block;
   width: 100%;
   border-radius: 8px;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 10;
   object-fit: cover;
-  margin-bottom: 10px;
-}
-
-/* Contenedor de imagen: permite ubicar el corazón encima */
-.tarjeta-juego .imagen-juego-contenedor {
-  position: relative;
-  width: 100%;
-}
-
-/* Si la imagen está dentro del contenedor, ocupa su ancho */
-.tarjeta-juego .imagen-juego-contenedor img {
-  width: 100%;
-}
-
-/* Botón de favoritos sobre la imagen */
-.tarjeta-juego .boton-favorito {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
-  color: #d62839;
-  font-size: 25px;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.tarjeta-juego .boton-favorito:hover {
-  background: #ffffff;
-  transform: scale(1.08);
-}
-
-.tarjeta-juego .boton-favorito:focus-visible {
-  outline: 3px solid #4c8dff;
-  outline-offset: 2px;
+  margin-bottom: 8px;
 }
 
 .tarjeta-juego h3 {
@@ -604,10 +560,6 @@ body.oscuro {
   .spinner {
     animation-duration: 3s;
   }
-
-  .tarjeta-juego .boton-favorito {
-    transition: none;
-  }
 }
 
 /* ============================================
@@ -615,7 +567,7 @@ body.oscuro {
    ============================================ */
 .pagina.panel {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 220px 1fr;
   gap: 24px;
   max-width: 1200px;
   align-items: start;
@@ -747,8 +699,7 @@ main:focus {
    Responsive
    ============================================ */
 
-/* Pantallas grandes: 4 juegos por fila.
-   Pantallas medianas: 3 juegos por fila. */
+/* Pantallas medianas: 3 juegos por fila */
 @media (max-width: 1000px) {
   .grilla-juegos {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -757,40 +708,19 @@ main:focus {
   .pagina.panel {
     grid-template-columns: 220px minmax(0, 1fr);
   }
-
-  .navbar {
-    padding: 14px 20px;
-  }
-
-  .navbar .marca {
-    font-size: 29px;
-  }
-
-  .navbar .links {
-    gap: 16px;
-  }
 }
 
-/* Tablets pequeñas y celulares: 2 juegos por fila */
+/* Tablets y celulares: 2 juegos por fila */
 @media (max-width: 640px) {
   .navbar {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
-    padding: 14px 16px;
-  }
-
-  .navbar .marca {
-    font-size: 28px;
   }
 
   .navbar .links {
     flex-wrap: wrap;
     gap: 14px;
-  }
-
-  .navbar .acciones-sesion {
-    flex-wrap: wrap;
   }
 
   .grilla-juegos {
@@ -803,7 +733,7 @@ main:focus {
   }
 
   .pagina.panel {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .tarjeta.tarjeta-central {
@@ -826,318 +756,600 @@ main:focus {
     padding: 9px 6px;
     font-size: 12px;
   }
-
-  .tarjeta-juego .boton-favorito {
-    width: 34px;
-    height: 34px;
-    font-size: 23px;
-    top: 6px;
-    right: 6px;
-  }
-
-  .filtros input {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .tarjeta.tarjeta-central {
-    padding: 24px 18px;
-  }
-
-  .tabla {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
 }
-
-
 
 /* ============================================
-   Catálogo: búsqueda y filtros compactos
+   Carrito: botón del navbar
    ============================================ */
-
-.pagina-catalogo .catalogo-busqueda {
-  margin-bottom: 20px;
+.navbar .boton-carrito {
+  position: relative;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
 }
 
-.pagina-catalogo .catalogo-busqueda label,
-.pagina-catalogo .filtro-campo label,
-.pagina-catalogo .catalogo-orden label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--texto);
-  font-size: 13px;
-  font-weight: 600;
+.navbar .boton-carrito:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.pagina-catalogo .catalogo-busqueda input {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  padding: 12px 14px;
-  border: 1px solid var(--borde);
-  border-radius: 8px;
+.carrito-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e63946;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* ============================================
+   Carrito: sidebar derecho
+   ============================================ */
+.carrito-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.carrito-fondo.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.carrito-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1600;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 100vw);
   background: var(--blanco);
   color: var(--texto);
-  font: inherit;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.25);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.3s ease, visibility 0s linear 0.3s;
 }
 
-.pagina-catalogo .catalogo-filtros {
-  margin-bottom: 28px;
-  padding: 18px;
-  border: 1px solid var(--borde);
-  border-radius: 10px;
-  background: var(--blanco);
+.carrito-sidebar.abierto {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.3s ease;
 }
 
-.pagina-catalogo .catalogo-filtros-encabezado {
+@media (prefers-reduced-motion: reduce) {
+  .carrito-sidebar,
+  .carrito-fondo {
+    transition: none;
+  }
+}
+
+.carrito-cabecera {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.carrito-cabecera h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.carrito-cerrar {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 6px;
+}
+
+.carrito-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.carrito-linea {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.carrito-linea img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--fondo);
+}
+
+.carrito-linea-info p,
+.carrito-linea p {
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.carrito-linea-titulo {
+  font-weight: 600;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.carrito-linea-precio {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.carrito-linea-lado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.carrito-cantidad {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.carrito-cantidad button {
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.carrito-cantidad button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.carrito-cantidad span {
+  min-width: 28px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.carrito-quitar,
+.carrito-vaciar {
+  background: none;
+  border: none;
+  color: var(--alerta);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.carrito-pie {
+  display: grid;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--borde);
+}
+
+.carrito-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 18px;
+}
+
+.carrito-vaciar {
+  justify-self: center;
+}
+
+.carrito-vacio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* ============================================
+   Pantalla completa: confirmación y resultado de la compra
+   ============================================ */
+.pantalla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  overflow-y: auto;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+.pc-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: #161c3f;
+  color: #ffffff;
+}
+
+.pc-marca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.pc-marca img {
+  height: 40px;
+}
+
+.pc-volver {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.pc-contenido {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 60px;
+}
+
+.pc-contenido h1 {
+  margin: 0 0 24px;
+  font-size: 28px;
+}
+
+.pc-grilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.pc-grilla .carrito-lista {
+  padding: 0;
+  overflow: visible;
+}
+
+.pc-grilla h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.pc-pago {
+  display: grid;
+  gap: 14px;
+  position: sticky;
+  top: 24px;
+}
+
+.pc-pago .ayuda {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.boton-mp {
+  background: #009ee3;
+  padding: 14px;
+  font-size: 15px;
+}
+
+.boton-mp:hover {
+  background: #0086c3;
+}
+
+.pc-cancelar {
+  text-align: center;
+  font-size: 14px;
+  color: var(--texto-suave);
+  text-decoration: underline;
+}
+
+.pc-vacio {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: 420px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.pc-vacio .boton {
+  width: auto;
+}
+
+.pc-resultado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 560px;
+  gap: 8px;
+  padding-top: 60px;
+}
+
+.pc-resultado .boton {
+  width: auto;
+  margin-top: 16px;
+  padding: 12px 28px;
+}
+
+.pc-icono {
+  font-size: 64px;
+  margin: 0;
+}
+
+.pc-detalle {
+  list-style: none;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 0;
+  text-align: left;
+}
+
+.pc-detalle li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+@media (max-width: 800px) {
+  .pc-grilla {
+    grid-template-columns: 1fr;
+  }
+
+  .pc-pago {
+    position: static;
+  }
+
+  .pc-cabecera {
+    padding: 12px 16px;
+  }
+}
+
+
+/* ============================================
+   Tarjeta de juego compacta (iconos en línea)
+   ============================================ */
+.tarjeta-juego .etiquetas {
+  margin-bottom: 6px;
+}
+
+.tarjeta-juego .etiqueta {
+  white-space: nowrap;
+}
+
+.tarjeta-juego .datos-juego,
+.tarjeta-juego .datos-venta {
+  display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.tarjeta-juego .datos-venta {
+  color: var(--texto);
+}
+
+.tarjeta-juego .datos-venta .precio {
+  margin: 0;
+  font-size: 15px;
+}
+
+.tarjeta-juego .sin-stock {
+  color: var(--alerta);
+  font-weight: 600;
+}
+
+.tarjeta-juego .acciones-tarjeta {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.tarjeta-juego .acciones-tarjeta .boton {
+  width: auto;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.tarjeta-juego .boton-favorito {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.tarjeta-juego .boton-favorito.activo {
+  background: #e63946;
+}
+
+.tarjeta-juego .boton-carrito-tarjeta {
+  flex: 1;
+}
+
+
+/* Botón flotante del carrito */
+.carrito-flotante {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1400;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--azul-marino);
+  color: #ffffff;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.carrito-flotante:hover {
+  transform: scale(1.06);
+}
+
+.carrito-flotante .carrito-badge {
+  top: -4px;
+  right: -4px;
+}
+
+/* ============================================
+   Contacto: contenedor del formulario
+   ============================================ */
+.tarjeta.tarjeta-central.tarjeta-contacto {
+  max-width: 560px;
+  text-align: left;
+}
+
+.tarjeta-contacto .formulario {
+  max-width: none;
+}
+
+.tarjeta-contacto .subtitulo {
+  margin-bottom: 16px;
+}
+
+/* ============================================
+   Panel: bandeja de mensajes
+   ============================================ */
+.panel-contador {
+  display: inline-block;
+  margin-left: 8px;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e63946;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.mensajes-filtros {
+  display: flex;
   gap: 8px;
   margin-bottom: 16px;
 }
 
-.pagina-catalogo .catalogo-filtros-encabezado h2,
-.pagina-catalogo .catalogo-resultados-titulo h2 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.pagina-catalogo .catalogo-filtros-encabezado p {
-  margin: 4px 0 0;
-  color: var(--texto-suave);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.pagina-catalogo .filtros-contador {
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: var(--fondo);
-  color: var(--texto-suave);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.pagina-catalogo .catalogo-filtros-principales {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.pagina-catalogo .filtro-campo {
-  min-width: 0;
-}
-
-.pagina-catalogo .filtro-campo input,
-.pagina-catalogo .filtro-campo select,
-.pagina-catalogo .catalogo-orden select {
-  width: 100%;
-  min-width: 0;
-  height: 40px;
-  padding: 8px 10px;
+.filtro-boton {
+  padding: 6px 14px;
   border: 1px solid var(--borde);
-  border-radius: 6px;
+  border-radius: 999px;
   background: var(--blanco);
   color: var(--texto);
-  font-family: inherit;
-  font-size: 13px;
-}
-
-.pagina-catalogo .catalogo-filtros-avanzados {
-  margin-top: 14px;
-  border-top: 1px solid var(--borde);
-}
-
-.pagina-catalogo .catalogo-filtros-avanzados summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 14px 0 4px;
-  cursor: pointer;
-  color: var(--azul-marino);
   font-size: 14px;
-  font-weight: 600;
-  list-style-position: inside;
+  cursor: pointer;
 }
 
-body.oscuro .pagina-catalogo .catalogo-filtros-avanzados summary {
-  color: #c5cbff;
+.filtro-boton.activo {
+  background: var(--azul-marino);
+  border-color: var(--azul-marino);
+  color: #ffffff;
 }
 
-.pagina-catalogo .filtros-avanzados-ayuda {
-  color: var(--texto-suave);
-  font-size: 12px;
-  font-weight: 400;
-}
-
-.pagina-catalogo .catalogo-filtros-secundarios {
+.mensajes-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  padding-top: 16px;
-}
-
-.pagina-catalogo .catalogo-filtros-pie {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--borde);
-  color: var(--texto-suave);
-  font-size: 13px;
-}
-
-.pagina-catalogo .boton-limpiar-filtros {
-  padding: 7px 10px;
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--texto);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.pagina-catalogo .boton-limpiar-filtros:hover:not(:disabled) {
-  background: var(--fondo);
-}
-
-.pagina-catalogo .boton-limpiar-filtros:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* ============================================
-   Catálogo: resultados y ordenamiento
-   ============================================ */
-
-.pagina-catalogo .catalogo-resultados-encabezado {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.pagina-catalogo .catalogo-resultados-titulo span {
-  display: block;
-  margin-top: 5px;
-  color: var(--texto-suave);
-  font-size: 13px;
-}
-
-.pagina-catalogo .catalogo-orden {
-  width: 220px;
-  max-width: 100%;
-}
-
-.pagina-catalogo .boton-agregar-juego {
-  width: auto;
-  margin-bottom: 20px;
-}
-
-.pagina-catalogo .boton-reintentar {
-  width: auto;
-  margin-top: 12px;
-}
-
-.pagina-catalogo .catalogo-sin-resultados {
-  padding: 28px 18px;
-  border: 1px dashed var(--borde);
-  border-radius: 10px;
-  text-align: center;
-}
-
-.pagina-catalogo .catalogo-sin-resultados h3 {
-  margin-top: 0;
-}
-
-.pagina-catalogo .catalogo-sin-resultados p {
-  color: var(--texto-suave);
-  line-height: 1.6;
-}
-
-.pagina-catalogo .catalogo-sin-resultados .boton {
-  width: auto;
-}
-
-.pagina-catalogo .catalogo-paginacion {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
   gap: 12px;
-  margin-top: 24px;
 }
 
-.pagina-catalogo .catalogo-paginacion-info {
-  color: var(--texto-suave);
-  font-size: 14px;
+.tarjeta.mensaje {
+  display: block;
 }
 
-.pagina-catalogo .catalogo-paginacion-botones {
+.tarjeta.mensaje-nuevo {
+  border-left: 4px solid var(--azul-marino);
+}
+
+.mensaje h2 {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+}
+
+.mensaje .mensaje-meta {
+  margin: 2px 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.mensaje .mensaje-texto {
+  margin: 0 0 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mensaje-acciones {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.pagina-catalogo .catalogo-paginacion-botones .boton {
+.mensaje-acciones .boton {
   width: auto;
+  padding: 8px 14px;
+  font-size: 13px;
 }
 
-/* ============================================
-   Responsive del catálogo
-   ============================================ */
-
-@media (max-width: 1000px) {
-  .pagina-catalogo .catalogo-filtros-secundarios {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.mensaje-acciones .boton-peligro {
+  background: #e63946;
 }
 
-@media (max-width: 640px) {
-  .pagina-catalogo .catalogo-filtros {
-    padding: 14px;
-  }
-
-  .pagina-catalogo .catalogo-filtros-principales,
-  .pagina-catalogo .catalogo-filtros-secundarios {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px 10px;
-  }
-
-  .pagina-catalogo .catalogo-resultados-encabezado {
-    align-items: stretch;
-  }
-
-  .pagina-catalogo .catalogo-orden {
-    width: 100%;
-  }
-
-  .pagina-catalogo .catalogo-paginacion {
-    align-items: stretch;
-  }
-
-  .pagina-catalogo .catalogo-paginacion-botones {
-    width: 100%;
-  }
-
-  .pagina-catalogo .catalogo-paginacion-botones .boton {
-    flex: 1;
-  }
+.mensajes-pie {
+  margin: 12px 0 8px;
+  font-size: 13px;
+  color: var(--texto-suave);
 }
 
-@media (max-width: 380px) {
-  .pagina-catalogo .catalogo-filtros-principales,
-  .pagina-catalogo .catalogo-filtros-secundarios {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.mensajes-mas {
+  width: auto;
+  padding: 10px 24px;
 }

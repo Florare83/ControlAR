@@ -182,12 +182,33 @@ export const eliminarCuenta = (contrasena) =>
     body: JSON.stringify({ contrasena }),
   });
 
-
-export const enviarMensajeContacto = (datos) =>
-  pedir("/contacto/", {
+// Compras (carrito -> Mercado Pago)
+export const crearCheckout = (items) =>
+  pedir("/pedidos/checkout", {
     method: "POST",
-    body: JSON.stringify(datos),
+    body: JSON.stringify({
+      items: items.map((i) => ({ juego_id: i.id, cantidad: i.cantidad })),
+    }),
   });
 
-export const listarMensajesContacto = () =>
-  pedir("/contacto/");
+export const confirmarPedido = (pedidoId, pagoId) =>
+  pedir(`/pedidos/${pedidoId}/confirmar`, {
+    method: "POST",
+    body: JSON.stringify({ pago_id: pagoId || null }),
+  });
+
+// Contacto
+export const enviarContacto = (datos) =>
+  pedir("/contacto/", { method: "POST", body: JSON.stringify(datos) });
+
+// Mensajes de contacto (solo administrador)
+export const listarMensajes = ({ soloNoLeidos = false, limite = 20, desplazamiento = 0 } = {}) =>
+  pedir(
+    `/contacto/?solo_no_leidos=${soloNoLeidos}&limite=${limite}&desplazamiento=${desplazamiento}`
+  );
+
+export const marcarMensaje = (id, leido) =>
+  pedir(`/contacto/${id}`, { method: "PATCH", body: JSON.stringify({ leido }) });
+
+export const eliminarMensaje = (id) =>
+  pedir(`/contacto/${id}`, { method: "DELETE" });

@@ -1,13 +1,37 @@
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import { listarMensajes } from "../api/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 // Estructura común de los paneles: menú lateral + contenido.
 // - Operador (voluntario): solo ve "Préstamos".
-// - Administrador: panel completo (Resumen, Préstamos y Gestionar juegos).
+// - Administrador: panel completo (Resumen, Préstamos, Mensajes y Agregar juegos).
 // El contenido de cada sección se dibuja en <Outlet />.
 function PanelLayout() {
   const { usuario, esAdmin } = useAuth();
   const clase = ({ isActive }) => (isActive ? "activo" : "");
+
+  // Cantidad de mensajes de contacto sin leer (solo la ve el administrador).
+  const [noLeidos, setNoLeidos] = useState(0);
+
+  const actualizarNoLeidos = useCallback(async () => {
+    if (!esAdmin) return;
+    try {
+      const datos = await listarMensajes({ limite: 1 });
+      setNoLeidos(datos.no_leidos);
+    } catch {
+      // Si falla, simplemente no se muestra el contador.
+    }
+  }, [esAdmin]);
+
+  useEffect(() => {
+    actualizarNoLeidos();
+
+    // La bandeja de mensajes avisa cuando se lee o elimina algo.
+    window.addEventListener("mensajes-actualizados", actualizarNoLeidos);
+    return () =>
+      window.removeEventListener("mensajes-actualizados", actualizarNoLeidos);
+  }, [actualizarNoLeidos]);
 
   return (
     <div className="pagina panel">
@@ -33,8 +57,23 @@ function PanelLayout() {
             </li>
             {esAdmin && (
               <li>
-                <NavLink to="/juegos" className={clase}>
-                  Gestionar juegos
+                <NavLink to="/panel/mensajes" className={clase}>
+                  Mensajes
+                  {noLeidos > 0 && (
+                    <span
+                      className="panel-contador"
+                      aria-label={`${noLeidos} sin leer`}
+                    >
+                      {noLeidos}
+                    </span>
+                  )}
+                </NavLink>
+              </li>
+            )}
+            {esAdmin && (
+              <li>
+                <NavLink to="/panel/agregar-juego" className={clase}>
+                  Agregar juegos
                 </NavLink>
               </li>
             )}

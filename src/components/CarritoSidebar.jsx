@@ -5,7 +5,8 @@ import LineaCarrito, { formatearPrecio } from "./LineaCarrito.jsx";
 
 // Panel lateral derecho del carrito (el típico "drawer").
 function CarritoSidebar() {
-  const { items, cantidadTotal, total, abierto, cerrar, vaciar } = useCarrito();
+  const { items, cantidadTotal, total, abierto, abrir, cerrar, vaciar } =
+    useCarrito();
   const navegar = useNavigate();
   const botonCerrar = useRef(null);
 
@@ -37,6 +38,23 @@ function CarritoSidebar() {
 
   return (
     <>
+      {/* Botón flotante: el carrito siempre queda a mano, sin volver al navbar. */}
+      {cantidadTotal > 0 && !abierto && (
+        <button
+          type="button"
+          className="carrito-flotante"
+          aria-label={`Abrir carrito: ${cantidadTotal} ${
+            cantidadTotal === 1 ? "producto" : "productos"
+          }`}
+          onClick={abrir}
+        >
+          <span aria-hidden="true">🛒</span>
+          <span className="carrito-badge" aria-hidden="true">
+            {cantidadTotal}
+          </span>
+        </button>
+      )}
+
       <div
         className={`carrito-fondo ${abierto ? "visible" : ""}`}
         onClick={cerrar}

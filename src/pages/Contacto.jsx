@@ -1,293 +1,195 @@
-
 import { useState } from "react";
+import { enviarContacto } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
-import { enviarMensajeContacto } from "../api/api.js";
 
 const OBLIGATORIOS = ["nombre", "apellido", "mensaje"];
 
-const VACIO = {
-  nombre: "",
-  apellido: "",
-  telefono: "",
-  email: "",
-  mensaje: "",
-};
-
+// Devuelve el mensaje de error de un campo ("" si está bien).
 function errorDeCampo(campo, valor) {
   const texto = valor.trim();
-
-  if (OBLIGATORIOS.includes(campo) && !texto) {
-    return "Este campo es obligatorio.";
+  switch (campo) {
+    case "nombre":
+      return texto ? "" : "Ingresá tu nombre.";
+    case "apellido":
+      return texto ? "" : "Ingresá tu apellido.";
+    case "mensaje":
+      return texto ? "" : "Escribí tu mensaje.";
+    case "email":
+      return texto && !/\S+@\S+\.\S+/.test(texto) ? "Ejemplo válido: usuario@dominio.com" : "";
+    case "telefono":
+      return texto && !/^[0-9+\s-]+$/.test(texto) ? "Ingresá solo números, espacios o +" : "";
+    default:
+      return "";
   }
-
-  if (campo === "email" && texto) {
-    const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto);
-
-    if (!emailValido) {
-      return "Ingresá un correo electrónico válido.";
-    }
-  }
-
-  if (campo === "telefono" && texto) {
-    if (!/^[0-9+\s()-]+$/.test(texto)) {
-      return "Ingresá un teléfono válido.";
-    }
-  }
-
-  return "";
 }
 
+// Regla extra: tiene que haber al menos un Email o un Teléfono.
 function errorDeContacto(datos) {
-  if (!datos.email.trim() && !datos.telefono.trim()) {
-    return "Ingresá un correo electrónico o un teléfono.";
-  }
-
-  return "";
+  return !datos.email.trim() && !datos.telefono.trim()
+    ? "Ingresá al menos un Email o un Teléfono de contacto."
+    : "";
 }
+
+function validarTodo(datos) {
+  const errores = {};
+  for (const campo of Object.keys(datos)) {
+    errores[campo] = errorDeCampo(campo, datos[campo]);
+  }
+  errores.contacto = errorDeContacto(datos);
+  return errores;
+}
+
+const VACIO = { nombre: "", apellido: "", telefono: "", email: "", mensaje: "" };
 
 function Contacto() {
   const toast = useToast();
-
   const [datos, setDatos] = useState(VACIO);
   const [errores, setErrores] = useState({});
   const [enviado, setEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
+  // Validamos en tiempo real, pero solo el campo que se está escribiendo.
   function manejarCambio(evento) {
     const { name, value } = evento.target;
-
-    setDatos((actuales) => ({
-      ...actuales,
-      [name]: value,
-    }));
-
-    setEnviado(false);
-
-    setErrores((actuales) => ({
-      ...actuales,
+    const nuevosDatos = { ...datos, [name]: value };
+    setDatos(nuevosDatos);
+    setErrores((previos) => ({
+      ...previos,
       [name]: errorDeCampo(name, value),
-      ...(name === "email" || name === "telefono"
-        ? {
-            email: "",
-            telefono: "",
-          }
-        : {}),
+      contacto: errorDeContacto(nuevosDatos),
     }));
   }
 
   async function manejarEnvio(evento) {
     evento.preventDefault();
+    const todos = validarTodo(datos);
+    setErrores(todos);
 
-    const erroresNuevos = {};
-
-    for (const campo of OBLIGATORIOS) {
-      const error = errorDeCampo(campo, datos[campo]);
-
-      if (error) {
-        erroresNuevos[campo] = error;
-      }
-    }
-
-    const errorContacto = errorDeContacto(datos);
-
-    if (errorContacto) {
-      erroresNuevos.email = errorContacto;
-      erroresNuevos.telefono = errorContacto;
-    } else {
-      erroresNuevos.email = errorDeCampo("email", datos.email);
-      erroresNuevos.telefono = errorDeCampo(
-        "telefono",
-        datos.telefono
-      );
-
-      if (!erroresNuevos.email) delete erroresNuevos.email;
-      if (!erroresNuevos.telefono) delete erroresNuevos.telefono;
-    }
-
-    setErrores(erroresNuevos);
-    setEnviado(false);
-
-    if (Object.keys(erroresNuevos).length > 0) {
-      toast.error("Revisá los campos marcados.");
+    const primerError = Object.keys(datos).find((campo) => todos[campo]);
+    if (primerError || todos.contacto) {
+      setEnviado(false);
+      toast.error("Revisá los campos marcados antes de enviar.");
+      // Llevamos el cursor al primer campo con problema (o al email si falta el contacto).
+      document.getElementById(primerError ?? "email")?.focus();
       return;
     }
 
     setEnviando(true);
-
     try {
-      await enviarMensajeContacto({
+      await enviarContacto({
         nombre: datos.nombre.trim(),
         apellido: datos.apellido.trim(),
-        telefono: datos.telefono.trim() || null,
-        email: datos.email.trim() || null,
+        telefono: datos.telefono.trim(),
+        email: datos.email.trim(),
         mensaje: datos.mensaje.trim(),
       });
-
       setEnviado(true);
-      setDatos({ ...VACIO });
+      setDatos(VACIO);
       setErrores({});
-
       toast.exito("¡Gracias! Recibimos tu mensaje.");
-    } catch (error) {
-      toast.error(
-        error.message ||
-          "No se pudo enviar el mensaje. Intentá nuevamente."
-      );
+    } catch (e) {
+      setEnviado(false);
+      toast.error(e.message);
     } finally {
       setEnviando(false);
     }
   }
 
+  // Atributos de accesibilidad comunes a todos los campos:
+  // aria-invalid avisa que hay error y aria-describedby lo conecta con su mensaje.
+  function atributos(campo) {
+    const hayError = Boolean(errores[campo]);
+    const ids = [];
+    if (hayError) ids.push(`error-${campo}`);
+    if ((campo === "email" || campo === "telefono") && errores.contacto) ids.push("error-contacto");
+    return {
+      id: campo,
+      name: campo,
+      value: datos[campo],
+      onChange: manejarCambio,
+      "aria-invalid": hayError ? "true" : undefined,
+      "aria-describedby": ids.length ? ids.join(" ") : undefined,
+      "aria-required": OBLIGATORIOS.includes(campo) ? "true" : undefined,
+    };
+  }
+
   return (
-    <section className="pagina-contacto">
-      <div className="contenedor-contacto">
-        <h1>Contacto</h1>
+    <div className="pagina">
+      <div className="tarjeta tarjeta-central tarjeta-contacto">
+      <h1 className="titulo-tarjeta">Contacto</h1>
+      <p className="subtitulo">Escribinos y te respondemos a la brevedad.</p>
 
-        <p>
-          ¿Tenés alguna consulta o sugerencia? Completá el formulario
-          y nos pondremos en contacto con vos.
+      {enviado && (
+        <p style={{ color: "var(--exito, green)", fontWeight: 600 }} role="status">
+          ¡Gracias! Recibimos tu mensaje.
         </p>
+      )}
 
-        {enviado && (
-          <p className="mensaje-exito" role="status">
-            ¡Gracias! Tu mensaje fue recibido correctamente.
+      <form className="formulario" onSubmit={manejarEnvio} noValidate>
+        <p className="ayuda">Los campos con * son obligatorios. Completá al menos un Email o un Teléfono.</p>
+
+        {errores.contacto && (
+          <p id="error-contacto" className="error">
+            ⚠️ {errores.contacto}
           </p>
         )}
 
-        <form onSubmit={manejarEnvio} noValidate>
-          <div className="campo-contacto">
-            <label htmlFor="nombre">Nombre *</label>
-            <input
-              id="nombre"
-              name="nombre"
-              type="text"
-              value={datos.nombre}
-              onChange={manejarCambio}
-              maxLength={100}
-              required
-              aria-invalid={Boolean(errores.nombre)}
-              aria-describedby={
-                errores.nombre ? "error-nombre" : undefined
-              }
-            />
-            {errores.nombre && (
-              <p id="error-nombre" className="error-campo" role="alert">
-                {errores.nombre}
-              </p>
-            )}
-          </div>
+        <div className="campo">
+          <label htmlFor="nombre">Nombre *</label>
+          <input type="text" autoComplete="given-name" {...atributos("nombre")} />
+          {errores.nombre && (
+            <span id="error-nombre" className="error">
+              {errores.nombre}
+            </span>
+          )}
+        </div>
 
-          <div className="campo-contacto">
-            <label htmlFor="apellido">Apellido *</label>
-            <input
-              id="apellido"
-              name="apellido"
-              type="text"
-              value={datos.apellido}
-              onChange={manejarCambio}
-              maxLength={100}
-              required
-              aria-invalid={Boolean(errores.apellido)}
-              aria-describedby={
-                errores.apellido ? "error-apellido" : undefined
-              }
-            />
-            {errores.apellido && (
-              <p
-                id="error-apellido"
-                className="error-campo"
-                role="alert"
-              >
-                {errores.apellido}
-              </p>
-            )}
-          </div>
+        <div className="campo">
+          <label htmlFor="apellido">Apellido *</label>
+          <input type="text" autoComplete="family-name" {...atributos("apellido")} />
+          {errores.apellido && (
+            <span id="error-apellido" className="error">
+              {errores.apellido}
+            </span>
+          )}
+        </div>
 
-          <div className="campo-contacto">
-            <label htmlFor="telefono">Teléfono</label>
-            <input
-              id="telefono"
-              name="telefono"
-              type="tel"
-              value={datos.telefono}
-              onChange={manejarCambio}
-              maxLength={30}
-              autoComplete="tel"
-              aria-invalid={Boolean(errores.telefono)}
-              aria-describedby={
-                errores.telefono ? "error-telefono" : undefined
-              }
-            />
-            {errores.telefono && (
-              <p
-                id="error-telefono"
-                className="error-campo"
-                role="alert"
-              >
-                {errores.telefono}
-              </p>
-            )}
-          </div>
+        <div className="campo">
+          <label htmlFor="telefono">Teléfono</label>
+          <input type="tel" autoComplete="tel" placeholder="Ej: +54 387 123456" {...atributos("telefono")} />
+          {errores.telefono && (
+            <span id="error-telefono" className="error">
+              {errores.telefono}
+            </span>
+          )}
+        </div>
 
-          <div className="campo-contacto">
-            <label htmlFor="email">Correo electrónico</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={datos.email}
-              onChange={manejarCambio}
-              maxLength={255}
-              autoComplete="email"
-              aria-invalid={Boolean(errores.email)}
-              aria-describedby={
-                errores.email ? "error-email" : undefined
-              }
-            />
-            {errores.email && (
-              <p id="error-email" className="error-campo" role="alert">
-                {errores.email}
-              </p>
-            )}
-          </div>
+        <div className="campo">
+          <label htmlFor="email">Email</label>
+          <input type="email" autoComplete="email" placeholder="nombre@ejemplo.com" {...atributos("email")} />
+          {errores.email && (
+            <span id="error-email" className="error">
+              {errores.email}
+            </span>
+          )}
+        </div>
 
-          <p className="ayuda-contacto">
-            * Campos obligatorios. Debés ingresar un teléfono o un
-            correo electrónico para que podamos responderte.
-          </p>
+        <div className="campo">
+          <label htmlFor="mensaje">Mensaje *</label>
+          <textarea {...atributos("mensaje")} />
+          {errores.mensaje && (
+            <span id="error-mensaje" className="error">
+              {errores.mensaje}
+            </span>
+          )}
+        </div>
 
-          <div className="campo-contacto">
-            <label htmlFor="mensaje">Mensaje *</label>
-            <textarea
-              id="mensaje"
-              name="mensaje"
-              value={datos.mensaje}
-              onChange={manejarCambio}
-              rows={6}
-              maxLength={10000}
-              required
-              aria-invalid={Boolean(errores.mensaje)}
-              aria-describedby={
-                errores.mensaje ? "error-mensaje" : undefined
-              }
-            />
-            {errores.mensaje && (
-              <p
-                id="error-mensaje"
-                className="error-campo"
-                role="alert"
-              >
-                {errores.mensaje}
-              </p>
-            )}
-          </div>
-
-          <button type="submit" disabled={enviando}>
-            {enviando ? "Enviando..." : "Enviar mensaje"}
-          </button>
-        </form>
+        <button type="submit" className="boton" disabled={enviando}>
+          {enviando ? "Enviando..." : "Enviar"}
+        </button>
+      </form>
       </div>
-    </section>
+    </div>
   );
 }
 
