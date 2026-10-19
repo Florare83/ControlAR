@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   listarJuegos,
@@ -17,10 +18,11 @@ import { useToast } from "../context/ToastContext.jsx";
 import TarjetaJuego from "../components/TarjetaJuego.jsx";
 import FormularioJuego from "../components/FormularioJuego.jsx";
 
-const JUEGOS_POR_PAGINA = 12;
+const JUEGOS_POR_PAGINA = 10;
 
 function Juegos() {
   const { esAdmin, usuario } = useAuth();
+  const navegar = useNavigate();
   const toast = useToast();
 
   const [juegos, setJuegos] = useState([]);
@@ -29,9 +31,10 @@ function Juegos() {
   const [errorCarga, setErrorCarga] = useState("");
   const [favoritos, setFavoritos] = useState([]);
   const [cargandoFavoritos, setCargandoFavoritos] = useState(false);
+
   const [formulario, setFormulario] = useState(null);
 
-  // Búsqueda y filtros.
+  // Filtros del catálogo.
   const [busqueda, setBusqueda] = useState("");
   const [categoriaElegida, setCategoriaElegida] = useState("Todas");
   const [tiendaElegida, setTiendaElegida] = useState("Todas");
@@ -43,10 +46,6 @@ function Juegos() {
   const [edadMin, setEdadMin] = useState("");
   const [edadMax, setEdadMax] = useState("");
 
-  // Ordenamiento.
-  const [orden, setOrden] = useState("titulo-asc");
-
-  // Paginación.
   const [pagina, setPagina] = useState(1);
 
   async function cargarDatos() {
@@ -76,7 +75,7 @@ function Juegos() {
     let activo = true;
 
     async function cargarFavoritosUsuario() {
-      if (!usuario || esAdmin) {
+      if (!usuario) {
         setFavoritos([]);
         setCargandoFavoritos(false);
         return;
@@ -109,36 +108,27 @@ function Juegos() {
     return () => {
       activo = false;
     };
-  }, [usuario, esAdmin]);
+  }, [usuario]);
 
   async function alternarFavorito(juego) {
     if (!usuario) {
-      toast.error("Iniciá sesión para guardar tus juegos favoritos.");
+      toast.info("Iniciá sesión para guardar tus juegos favoritos.");
+      navegar("/login");
       return;
     }
-
-    if (esAdmin) return;
 
     const yaEsFavorito = favoritos.includes(juego.id);
 
     try {
       if (yaEsFavorito) {
         await quitarFavorito(juego.id);
-
         setFavoritos((actuales) =>
           actuales.filter((id) => id !== juego.id)
         );
-
         toast.exito("Juego quitado de favoritos.");
       } else {
         await agregarFavorito(juego.id);
-
-        setFavoritos((actuales) =>
-          actuales.includes(juego.id)
-            ? actuales
-            : [...actuales, juego.id]
-        );
-
+        setFavoritos((actuales) => [...actuales, juego.id]);
         toast.exito("Juego agregado a favoritos.");
       }
     } catch (error) {
@@ -157,7 +147,6 @@ function Juegos() {
 
     setFormulario(null);
     setPagina(1);
-
     await cargarDatos();
 
     toast.exito(esNuevo ? "Juego creado." : "Juego editado.");
@@ -175,19 +164,19 @@ function Juegos() {
     try {
       await eliminarJuego(juego.id);
       await cargarDatos();
-
       toast.exito("Juego eliminado.");
     } catch (e) {
       toast.error(e.message);
     }
   }
 
-  // Volver a la primera página al cambiar un filtro u orden.
+  // Cualquier cambio en un filtro vuelve a la primera página.
   function cambiarFiltro(setter, valor) {
     setter(valor);
     setPagina(1);
   }
 
+  // Opciones de editorial tomadas de los juegos existentes.
   const editoriales = [
     ...new Set(
       juegos
@@ -196,15 +185,11 @@ function Juegos() {
     ),
   ].sort((a, b) => a.localeCompare(b, "es"));
 
-  const tieneJuegosSinEditorial = juegos.some(
-    (juego) => !juego.editorial?.trim()
-  );
-
-  // Aplicar filtros.
+  // Aplicar todos los filtros seleccionados.
   const juegosFiltrados = juegos.filter((juego) => {
     const texto = busqueda.trim().toLowerCase();
 
-    const coincideNombre = (juego.titulo || "")
+    const coincideNombre = juego.titulo
       .toLowerCase()
       .includes(texto);
 
@@ -242,13 +227,13 @@ function Juegos() {
       precioMax === "" ||
       Number(juego.precio) <= Number(precioMax);
 
-    const edad = Number(juego.edad_minima ?? 0);
-
     const coincideEdadMin =
-      edadMin === "" || edad >= Number(edadMin);
+      edadMin === "" ||
+      Number(juego.edad_minima) >= Number(edadMin);
 
     const coincideEdadMax =
-      edadMax === "" || edad <= Number(edadMax);
+      edadMax === "" ||
+      Number(juego.edad_minima) <= Number(edadMax);
 
     return (
       coincideNombre &&
@@ -264,56 +249,16 @@ function Juegos() {
     );
   });
 
-  // Ordenar los resultados filtrados.
-  const juegosOrdenados = [...juegosFiltrados].sort((a, b) => {
-    switch (orden) {
-      case "titulo-asc":
-        return (a.titulo || "").localeCompare(
-          b.titulo || "",
-          "es",
-          { sensitivity: "base" }
-        );
-
-      case "titulo-desc":
-        return (b.titulo || "").localeCompare(
-          a.titulo || "",
-          "es",
-          { sensitivity: "base" }
-        );
-
-      case "precio-asc":
-        return Number(a.precio ?? 0) - Number(b.precio ?? 0);
-
-      case "precio-desc":
-        return Number(b.precio ?? 0) - Number(a.precio ?? 0);
-
-      case "edad-asc":
-        return (
-          Number(a.edad_minima ?? 0) -
-          Number(b.edad_minima ?? 0)
-        );
-
-      case "edad-desc":
-        return (
-          Number(b.edad_minima ?? 0) -
-          Number(a.edad_minima ?? 0)
-        );
-
-      default:
-        return 0;
-    }
-  });
-
-  // Paginación.
   const totalPaginas = Math.max(
     1,
-    Math.ceil(juegosOrdenados.length / JUEGOS_POR_PAGINA)
+    Math.ceil(juegosFiltrados.length / JUEGOS_POR_PAGINA)
   );
 
+  // Si cambia la cantidad de resultados, evitamos quedar en una página vacía.
   const paginaActual = Math.min(pagina, totalPaginas);
   const inicio = (paginaActual - 1) * JUEGOS_POR_PAGINA;
 
-  const juegosDeEstaPagina = juegosOrdenados.slice(
+  const juegosDeEstaPagina = juegosFiltrados.slice(
     inicio,
     inicio + JUEGOS_POR_PAGINA
   );
@@ -329,311 +274,187 @@ function Juegos() {
     setPrecioMax("");
     setEdadMin("");
     setEdadMax("");
-    setOrden("titulo-asc");
     setPagina(1);
   }
 
-  const cantidadFiltrosActivos = [
-    categoriaElegida !== "Todas",
-    tiendaElegida !== "Todas",
-    prestamoElegido !== "Todos",
-    editorialElegida !== "Todas",
-    duracionMax !== "",
-    precioMin !== "",
-    precioMax !== "",
-    edadMin !== "",
-    edadMax !== "",
-  ].filter(Boolean).length;
-
   return (
-    <div className="pagina pagina-catalogo">
+    <div className="pagina">
       <h1>Catálogo de juegos</h1>
 
       <p className="subtitle">
         Explorá los juegos que forman parte de nuestra ludoteca y/o de nuestra tienda.
       </p>
 
-      {/* Búsqueda destacada */}
-      <section className="catalogo-busqueda" role="search">
-        <label htmlFor="buscar-juego">
-          Buscar un juego
+      {/* Filtros del catálogo */}
+      <div className="filtros" role="search">
+        <label className="solo-lectores" htmlFor="buscar-juego">
+          Buscar juegos por nombre
         </label>
-
         <input
           id="buscar-juego"
           type="search"
-          placeholder="Escribí el nombre del juego..."
+          placeholder="Buscar por nombre..."
           value={busqueda}
           onChange={(e) =>
             cambiarFiltro(setBusqueda, e.target.value)
           }
         />
-      </section>
 
-      {/* Filtros principales */}
-      <section className="catalogo-filtros">
-        <div className="catalogo-filtros-encabezado">
-          <div>
-            <h2>Filtros</h2>
-            <p>
-              Refiná los resultados según lo que buscás.
-            </p>
-          </div>
+        <label className="solo-lectores" htmlFor="filtro-categoria">
+          Filtrar por categoría
+        </label>
+        <select
+          id="filtro-categoria"
+          value={categoriaElegida}
+          onChange={(e) =>
+            cambiarFiltro(setCategoriaElegida, e.target.value)
+          }
+        >
+          <option value="Todas">Todas las categorías</option>
+          {categorias.map((cat) => (
+            <option key={cat.id} value={cat.nombre}>
+              {cat.nombre}
+            </option>
+          ))}
+        </select>
 
-          {cantidadFiltrosActivos > 0 && (
-            <span className="filtros-contador">
-              {cantidadFiltrosActivos} activos
-            </span>
+        <label className="solo-lectores" htmlFor="filtro-tienda">
+          Disponibilidad en tienda
+        </label>
+        <select
+          id="filtro-tienda"
+          value={tiendaElegida}
+          onChange={(e) =>
+            cambiarFiltro(setTiendaElegida, e.target.value)
+          }
+        >
+          <option value="Todas">Tienda: todos</option>
+          <option value="Si">En tienda</option>
+          <option value="No">No está en tienda</option>
+        </select>
+
+        <label className="solo-lectores" htmlFor="filtro-prestamo">
+          Estado del préstamo
+        </label>
+        <select
+          id="filtro-prestamo"
+          value={prestamoElegido}
+          onChange={(e) =>
+            cambiarFiltro(setPrestamoElegido, e.target.value)
+          }
+        >
+          <option value="Todos">Préstamo: todos</option>
+          <option value="Si">Actualmente en préstamo</option>
+          <option value="No">Disponible para préstamo</option>
+        </select>
+
+        <label className="solo-lectores" htmlFor="filtro-editorial">
+          Filtrar por editorial
+        </label>
+        <select
+          id="filtro-editorial"
+          value={editorialElegida}
+          onChange={(e) =>
+            cambiarFiltro(setEditorialElegida, e.target.value)
+          }
+        >
+          <option value="Todas">Todas las editoriales</option>
+          {editoriales.map((editorial) => (
+            <option key={editorial} value={editorial}>
+              {editorial}
+            </option>
+          ))}
+          {juegos.some((juego) => !juego.editorial?.trim()) && (
+            <option value="Sin editorial">Sin editorial</option>
           )}
-        </div>
+        </select>
 
-        <div className="catalogo-filtros-principales">
-          <div className="filtro-campo">
-            <label htmlFor="filtro-categoria">
-              Categoría
-            </label>
+        <label className="solo-lectores" htmlFor="filtro-duracion">
+          Duración máxima en minutos
+        </label>
+        <input
+          id="filtro-duracion"
+          type="number"
+          min="1"
+          placeholder="Duración máx. (min)"
+          value={duracionMax}
+          onChange={(e) =>
+            cambiarFiltro(setDuracionMax, e.target.value)
+          }
+        />
 
-            <select
-              id="filtro-categoria"
-              value={categoriaElegida}
-              onChange={(e) =>
-                cambiarFiltro(setCategoriaElegida, e.target.value)
-              }
-            >
-              <option value="Todas">Todas las categorías</option>
+        <label className="solo-lectores" htmlFor="filtro-precio-min">
+          Precio mínimo
+        </label>
+        <input
+          id="filtro-precio-min"
+          type="number"
+          min="0"
+          placeholder="Precio desde"
+          value={precioMin}
+          onChange={(e) =>
+            cambiarFiltro(setPrecioMin, e.target.value)
+          }
+        />
 
-              {categorias.map((cat) => (
-                <option key={cat.id} value={cat.nombre}>
-                  {cat.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+        <label className="solo-lectores" htmlFor="filtro-precio-max">
+          Precio máximo
+        </label>
+        <input
+          id="filtro-precio-max"
+          type="number"
+          min="0"
+          placeholder="Precio hasta"
+          value={precioMax}
+          onChange={(e) =>
+            cambiarFiltro(setPrecioMax, e.target.value)
+          }
+        />
 
-          <div className="filtro-campo">
-            <label htmlFor="filtro-tienda">
-              Disponibilidad en tienda
-            </label>
+        <label className="solo-lectores" htmlFor="filtro-edad-min">
+          Edad mínima desde
+        </label>
+        <input
+          id="filtro-edad-min"
+          type="number"
+          min="0"
+          placeholder="Edad desde"
+          value={edadMin}
+          onChange={(e) =>
+            cambiarFiltro(setEdadMin, e.target.value)
+          }
+        />
 
-            <select
-              id="filtro-tienda"
-              value={tiendaElegida}
-              onChange={(e) =>
-                cambiarFiltro(setTiendaElegida, e.target.value)
-              }
-            >
-              <option value="Todas">Todas</option>
-              <option value="Si">En tienda</option>
-              <option value="No">No está en tienda</option>
-            </select>
-          </div>
+        <label className="solo-lectores" htmlFor="filtro-edad-max">
+          Edad mínima hasta
+        </label>
+        <input
+          id="filtro-edad-max"
+          type="number"
+          min="0"
+          placeholder="Edad hasta"
+          value={edadMax}
+          onChange={(e) =>
+            cambiarFiltro(setEdadMax, e.target.value)
+          }
+        />
 
-          <div className="filtro-campo">
-            <label htmlFor="filtro-prestamo">
-              Préstamos
-            </label>
-
-            <select
-              id="filtro-prestamo"
-              value={prestamoElegido}
-              onChange={(e) =>
-                cambiarFiltro(setPrestamoElegido, e.target.value)
-              }
-            >
-              <option value="Todos">Todos</option>
-              <option value="Si">En préstamo</option>
-              <option value="No">Disponible para préstamo</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Filtros secundarios plegables */}
-        <details className="catalogo-filtros-avanzados">
-          <summary>
-            <span>Más filtros</span>
-
-            <span className="filtros-avanzados-ayuda">
-              Editorial, duración, precio y edad
-            </span>
-          </summary>
-
-          <div className="catalogo-filtros-secundarios">
-            <div className="filtro-campo">
-              <label htmlFor="filtro-editorial">
-                Editorial
-              </label>
-
-              <select
-                id="filtro-editorial"
-                value={editorialElegida}
-                onChange={(e) =>
-                  cambiarFiltro(setEditorialElegida, e.target.value)
-                }
-              >
-                <option value="Todas">Todas las editoriales</option>
-
-                {editoriales.map((editorial) => (
-                  <option key={editorial} value={editorial}>
-                    {editorial}
-                  </option>
-                ))}
-
-                {tieneJuegosSinEditorial && (
-                  <option value="Sin editorial">
-                    Sin editorial
-                  </option>
-                )}
-              </select>
-            </div>
-
-            <div className="filtro-campo">
-              <label htmlFor="filtro-duracion">
-                Duración máxima (min)
-              </label>
-
-              <input
-                id="filtro-duracion"
-                type="number"
-                min="1"
-                placeholder="Ej.: 60"
-                value={duracionMax}
-                onChange={(e) =>
-                  cambiarFiltro(setDuracionMax, e.target.value)
-                }
-              />
-            </div>
-
-            <div className="filtro-campo">
-              <label htmlFor="filtro-precio-min">
-                Precio mínimo
-              </label>
-
-              <input
-                id="filtro-precio-min"
-                type="number"
-                min="0"
-                placeholder="Sin mínimo"
-                value={precioMin}
-                onChange={(e) =>
-                  cambiarFiltro(setPrecioMin, e.target.value)
-                }
-              />
-            </div>
-
-            <div className="filtro-campo">
-              <label htmlFor="filtro-precio-max">
-                Precio máximo
-              </label>
-
-              <input
-                id="filtro-precio-max"
-                type="number"
-                min="0"
-                placeholder="Sin máximo"
-                value={precioMax}
-                onChange={(e) =>
-                  cambiarFiltro(setPrecioMax, e.target.value)
-                }
-              />
-            </div>
-
-            <div className="filtro-campo">
-              <label htmlFor="filtro-edad-min">
-                Edad desde
-              </label>
-
-              <input
-                id="filtro-edad-min"
-                type="number"
-                min="0"
-                placeholder="Edad mínima"
-                value={edadMin}
-                onChange={(e) =>
-                  cambiarFiltro(setEdadMin, e.target.value)
-                }
-              />
-            </div>
-
-            <div className="filtro-campo">
-              <label htmlFor="filtro-edad-max">
-                Edad hasta
-              </label>
-
-              <input
-                id="filtro-edad-max"
-                type="number"
-                min="0"
-                placeholder="Edad máxima"
-                value={edadMax}
-                onChange={(e) =>
-                  cambiarFiltro(setEdadMax, e.target.value)
-                }
-              />
-            </div>
-          </div>
-        </details>
-
-        <div className="catalogo-filtros-pie">
-          <span>
-            {juegosFiltrados.length}{" "}
-            {juegosFiltrados.length === 1
-              ? "juego encontrado"
-              : "juegos encontrados"}
-          </span>
-
-          <button
-            type="button"
-            className="boton-limpiar-filtros"
-            onClick={limpiarFiltros}
-            disabled={
-              !busqueda &&
-              cantidadFiltrosActivos === 0 &&
-              orden === "titulo-asc"
-            }
-          >
-            Limpiar filtros
-          </button>
-        </div>
-      </section>
-
-      {/* Herramientas del catálogo */}
-      <div className="catalogo-resultados-encabezado">
-        <div className="catalogo-resultados-titulo">
-          <h2>Juegos disponibles</h2>
-          <span>
-            {juegosOrdenados.length}{" "}
-            {juegosOrdenados.length === 1 ? "resultado" : "resultados"}
-          </span>
-        </div>
-
-        <div className="catalogo-orden">
-          <label htmlFor="filtro-orden">
-            Ordenar por
-          </label>
-
-          <select
-            id="filtro-orden"
-            value={orden}
-            onChange={(e) =>
-              cambiarFiltro(setOrden, e.target.value)
-            }
-          >
-            <option value="titulo-asc">Título: A–Z</option>
-            <option value="titulo-desc">Título: Z–A</option>
-            <option value="precio-asc">Precio: menor a mayor</option>
-            <option value="precio-desc">Precio: mayor a menor</option>
-            <option value="edad-asc">Edad: menor a mayor</option>
-            <option value="edad-desc">Edad: mayor a menor</option>
-          </select>
-        </div>
+        <button
+          type="button"
+          className="boton"
+          style={{ width: "auto" }}
+          onClick={limpiarFiltros}
+        >
+          Limpiar filtros
+        </button>
       </div>
 
-      {/* Administración de juegos */}
+      {/* Solo los administradores pueden crear o editar juegos. */}
       {esAdmin &&
         (formulario === null ? (
           <button
-            type="button"
-            className="boton boton-agregar-juego"
+            className="boton"
+            style={{ width: "auto", marginBottom: 22 }}
             onClick={() => setFormulario("nuevo")}
           >
             Agregar juego
@@ -648,7 +469,6 @@ function Juegos() {
           />
         ))}
 
-      {/* Estados de carga y resultados */}
       {cargando ? (
         <p className="cargando" role="status">
           <span className="spinner" aria-hidden="true" />
@@ -657,10 +477,9 @@ function Juegos() {
       ) : errorCarga ? (
         <div role="alert">
           <span className="error">{errorCarga}</span>
-
           <button
-            type="button"
-            className="boton boton-reintentar"
+            className="boton"
+            style={{ width: "auto", marginTop: 12 }}
             onClick={() => {
               setCargando(true);
               cargarDatos();
@@ -670,20 +489,7 @@ function Juegos() {
           </button>
         </div>
       ) : juegosDeEstaPagina.length === 0 ? (
-        <div className="catalogo-sin-resultados">
-          <h3>No encontramos juegos</h3>
-          <p>
-            Probá cambiar los filtros o buscar con otro nombre.
-          </p>
-
-          <button
-            type="button"
-            className="boton"
-            onClick={limpiarFiltros}
-          >
-            Ver todos los juegos
-          </button>
-        </div>
+        <p>No encontramos juegos con esos filtros.</p>
       ) : (
         <div className="grilla-juegos">
           {juegosDeEstaPagina.map((juego) => (
@@ -702,48 +508,48 @@ function Juegos() {
       )}
 
       {/* Paginación */}
-      {!cargando &&
-        !errorCarga &&
-        juegosOrdenados.length > 0 && (
-          <div className="catalogo-paginacion">
-            <span
-              className="catalogo-paginacion-info"
-              aria-live="polite"
-            >
-              Mostrando {juegosDeEstaPagina.length} de{" "}
-              {juegosOrdenados.length} juegos · Página{" "}
-              {paginaActual} de {totalPaginas}
-            </span>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+          marginTop: 24,
+        }}
+      >
+        <span
+          style={{ color: "var(--texto-suave)", fontSize: 14 }}
+          aria-live="polite"
+        >
+          Mostrando {juegosDeEstaPagina.length} de {juegosFiltrados.length} juegos
+          {" · "}Página {paginaActual} de {totalPaginas}
+        </span>
 
-            <div className="catalogo-paginacion-botones">
-              <button
-                type="button"
-                className="boton"
-                disabled={paginaActual === 1}
-                aria-label="Página anterior"
-                onClick={() =>
-                  setPagina((actual) => Math.max(1, actual - 1))
-                }
-              >
-                Anterior
-              </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className="boton"
+            style={{ width: "auto" }}
+            disabled={paginaActual === 1}
+            aria-label="Página anterior"
+            onClick={() => setPagina((actual) => Math.max(1, actual - 1))}
+          >
+            Anterior
+          </button>
 
-              <button
-                type="button"
-                className="boton"
-                disabled={paginaActual === totalPaginas}
-                aria-label="Página siguiente"
-                onClick={() =>
-                  setPagina((actual) =>
-                    Math.min(totalPaginas, actual + 1)
-                  )
-                }
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        )}
+          <button
+            className="boton"
+            style={{ width: "auto" }}
+            disabled={paginaActual === totalPaginas}
+            aria-label="Página siguiente"
+            onClick={() =>
+              setPagina((actual) => Math.min(totalPaginas, actual + 1))
+            }
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
