@@ -152,11 +152,11 @@ a {
 
 /* ============================================
    Cuadrícula del catálogo de juegos
-   5 tarjetas por fila en pantallas grandes
+   4 tarjetas por fila en pantallas grandes (3 filas por página)
    ============================================ */
 .grilla-juegos {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   align-items: stretch;
   grid-auto-flow: row;
@@ -1474,5 +1474,210 @@ main:focus {
     min-width: 0;
     padding: 7px 9px;
     font-size: 12px;
+  }
+}
+
+
+/* ============================================
+   Botón "me gusta" sobre la foto
+   ============================================ */
+.juego-foto {
+  position: relative;
+}
+
+.favorito-foto {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #e63946;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.favorito-foto:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.favorito-foto:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.tarjeta-juego .boton-carrito-tarjeta {
+  width: 100%;
+}
+
+/* Textos de la tarjeta más juntos (anula el interlineado general de .pagina p) */
+.tarjeta-juego .datos-juego,
+.tarjeta-juego .datos-venta {
+  line-height: 1.4;
+}
+
+/* ============================================
+   Filtros: básicos visibles, avanzados ocultos
+   ============================================ */
+.filtros .boton-avanzados,
+.filtros .boton {
+  width: auto;
+}
+
+.filtros-avanzados {
+  flex: 1 0 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+}
+
+.filtros-avanzados input,
+.filtros-avanzados select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   Ordenar (aparte de los filtros)
+   ============================================ */
+.barra-orden {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: -6px 0 16px;
+  font-size: 14px;
+}
+
+.barra-orden label {
+  font-weight: 600;
+}
+
+.barra-orden select {
+  padding: 8px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* ============================================
+   Catálogo del administrador: lista de 1 columna, tarjetas finas
+   ============================================ */
+.tarjeta-info,
+.tarjeta-acciones {
+  display: contents; /* visitantes y clientes: el diseño no cambia */
+}
+
+.admin-acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.grilla-juegos.grilla-admin {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.tarjeta.tarjeta-juego.tarjeta-juego-admin {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  height: auto;
+  padding: 10px 14px;
+}
+
+.tarjeta-juego-admin .juego-foto {
+  width: 96px;
+}
+
+.tarjeta-juego-admin img {
+  width: 96px;
+  height: 72px;
+  aspect-ratio: auto;
+  margin: 0;
+  object-fit: cover;
+}
+
+.tarjeta-juego-admin .tarjeta-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.tarjeta-juego-admin h3 {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 15px;
+}
+
+.tarjeta-juego-admin .etiquetas,
+.tarjeta-juego-admin .datos-juego,
+.tarjeta-juego-admin .datos-venta {
+  margin: 0;
+}
+
+.tarjeta-juego-admin .tarjeta-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tarjeta-juego-admin .acciones-tarjeta,
+.tarjeta-juego-admin .admin-acciones {
+  margin: 0;
+  padding: 0;
+}
+
+.tarjeta-juego-admin .tarjeta-acciones .boton {
+  width: auto;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .grilla-juegos.grilla-admin {
+    grid-template-columns: 1fr;
+  }
+
+  .tarjeta.tarjeta-juego.tarjeta-juego-admin {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .tarjeta-juego-admin .juego-foto,
+  .tarjeta-juego-admin img {
+    width: 72px;
+  }
+
+  .tarjeta-juego-admin img {
+    height: 60px;
+  }
+
+  .tarjeta-juego-admin .tarjeta-acciones {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .barra-orden {
+    justify-content: flex-start;
   }
 }
