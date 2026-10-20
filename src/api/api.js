@@ -96,6 +96,7 @@ async function pedir(ruta, opciones = {}) {
   return texto ? JSON.parse(texto) : null;
 }
 
+// Juegos
 export const listarJuegos = () => pedir("/juegos/");
 
 export const crearJuego = (datos) =>
@@ -115,6 +116,7 @@ export const eliminarJuego = (id) =>
 
 export const listarCategorias = () => pedir("/categorias/");
 
+// Autenticación
 export const iniciarSesion = (email, contrasena) =>
   pedir("/auth/login", {
     method: "POST",
@@ -135,10 +137,14 @@ export const registrarUsuario = (datos) =>
 
 export const obtenerPerfil = () => pedir("/auth/me");
 
+// Préstamos
 export const listarPrestamos = (estado) =>
   pedir(
     estado ? `/prestamos/?estado=${estado}` : "/prestamos/"
   );
+
+export const buscarPersonaPorDni = (dni) =>
+  pedir(`/prestamos/buscar-persona/${encodeURIComponent(dni)}`);
 
 export const registrarPrestamo = (datos) =>
   pedir("/prestamos/", {
@@ -187,7 +193,10 @@ export const crearCheckout = (items) =>
   pedir("/pedidos/checkout", {
     method: "POST",
     body: JSON.stringify({
-      items: items.map((i) => ({ juego_id: i.id, cantidad: i.cantidad })),
+      items: items.map((i) => ({
+        juego_id: i.id,
+        cantidad: i.cantidad,
+      })),
     }),
   });
 
@@ -199,16 +208,27 @@ export const confirmarPedido = (pedidoId, pagoId) =>
 
 // Contacto
 export const enviarContacto = (datos) =>
-  pedir("/contacto/", { method: "POST", body: JSON.stringify(datos) });
+  pedir("/contacto/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
 
 // Mensajes de contacto (solo administrador)
-export const listarMensajes = ({ soloNoLeidos = false, limite = 20, desplazamiento = 0 } = {}) =>
+export const listarMensajes = ({
+  soloNoLeidos = false,
+  limite = 20,
+  desplazamiento = 0,
+} = {}) =>
   pedir(
-    `/contacto/?solo_no_leidos=${soloNoLeidos}&limite=${limite}&desplazamiento=${desplazamiento}`
+    `/contacto/?solo_no_leidos=${soloNoLeidos}` +
+    `&limite=${limite}&desplazamiento=${desplazamiento}`
   );
 
 export const marcarMensaje = (id, leido) =>
-  pedir(`/contacto/${id}`, { method: "PATCH", body: JSON.stringify({ leido }) });
+  pedir(`/contacto/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ leido }),
+  });
 
 export const eliminarMensaje = (id) =>
   pedir(`/contacto/${id}`, { method: "DELETE" });

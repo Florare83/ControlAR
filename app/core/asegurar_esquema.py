@@ -29,7 +29,27 @@ def _columnas(tabla: str) -> set[str]:
 def asegurar_esquema() -> None:
     Base.metadata.create_all(bind=engine)
 
-    if "mensajes_contacto" not in inspect(engine).get_table_names():
+    # Compatibilidad con instalaciones donde "prestamos" se creó con una
+    # versión anterior del modelo. create_all() no agrega columnas a tablas
+    # existentes, por eso se migran aquí sin borrar los préstamos guardados.
+    tablas = set(inspect(engine).get_table_names())
+    if "prestamos" in tablas:
+        columnas_prestamos = _columnas("prestamos")
+        columnas_nuevas = {
+            "nombre": "VARCHAR(100) NOT NULL DEFAULT 'Sin nombre'",
+            "sexo": "VARCHAR(10) NOT NULL DEFAULT 'Femenino'",
+            "telefono": "VARCHAR(30) NOT NULL DEFAULT 'Sin teléfono'",
+            "email": "VARCHAR(255)",
+        }
+        with engine.begin() as conexion:
+            for columna, definicion in columnas_nuevas.items():
+                if columna not in columnas_prestamos:
+                    conexion.execute(
+                        text(f"ALTER TABLE prestamos ADD COLUMN {columna} {definicion}")
+                    )
+                    log.info("prestamos: columna '%s' agregada.", columna)
+
+    if "mensajes_contacto" not in tablas:
         return
 
     columnas = _columnas("mensajes_contacto")

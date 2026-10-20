@@ -14,9 +14,6 @@ from app.api.v1.juegos import repository as juegos_repo
 from app.core.db import get_db
 from app.models.prestamo import ACTIVO, CERRADO, Prestamo
 
-
-# Todas las rutas de este archivo requieren permisos de administrador.
-# Sin token: 401. Cliente común: 403. Administrador: acceso permitido.
 router = APIRouter(
     prefix="/prestamos",
     tags=["Préstamos"],
@@ -24,13 +21,12 @@ router = APIRouter(
 )
 
 
-# ---------- Schemas ----------
-
 class PrestamoCrear(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    dni: str = Field(pattern=r"^\d{6,9}$")  # Solo números, sin puntos
+    dni: str = Field(pattern=r"^\d{6,9}$")
     nombre: str = Field(min_length=2, max_length=100)
+    email: str | None = Field(default=None, max_length=255)
     sexo: str
     telefono: str = Field(pattern=r"^[0-9+\s()-]{6,30}$")
     juego_id: int = Field(ge=1)
@@ -59,17 +55,16 @@ class PrestamoRespuesta(BaseModel):
     id: int
     dni: str
     nombre: str
+    email: str | None = None
     sexo: str
     telefono: str
-    estado: str  # "activo" / "cerrado"
+    estado: str
     fecha_inicio: datetime
     fecha_cierre: datetime | None
-    juego: JuegoResumen  # El juego actual del préstamo
+    juego: JuegoResumen
 
     model_config = ConfigDict(from_attributes=True)
 
-
-# ---------- Ayudas ----------
 
 CONFLICTO_SIMULTANEO = (
     "No se pudo guardar: otro administrador registró un préstamo "
@@ -94,7 +89,6 @@ def _buscar(db: Session, prestamo_id: int) -> Prestamo:
 
 
 def _juego_libre(db: Session, juego_id: int):
-    """Devuelve el juego si existe y no está en préstamo."""
     juego = juegos_repo.get_by_id(db, juego_id)
 
     if juego is None:
@@ -112,7 +106,38 @@ def _juego_libre(db: Session, juego_id: int):
     return juego
 
 
-# ---------- Endpoints ----------
+@router.get("/buscar-persona/{dni}")
+def buscar_persona_por_dni(
+    dni: str,
+    db: Session = Depends(get_db),
+):
+    """Busca los datos del cliente en préstamos anteriores."""
+
+    if not dni.isdigit() or not 6 <= len(dni) <= 9:
+        raise HTTPException(
+            status_code=422,
+            detail="Ingresá un DNI válido, de 6 a 9 números",
+        )
+
+    prestamo = (
+        db.query(Prestamo)
+        .filter(Prestamo.dni == dni)
+        .order_by(Prestamo.id.desc())
+        .first()
+    )
+
+    if prestamo is None:
+        return {"encontrado": False}
+
+    return {
+        "encontrado": True,
+        "dni": prestamo.dni,
+        "nombre": prestamo.nombre,
+        "email": prestamo.email,
+        "sexo": prestamo.sexo,
+        "telefono": prestamo.telefono,
+    }
+
 
 @router.get("/", response_model=list[PrestamoRespuesta])
 def listar_prestamos(
@@ -126,8 +151,6 @@ def listar_prestamos(
 
     return consulta.order_by(Prestamo.id.desc()).all()
 
-
-# 1. Registrar un préstamo nuevo
 
 @router.post("/", response_model=PrestamoRespuesta, status_code=201)
 def registrar_prestamo(
@@ -151,8 +174,15 @@ def registrar_prestamo(
 
     _juego_libre(db, datos.juego_id)
 
+    datos_limpios = datos.model_dump()
+
+    if datos_limpios.get("email"):
+        datos_limpios["email"] = datos_limpios["email"].strip().lower()
+    else:
+        datos_limpios["email"] = None
+
     prestamo = Prestamo(
-        **datos.model_dump(),
+        **datos_limpios,
         estado=ACTIVO,
     )
 
@@ -169,8 +199,6 @@ def registrar_prestamo(
     db.refresh(prestamo)
     return prestamo
 
-
-# 2. Cambiar el juego de un préstamo activo
 
 @router.put("/{prestamo_id}/juego", response_model=PrestamoRespuesta)
 def cambiar_juego(
@@ -207,8 +235,6 @@ def cambiar_juego(
     db.refresh(prestamo)
     return prestamo
 
-
-# 3. Devolver un juego: cierra el préstamo y libera el juego
 
 @router.post("/{prestamo_id}/devolver", response_model=PrestamoRespuesta)
 def devolver_prestamo(

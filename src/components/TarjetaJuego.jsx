@@ -29,8 +29,7 @@ function TarjetaJuego({
       ? juego.imagen_url.trim()
       : imagenAlternativa;
 
-  // Botón "me gusta": sobre la foto para visitantes y clientes,
-  // junto a los demás botones para el administrador.
+  // Botón "me gusta": sobre la foto, solo para visitantes y clientes.
   const propsFavorito = {
     type: "button",
     disabled: cargandoFavoritos,
@@ -113,19 +112,34 @@ function TarjetaJuego({
         )}
       </div>
 
-      {(enVenta || esAdmin) && (
+      {/* Visitantes y clientes: agregar al carrito. Administrador: editar y eliminar. */}
+      {esAdmin ? (
         <div className="tarjeta-acciones">
-          <div className="acciones-tarjeta">
-            {esAdmin && (
-              <button
-                {...propsFavorito}
-                className={`boton boton-favorito ${esFavorito ? "activo" : ""}`}
-              >
-                {corazon}
-              </button>
-            )}
+          <div className="admin-acciones">
+            <button
+              type="button"
+              className="boton"
+              aria-label={`Editar ${juego.titulo}`}
+              onClick={() => onEditar(juego)}
+            >
+              Editar
+            </button>
 
-            {enVenta && (
+            <button
+              type="button"
+              className="boton"
+              style={{ background: "#e63946" }}
+              aria-label={`Eliminar ${juego.titulo}`}
+              onClick={() => onEliminar(juego)}
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      ) : (
+        enVenta && (
+          <div className="tarjeta-acciones">
+            <div className="acciones-tarjeta">
               <button
                 type="button"
                 className="boton boton-carrito-tarjeta"
@@ -140,32 +154,9 @@ function TarjetaJuego({
               >
                 {sinStock ? "Sin stock" : "🛒 Agregar"}
               </button>
-            )}
-          </div>
-
-          {esAdmin && (
-            <div className="admin-acciones">
-              <button
-                type="button"
-                className="boton"
-                aria-label={`Editar ${juego.titulo}`}
-                onClick={() => onEditar(juego)}
-              >
-                Editar
-              </button>
-
-              <button
-                type="button"
-                className="boton"
-                style={{ background: "#e63946" }}
-                aria-label={`Eliminar ${juego.titulo}`}
-                onClick={() => onEliminar(juego)}
-              >
-                Eliminar
-              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )
       )}
     </article>
   );
