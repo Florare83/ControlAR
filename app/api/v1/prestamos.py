@@ -188,7 +188,8 @@ def registrar_prestamo(
             detail="Esa persona ya tiene un préstamo activo",
         )
 
-    _juego_libre(db, datos.juego_id)
+    # Validar el juego y recuperar su título.
+    juego = _juego_libre(db, datos.juego_id)
 
     datos_limpios = datos.model_dump()
 
@@ -197,8 +198,10 @@ def registrar_prestamo(
     else:
         datos_limpios["email"] = None
 
+    # titulo_juego es obligatorio en la base de datos.
     prestamo = Prestamo(
         **datos_limpios,
+        titulo_juego=juego.titulo,
         estado=ACTIVO,
     )
 
@@ -243,10 +246,12 @@ def cambiar_juego(
             detail="El préstamo ya tiene ese juego",
         )
 
-    _juego_libre(db, datos.juego_id)
+    # Recuperar también el título del nuevo juego.
+    juego = _juego_libre(db, datos.juego_id)
 
     try:
         prestamo.juego_id = datos.juego_id
+        prestamo.titulo_juego = juego.titulo
         db.commit()
 
     except IntegrityError as e:
@@ -279,10 +284,20 @@ def devolver_prestamo(
             detail="El préstamo ya estaba cerrado",
         )
 
-    prestamo.estado = CERRADO
-    prestamo.fecha_cierre = datetime.now(timezone.utc)
+    try:
+        prestamo.estado = CERRADO
+        prestamo.fecha_cierre = datetime.now(timezone.utc)
 
-    db.commit()
+        db.commit()
+
+    except IntegrityError as e:
+        db.rollback()
+        _registrar_error_integridad("devolver préstamo", e)
+
+        raise HTTPException(
+            status_code=409,
+            detail="No se pudo registrar la devolución.",
+        ) from e
+
     db.refresh(prestamo)
-
     return prestamo

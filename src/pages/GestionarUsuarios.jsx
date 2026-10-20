@@ -49,136 +49,168 @@ export default function GestionarUsuarios() {
 
   return (
     <section className="gestionar-usuarios">
-      <h1>Gestionar usuarios</h1>
-      <p>
-        Administrá las cuentas registradas, sus permisos y su estado.
-      </p>
+      <div
+        className="tarjeta"
+        style={{
+          width: "100%",
+          maxWidth: "100%",
+          minWidth: 0,
+          boxSizing: "border-box",
+          padding: "24px",
+        }}
+      >
+        <h1>Gestionar usuarios</h1>
 
-      <div className="gestionar-usuarios__busqueda">
-        <label htmlFor="buscar-usuario">
-          Buscar por nombre o correo electrónico
-        </label>
-        <input
-          id="buscar-usuario"
-          type="search"
-          value={buscar}
-          onChange={(e) => setBuscar(e.target.value)}
-          placeholder="Escribí un nombre o correo..."
-        />
-      </div>
-
-      {error && (
-        <p role="alert" className="gestionar-usuarios__error">
-          {error}
+        <p>
+          Administrá las cuentas registradas, sus permisos y su estado.
         </p>
-      )}
 
-      {mensaje && (
-        <p role="status" className="gestionar-usuarios__mensaje">
-          {mensaje}
-        </p>
-      )}
+        <div
+          className="gestionar-usuarios__busqueda"
+          style={{ width: "100%", marginBottom: "20px" }}
+        >
+          <label htmlFor="buscar-usuario">
+            Buscar por nombre o correo electrónico
+          </label>
 
-      {cargando ? (
-        <p>Cargando usuarios...</p>
-      ) : usuarios.length === 0 ? (
-        <p>No se encontraron usuarios.</p>
-      ) : (
-        <div className="gestionar-usuarios__tabla-contenedor">
-          <table className="gestionar-usuarios__tabla">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Correo electrónico</th>
-                <th>Rol</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {usuarios.map((usuario) => (
-                <tr key={usuario.id}>
-                  <td>{usuario.nombre}</td>
-                  <td>{usuario.email}</td>
-
-                  <td>
-                    <select
-                      aria-label={`Rol de ${usuario.nombre}`}
-                      value={usuario.es_admin ? "admin" : "cliente"}
-                      disabled={
-                        procesando === usuario.id ||
-                        !usuario.activo
-                      }
-                      onChange={(e) => {
-                        const es_admin = e.target.value === "admin";
-
-                        if (
-                          window.confirm(
-                            `¿Querés cambiar el rol de ${usuario.nombre} a ${
-                              es_admin ? "administrador" : "cliente"
-                            }?`
-                          )
-                        ) {
-                          modificarUsuario(usuario, { es_admin });
-                        } else {
-                          e.target.value = usuario.es_admin
-                            ? "admin"
-                            : "cliente";
-                        }
-                      }}
-                    >
-                      <option value="cliente">Cliente</option>
-                      <option value="admin">Administrador</option>
-                    </select>
-                  </td>
-
-                  <td>
-                    <span
-                      className={
-                        usuario.activo
-                          ? "usuario-estado usuario-estado--activo"
-                          : "usuario-estado usuario-estado--inactivo"
-                      }
-                    >
-                      {usuario.activo ? "Activo" : "Inactivo"}
-                    </span>
-                  </td>
-
-                  <td>
-                    <button
-                      type="button"
-                      disabled={procesando === usuario.id}
-                      onClick={() => {
-                        const nuevoEstado = !usuario.activo;
-                        const accion = nuevoEstado
-                          ? "activar"
-                          : "desactivar";
-
-                        if (
-                          window.confirm(
-                            `¿Querés ${accion} la cuenta de ${usuario.nombre}?`
-                          )
-                        ) {
-                          modificarUsuario(usuario, {
-                            activo: nuevoEstado,
-                          });
-                        }
-                      }}
-                    >
-                      {procesando === usuario.id
-                        ? "Guardando..."
-                        : usuario.activo
-                          ? "Desactivar"
-                          : "Activar"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <input
+            id="buscar-usuario"
+            type="search"
+            value={buscar}
+            onChange={(e) => setBuscar(e.target.value)}
+            placeholder="Escribí un nombre o correo..."
+            style={{
+              display: "block",
+              width: "100%",
+              maxWidth: "100%",
+              boxSizing: "border-box",
+              marginTop: "8px",
+            }}
+          />
         </div>
-      )}
+
+        {error && (
+          <p role="alert" className="gestionar-usuarios__error">
+            {error}
+          </p>
+        )}
+
+        {mensaje && (
+          <p role="status" className="gestionar-usuarios__mensaje">
+            {mensaje}
+          </p>
+        )}
+
+        {cargando ? (
+          <p>Cargando usuarios...</p>
+        ) : usuarios.length === 0 ? (
+          <p>No se encontraron usuarios.</p>
+        ) : (
+          <div
+            className="gestionar-usuarios__tabla-contenedor"
+            style={{
+              width: "100%",
+              overflowX: "auto",
+            }}
+          >
+            <table
+              className="gestionar-usuarios__tabla"
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Correo electrónico</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {usuarios.map((usuario) => (
+                  <tr key={usuario.id}>
+                    <td>{usuario.nombre}</td>
+                    <td>{usuario.email}</td>
+
+                    <td>
+                      <select
+                        aria-label={`Rol de ${usuario.nombre}`}
+                        value={usuario.es_admin ? "admin" : "cliente"}
+                        disabled={
+                          procesando === usuario.id || !usuario.activo
+                        }
+                        onChange={(e) => {
+                          const es_admin = e.target.value === "admin";
+
+                          if (
+                            window.confirm(
+                              `¿Querés cambiar el rol de ${usuario.nombre} a ${
+                                es_admin ? "administrador" : "cliente"
+                              }?`
+                            )
+                          ) {
+                            modificarUsuario(usuario, { es_admin });
+                          } else {
+                            cargarUsuarios();
+                          }
+                        }}
+                      >
+                        <option value="cliente">Cliente</option>
+                        <option value="admin">Administrador</option>
+                      </select>
+                    </td>
+
+                    <td>
+                      <span
+                        className={
+                          usuario.activo
+                            ? "usuario-estado usuario-estado--activo"
+                            : "usuario-estado usuario-estado--inactivo"
+                        }
+                      >
+                        {usuario.activo ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+
+                    <td>
+                      <button
+                        type="button"
+                        disabled={procesando === usuario.id}
+                        onClick={() => {
+                          const nuevoEstado = !usuario.activo;
+                          const accion = nuevoEstado
+                            ? "activar"
+                            : "desactivar";
+
+                          if (
+                            window.confirm(
+                              `¿Querés ${accion} la cuenta de ${usuario.nombre}?`
+                            )
+                          ) {
+                            modificarUsuario(usuario, {
+                              activo: nuevoEstado,
+                            });
+                          }
+                        }}
+                      >
+                        {procesando === usuario.id
+                          ? "Guardando..."
+                          : usuario.activo
+                            ? "Desactivar"
+                            : "Activar"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

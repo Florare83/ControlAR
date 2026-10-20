@@ -1732,3 +1732,253 @@ main:focus {
     margin-left: 0;
   }
 }
+
+/* ============================================
+   ADMIN: tarjetas de juegos en una sola línea
+   Este bloque debe quedar al FINAL del CSS.
+   No modifica las tarjetas de clientes.
+   ============================================ */
+
+.grilla-juegos.grilla-admin {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  padding: 16px 20px;
+}
+
+/* Imagen */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .juego-foto {
+  flex: 0 0 clamp(110px, 12vw, 170px);
+  width: clamp(110px, 12vw, 170px);
+  margin: 0;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .juego-foto img {
+  display: block;
+  width: 100%;
+  height: clamp(85px, 8vw, 120px);
+  aspect-ratio: auto;
+  object-fit: contain;
+  margin: 0;
+  border-radius: 8px;
+}
+
+/* Información: todos los elementos en una fila flexible */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  min-width: 0;
+}
+
+/* Título */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin h3 {
+  flex: 0 1 auto;
+  min-width: 140px;
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(17px, 1.4vw, 22px);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* Etiquetas */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .etiqueta {
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Jugadores, duración y categoría */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-juego,
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-venta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-juego > span,
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-venta > span {
+  white-space: nowrap;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-venta .precio {
+  margin: 0;
+  font-size: clamp(17px, 1.4vw, 21px);
+  white-space: nowrap;
+}
+
+/* Acciones alineadas a la derecha cuando hay espacio */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-acciones {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0 0 0 auto;
+  padding: 0;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .admin-acciones {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .admin-acciones .boton {
+  width: auto;
+  min-width: 100px;
+  margin: 0;
+  padding: 11px 16px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+/* Pantallas medianas: se permite que los datos bajen si es necesario */
+@media (max-width: 1050px) {
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin {
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-info {
+    gap: 8px 12px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-acciones {
+    margin-left: auto;
+  }
+}
+
+/* Celulares: imagen e información arriba, acciones debajo */
+@media (max-width: 640px) {
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .juego-foto {
+    flex-basis: 82px;
+    width: 82px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .juego-foto img {
+    height: 72px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-info {
+    flex: 1 1 180px;
+    gap: 8px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin h3 {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .etiqueta {
+    font-size: 11px;
+    white-space: normal;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-juego,
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-venta {
+    gap: 6px 10px;
+    font-size: 13px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-acciones {
+    flex: 1 0 100%;
+    margin-left: 0;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .admin-acciones {
+    flex-wrap: wrap;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .admin-acciones .boton {
+    min-width: 0;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+}
+
+
+
+/* Gestionar préstamos: ampliar campos del formulario */
+.formulario-prestamo,
+.form-prestamo,
+.prestamo-formulario {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.formulario-prestamo input,
+.formulario-prestamo select,
+.formulario-prestamo textarea,
+.form-prestamo input,
+.form-prestamo select,
+.form-prestamo textarea,
+.prestamo-formulario input,
+.prestamo-formulario select,
+.prestamo-formulario textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.formulario-prestamo .campo,
+.form-prestamo .campo,
+.prestamo-formulario .campo {
+  width: 100%;
+  min-width: 0;
+}
+
+.formulario-prestamo .form-grid,
+.form-prestamo .form-grid,
+.prestamo-formulario .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .formulario-prestamo .form-grid,
+  .form-prestamo .form-grid,
+  .prestamo-formulario .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
