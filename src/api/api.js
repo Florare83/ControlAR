@@ -59,7 +59,7 @@ async function pedir(ruta, opciones = {}) {
   } catch {
     throw new Error(
       `No se pudo conectar con la API (${API_URL}). ` +
-      "Verificá que el backend esté funcionando y que VITE_API_URL sea correcta."
+        "Verificá que el backend esté funcionando y que VITE_API_URL sea correcta."
     );
   }
 
@@ -137,10 +137,10 @@ export const registrarUsuario = (datos) =>
 
 export const obtenerPerfil = () => pedir("/auth/me");
 
-// Préstamos
+// Préstamos: administración
 export const listarPrestamos = (estado) =>
   pedir(
-    estado ? `/prestamos/?estado=${estado}` : "/prestamos/"
+    estado ? `/prestamos/?estado=${encodeURIComponent(estado)}` : "/prestamos/"
   );
 
 export const buscarPersonaPorDni = (dni) =>
@@ -162,6 +162,10 @@ export const devolverPrestamo = (id) =>
   pedir(`/prestamos/${id}/devolver`, {
     method: "POST",
   });
+
+// Préstamos: historial del cliente autenticado
+export const listarMisPrestamos = () =>
+  pedir("/mi-cuenta/prestamos");
 
 // Favoritos
 export const listarFavoritos = () => pedir("/favoritos/");
@@ -188,7 +192,7 @@ export const eliminarCuenta = (contrasena) =>
     body: JSON.stringify({ contrasena }),
   });
 
-// Compras (carrito -> Mercado Pago)
+// Compras: carrito -> Mercado Pago
 export const crearCheckout = (items) =>
   pedir("/pedidos/checkout", {
     method: "POST",
@@ -213,15 +217,14 @@ export const enviarContacto = (datos) =>
     body: JSON.stringify(datos),
   });
 
-// Mensajes de contacto (solo administrador)
+// Mensajes de contacto: administración
 export const listarMensajes = ({
   soloNoLeidos = false,
   limite = 20,
   desplazamiento = 0,
 } = {}) =>
   pedir(
-    `/contacto/?solo_no_leidos=${soloNoLeidos}` +
-    `&limite=${limite}&desplazamiento=${desplazamiento}`
+    `/contacto/?solo_no_leidos=${soloNoLeidos}&limite=${limite}&desplazamiento=${desplazamiento}`
   );
 
 export const marcarMensaje = (id, leido) =>
@@ -232,16 +235,3 @@ export const marcarMensaje = (id, leido) =>
 
 export const eliminarMensaje = (id) =>
   pedir(`/contacto/${id}`, { method: "DELETE" });
-
-
-// Administración de usuarios (solo administradores)
-export const listarUsuariosAdmin = (buscar = "") =>
-  pedir(
-    `/auth/admin/usuarios?buscar=${encodeURIComponent(buscar)}`
-  );
-
-export const actualizarUsuarioAdmin = (id, cambios) =>
-  pedir(`/auth/admin/usuarios/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(cambios),
-  });
