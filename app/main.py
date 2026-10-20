@@ -11,6 +11,7 @@ from app.api.v1.prestamos import router as prestamos_router
 from app.api.v1.historial_prestamos import (
     router as historial_prestamos_router,
 )
+from app.api.v1.favoritos import router as favoritos_router
 
 
 app = FastAPI(
@@ -49,3 +50,4 @@ app.include_router(juegos_router)
 app.include_router(categorias_router)
 app.include_router(prestamos_router)
 app.include_router(historial_prestamos_router)
+app.include_router(favoritos_router)
