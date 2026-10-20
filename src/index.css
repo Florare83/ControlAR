@@ -303,6 +303,9 @@ a {
    Formularios
    ============================================ */
 .formulario {
+  /* Ancho fijo: ocupa todo el espacio disponible hasta 500px (antes se encogía
+     al ancho de sus campos cuando estaba dentro de una tarjeta flexible). */
+  width: 100%;
   max-width: 500px;
   margin: 0 auto;
 }

@@ -160,7 +160,9 @@ def listar_prestamos(
     estado: Literal["activo", "cerrado"] | None = None,
     db: Session = Depends(get_db),
 ):
-    consulta = db.query(Prestamo)
+    # Las filas del diseño anterior que no se pudieron vincular a un juego se omiten,
+    # porque la respuesta exige un juego y fallaría con un error 500.
+    consulta = db.query(Prestamo).filter(Prestamo.juego_id.is_not(None))
 
     if estado:
         consulta = consulta.filter(Prestamo.estado == estado)
