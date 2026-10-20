@@ -22,6 +22,7 @@ import Mensajes from "./pages/Mensajes.jsx";
 import AgregarJuego from "./pages/AgregarJuego.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import CompraResultado from "./pages/CompraResultado.jsx";
+import GestionarUsuarios from "./pages/GestionarUsuarios.jsx";
 
 function App() {
   const [modoOscuro, setModoOscuro] = useState(false);
@@ -134,6 +135,7 @@ function App() {
                 <Route path="resumen" element={<PanelResumen />} />
                 <Route path="mensajes" element={<Mensajes />} />
                 <Route path="agregar-juego" element={<AgregarJuego />} />
+                <Route path="usuarios" element={<GestionarUsuarios />} />
               </Route>
             </Route>
           </Route>

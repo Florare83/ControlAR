@@ -232,3 +232,16 @@ export const marcarMensaje = (id, leido) =>
 
 export const eliminarMensaje = (id) =>
   pedir(`/contacto/${id}`, { method: "DELETE" });
+
+
+// Administración de usuarios (solo administradores)
+export const listarUsuariosAdmin = (buscar = "") =>
+  pedir(
+    `/auth/admin/usuarios?buscar=${encodeURIComponent(buscar)}`
+  );
+
+export const actualizarUsuarioAdmin = (id, cambios) =>
+  pedir(`/auth/admin/usuarios/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(cambios),
+  });

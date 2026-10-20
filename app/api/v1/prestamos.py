@@ -1,6 +1,7 @@
 
 # Endpoints del sistema de préstamos. Solo los administradores pueden usarlos.
 
+import logging
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -13,6 +14,9 @@ from app.api.v1.auth.dependencies import require_admin
 from app.api.v1.juegos import repository as juegos_repo
 from app.core.db import get_db
 from app.models.prestamo import ACTIVO, CERRADO, Prestamo
+
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/prestamos",
@@ -35,8 +39,10 @@ class PrestamoCrear(BaseModel):
     @classmethod
     def validar_sexo(cls, valor):
         normalizado = valor.strip().lower()
+
         if normalizado not in {"femenino", "masculino"}:
             raise ValueError("El sexo debe ser Femenino o Masculino")
+
         return normalizado.capitalize()
 
 
@@ -66,10 +72,20 @@ class PrestamoRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-CONFLICTO_SIMULTANEO = (
-    "No se pudo guardar: otro administrador registró un préstamo "
-    "al mismo tiempo. Actualizá la lista e intentá de nuevo."
-)
+def _registrar_error_integridad(operacion: str, error: IntegrityError):
+    """Registra información técnica del error para diagnosticarlo en Render."""
+
+    original = getattr(error, "orig", None)
+    diagnostico = getattr(original, "diag", None)
+
+    logger.error(
+        "Error de integridad en operación '%s'. "
+        "Restricción=%s; código PostgreSQL=%s; detalle=%s",
+        operacion,
+        getattr(diagnostico, "constraint_name", None),
+        getattr(original, "pgcode", None),
+        getattr(diagnostico, "message_primary", None),
+    )
 
 
 def _buscar(db: Session, prestamo_id: int) -> Prestamo:
@@ -189,12 +205,19 @@ def registrar_prestamo(
     try:
         db.add(prestamo)
         db.commit()
-    except IntegrityError:
+
+    except IntegrityError as e:
         db.rollback()
+        _registrar_error_integridad("registrar préstamo", e)
+
         raise HTTPException(
             status_code=409,
-            detail=CONFLICTO_SIMULTANEO,
-        )
+            detail=(
+                "No se pudo guardar el préstamo por un conflicto "
+                "con los datos o las restricciones de la base de datos. "
+                "Revisá los logs del backend."
+            ),
+        ) from e
 
     db.refresh(prestamo)
     return prestamo
@@ -225,12 +248,19 @@ def cambiar_juego(
     try:
         prestamo.juego_id = datos.juego_id
         db.commit()
-    except IntegrityError:
+
+    except IntegrityError as e:
         db.rollback()
+        _registrar_error_integridad("cambiar juego del préstamo", e)
+
         raise HTTPException(
             status_code=409,
-            detail=CONFLICTO_SIMULTANEO,
-        )
+            detail=(
+                "No se pudo cambiar el juego por un conflicto "
+                "con los datos o las restricciones de la base de datos. "
+                "Revisá los logs del backend."
+            ),
+        ) from e
 
     db.refresh(prestamo)
     return prestamo
