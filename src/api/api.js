@@ -235,3 +235,29 @@ export const marcarMensaje = (id, leido) =>
 
 export const eliminarMensaje = (id) =>
   pedir(`/contacto/${id}`, { method: "DELETE" });
+
+
+// ---------------------------------------------------------
+// ADMINISTRACIÓN DE USUARIOS
+// ---------------------------------------------------------
+
+export const listarUsuariosAdmin = (buscar = "") => {
+  const parametros = new URLSearchParams();
+  const termino = buscar.trim();
+
+  if (termino) {
+    parametros.set("buscar", termino);
+  }
+
+  const query = parametros.toString();
+
+  return pedir(
+    `/auth/admin/usuarios${query ? `?${query}` : ""}`
+  );
+};
+
+export const actualizarUsuarioAdmin = (usuarioId, cambios) =>
+  pedir(`/auth/admin/usuarios/${usuarioId}`, {
+    method: "PATCH",
+    body: JSON.stringify(cambios),
+  });
