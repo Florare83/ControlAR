@@ -1,9 +1,11 @@
 # Carrito -> pedido -> pago con Mercado Pago.
+from collections import Counter
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.v1.auth.dependencies import get_current_user
 from app.core import mercadopago as mp
@@ -78,6 +80,18 @@ def _serializar_compra(pedido: Pedido) -> dict:
             for i in pedido.items
         ],
     }
+
+
+def _serializar_venta(pedido: Pedido, usuario: Usuario | None) -> dict:
+    """Formato para el panel de ventas del administrador."""
+    datos = _serializar_compra(pedido)
+    datos["pago_id"] = pedido.pago_id
+    datos["cliente"] = (
+        {"nombre": usuario.nombre, "email": usuario.email}
+        if usuario is not None
+        else None  # cuenta eliminada
+    )
+    return datos
 
 
 def sincronizar_pago(db: Session, pedido_id: int, pago: dict) -> Pedido | None:
@@ -199,6 +213,94 @@ def crear_checkout(
         "pedido_id": pedido.id,
         "total": pedido.total,
         "init_point": preferencia["init_point"],
+    }
+
+
+# IMPORTANTE: las rutas fijas ("/admin/ventas", "/mis-compras") deben ir
+# ANTES de "/{pedido_id}", si no FastAPI intentaría interpretarlas como un
+# número de pedido.
+@router.get("/admin/ventas")
+def listar_ventas(
+    estado: str | None = None,
+    buscar: str | None = None,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    """Panel de ventas (solo administradores): resumen general + listado
+    filtrable por estado y por cliente / correo / número de pedido."""
+    if not getattr(usuario, "es_admin", False):
+        raise HTTPException(403, "Solo los administradores pueden ver las ventas.")
+
+    estados = {
+        "aprobado": APROBADO,
+        "pendiente": PENDIENTE,
+        "rechazado": RECHAZADO,
+    }
+    if estado and estado not in estados:
+        raise HTTPException(400, "Estado inválido.")
+
+    # ---- Resumen (siempre sobre todos los pedidos, sin filtros) ----
+    todos = db.query(Pedido).options(selectinload(Pedido.items)).all()
+    pagados = [p for p in todos if p.estado == APROBADO]
+    ahora = datetime.now(timezone.utc)
+
+    ingresos_total = round(sum(p.total for p in pagados), 2)
+    ingresos_mes = round(
+        sum(
+            p.total
+            for p in pagados
+            if p.pagado_en
+            and p.pagado_en.year == ahora.year
+            and p.pagado_en.month == ahora.month
+        ),
+        2,
+    )
+
+    unidades = Counter()
+    for p in pagados:
+        for item in p.items:
+            unidades[item.titulo] += item.cantidad
+
+    resumen = {
+        "ingresos_total": ingresos_total,
+        "ingresos_mes": ingresos_mes,
+        "pagados": len(pagados),
+        "pendientes": sum(1 for p in todos if p.estado == PENDIENTE),
+        "rechazados": sum(1 for p in todos if p.estado == RECHAZADO),
+        "ticket_promedio": (
+            round(ingresos_total / len(pagados), 2) if pagados else 0
+        ),
+        "mas_vendidos": [
+            {"titulo": titulo, "cantidad": cantidad}
+            for titulo, cantidad in unidades.most_common(5)
+        ],
+    }
+
+    # ---- Listado filtrado ----
+    consulta = (
+        db.query(Pedido, Usuario)
+        .outerjoin(Usuario, Usuario.id == Pedido.usuario_id)
+        .options(selectinload(Pedido.items))
+    )
+
+    if estado:
+        consulta = consulta.filter(Pedido.estado == estados[estado])
+
+    termino = (buscar or "").strip()
+    if termino:
+        condiciones = [
+            Usuario.nombre.ilike(f"%{termino}%"),
+            Usuario.email.ilike(f"%{termino}%"),
+        ]
+        if termino.isdigit():
+            condiciones.append(Pedido.id == int(termino))
+        consulta = consulta.filter(or_(*condiciones))
+
+    filas = consulta.order_by(Pedido.id.desc()).limit(200).all()
+
+    return {
+        "resumen": resumen,
+        "pedidos": [_serializar_venta(p, u) for p, u in filas],
     }
 
 

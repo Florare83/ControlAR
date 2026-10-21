@@ -3137,3 +3137,193 @@ body.oscuro .club-tag-destacado {
     padding: 18px;
   }
 }
+
+
+/* ============================================
+   Panel: Ventas (administrador)
+   ============================================ */
+.ventas h1 {
+  margin-bottom: 6px;
+}
+
+.ventas .ventas-subtitulo {
+  margin-bottom: 20px;
+  color: var(--texto-suave);
+  line-height: 1.5;
+}
+
+.prestamos-resumen.ventas-resumen {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ventas-top {
+  margin: 0 0 24px;
+  padding: 18px 20px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.ventas-top h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.ventas-top ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ventas-top li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto;
+  gap: 12px;
+  align-items: center;
+  font-size: 14.5px;
+}
+
+.ventas-top-nombre {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.ventas-top-barra {
+  display: block;
+  height: 10px;
+  min-width: 6px;
+  border-radius: 999px;
+  background: var(--acento, #f0b429);
+}
+
+.ventas-top-cantidad {
+  color: var(--texto-suave);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ventas-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.ventas-filtro {
+  display: grid;
+  gap: 6px;
+}
+
+.ventas-filtro-busqueda {
+  flex: 1 1 280px;
+}
+
+.ventas-filtro label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ventas-filtro input,
+.ventas-filtro select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14.5px;
+}
+
+.boton.ventas-exportar {
+  width: auto;
+  padding: 11px 18px;
+}
+
+.ventas .ventas-cantidad {
+  margin-bottom: 8px;
+  font-size: 13.5px;
+  color: var(--texto-suave);
+}
+
+.ventas-tabla-contenedor {
+  overflow-x: auto;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.ventas-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+.ventas-tabla th,
+.ventas-tabla td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--borde);
+}
+
+.ventas-tabla th {
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--texto-suave);
+}
+
+.ventas-tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ventas-cliente,
+.ventas-correo {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.ventas-cliente {
+  font-weight: 600;
+}
+
+.ventas-correo {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.ventas-juegos {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ventas-total {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .prestamos-resumen.ventas-resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .ventas-top li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .ventas-top-barra {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .boton.ventas-exportar {
+    width: 100%;
+  }
+}

@@ -302,3 +302,16 @@ export async function crearUsuarioAdmin({
 
 // Historial de compras del cliente autenticado
 export const listarMisCompras = () => pedir("/pedidos/mis-compras");
+
+
+// Ventas: administración
+export const listarVentasAdmin = ({ estado = "", buscar = "" } = {}) => {
+  const parametros = new URLSearchParams();
+
+  if (estado) parametros.set("estado", estado);
+  if (buscar.trim()) parametros.set("buscar", buscar.trim());
+
+  const query = parametros.toString();
+
+  return pedir(`/pedidos/admin/ventas${query ? `?${query}` : ""}`);
+};

@@ -19,6 +19,7 @@ import Registro from "./pages/Registro.jsx";
 import Prestamos from "./pages/Prestamos.jsx";
 import MisPrestamos from "./pages/MisPrestamos.jsx";
 import MisCompras from "./pages/MisCompras.jsx";
+import Ventas from "./pages/Ventas.jsx";
 import PanelResumen from "./pages/PanelResumen.jsx";
 import Mensajes from "./pages/Mensajes.jsx";
 import AgregarJuego from "./pages/AgregarJuego.jsx";
@@ -172,6 +173,11 @@ function App() {
                 <Route
                   path="mensajes"
                   element={<Mensajes />}
+                />
+
+                <Route
+                  path="ventas"
+                  element={<Ventas />}
                 />
 
                 <Route
