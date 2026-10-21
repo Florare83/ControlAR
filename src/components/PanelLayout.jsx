@@ -39,6 +39,7 @@ function PanelLayout() {
   return (
     <div className="pagina panel">
       <aside className="panel-menu">
+        <div className="panel-menu-fijo">
         <p className="panel-rol">
           <strong>{esAdmin ? "Administrador" : "Operador"}</strong>
           <span>{usuario.nombre}</span>
@@ -93,6 +94,7 @@ function PanelLayout() {
             )}
           </ul>
         </nav>
+        </div>
       </aside>
 
       <section className="panel-contenido">

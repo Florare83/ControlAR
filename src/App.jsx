@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
@@ -19,6 +18,7 @@ import Login from "./pages/Login.jsx";
 import Registro from "./pages/Registro.jsx";
 import Prestamos from "./pages/Prestamos.jsx";
 import MisPrestamos from "./pages/MisPrestamos.jsx";
+import MisCompras from "./pages/MisCompras.jsx";
 import PanelResumen from "./pages/PanelResumen.jsx";
 import Mensajes from "./pages/Mensajes.jsx";
 import AgregarJuego from "./pages/AgregarJuego.jsx";
@@ -131,6 +131,16 @@ function App() {
             element={
               <RutaProtegida roles={["cliente"]}>
                 <MisPrestamos />
+              </RutaProtegida>
+            }
+          />
+
+          {/* Historial de compras del cliente */}
+          <Route
+            path="/mis-compras"
+            element={
+              <RutaProtegida roles={["cliente", "admin"]}>
+                <MisCompras />
               </RutaProtegida>
             }
           />

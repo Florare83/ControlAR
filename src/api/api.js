@@ -298,3 +298,7 @@ export async function crearUsuarioAdmin({
 
   return creado;
 }
+
+
+// Historial de compras del cliente autenticado
+export const listarMisCompras = () => pedir("/pedidos/mis-compras");

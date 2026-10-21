@@ -49,6 +49,37 @@ def _serializar(pedido: Pedido) -> dict:
     }
 
 
+def _serializar_compra(pedido: Pedido) -> dict:
+    """Formato para el historial de compras del cliente."""
+    if pedido.estado == APROBADO:
+        codigo = "aprobado"
+    elif pedido.estado == RECHAZADO:
+        codigo = "rechazado"
+    else:
+        codigo = "pendiente"
+
+    # Fecha de pago si existe; si no, la de creación (si el modelo la tiene).
+    fecha = getattr(pedido, "pagado_en", None) or getattr(
+        pedido, "creado_en", None
+    )
+
+    return {
+        "id": pedido.id,
+        "estado": codigo,
+        "total": pedido.total,
+        "fecha": fecha.isoformat() if fecha else None,
+        "items": [
+            {
+                "titulo": i.titulo,
+                "precio_unitario": i.precio_unitario,
+                "cantidad": i.cantidad,
+                "subtotal": round(i.precio_unitario * i.cantidad, 2),
+            }
+            for i in pedido.items
+        ],
+    }
+
+
 def sincronizar_pago(db: Session, pedido_id: int, pago: dict) -> Pedido | None:
     """Actualiza el pedido según un pago REAL traído de Mercado Pago.
     Es idempotente: si el webhook y la vuelta del cliente llegan a la vez,
@@ -171,6 +202,23 @@ def crear_checkout(
     }
 
 
+# IMPORTANTE: esta ruta debe ir ANTES de "/{pedido_id}", si no FastAPI
+# intentaría interpretar "mis-compras" como un número de pedido.
+@router.get("/mis-compras")
+def listar_mis_compras(
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    """Historial de compras del cliente autenticado (más recientes primero)."""
+    pedidos = (
+        db.query(Pedido)
+        .filter(Pedido.usuario_id == usuario.id)
+        .order_by(Pedido.id.desc())
+        .all()
+    )
+    return [_serializar_compra(p) for p in pedidos]
+
+
 @router.get("/{pedido_id}")
 def obtener_pedido(
     pedido_id: int,
@@ -208,7 +256,7 @@ def confirmar_pedido(
         pago = mp.obtener_pago(datos.pago_id)
         if pago is None:
             raise HTTPException(404, "Pago no encontrado en Mercado Pago.")
-        pedido = sincronizar_pago(db, pedido.id, pago)
+        pedido = sincronizar_pago(db, pedido.id, pago) or pedido
 
     return _serializar(pedido)
 
