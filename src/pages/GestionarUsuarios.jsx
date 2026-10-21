@@ -2,8 +2,19 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   actualizarUsuarioAdmin,
+  crearUsuarioAdmin,
   listarUsuariosAdmin,
 } from "../api/api";
+
+const FORMULARIO_VACIO = {
+  nombre: "",
+  email: "",
+  contrasena: "",
+  repetir: "",
+  es_admin: false,
+};
+
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function GestionarUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
@@ -12,6 +23,11 @@ export default function GestionarUsuarios() {
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [procesando, setProcesando] = useState(null);
+
+  const [formAbierto, setFormAbierto] = useState(false);
+  const [form, setForm] = useState(FORMULARIO_VACIO);
+  const [errorForm, setErrorForm] = useState("");
+  const [creando, setCreando] = useState(false);
 
   const cargarUsuarios = useCallback(async () => {
     setCargando(true);
@@ -47,6 +63,71 @@ export default function GestionarUsuarios() {
     }
   }
 
+  function cambiarCampo(campo, valor) {
+    setForm((actual) => ({ ...actual, [campo]: valor }));
+  }
+
+  function abrirFormulario() {
+    setForm(FORMULARIO_VACIO);
+    setErrorForm("");
+    setFormAbierto(true);
+  }
+
+  function cerrarFormulario() {
+    setFormAbierto(false);
+    setErrorForm("");
+  }
+
+  async function crearUsuario(evento) {
+    evento.preventDefault();
+    setErrorForm("");
+
+    const nombre = form.nombre.trim();
+    const email = form.email.trim();
+
+    if (!nombre) {
+      setErrorForm("Ingresá el nombre del usuario.");
+      return;
+    }
+
+    if (!EMAIL_VALIDO.test(email)) {
+      setErrorForm("Ingresá un correo electrónico válido.");
+      return;
+    }
+
+    if (form.contrasena.length < 8) {
+      setErrorForm("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+
+    if (form.contrasena !== form.repetir) {
+      setErrorForm("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setCreando(true);
+    setError("");
+    setMensaje("");
+
+    try {
+      await crearUsuarioAdmin({
+        nombre,
+        email,
+        contrasena: form.contrasena,
+        es_admin: form.es_admin,
+      });
+
+      setMensaje(`Usuario ${nombre} creado correctamente.`);
+      setFormAbierto(false);
+      setForm(FORMULARIO_VACIO);
+      await cargarUsuarios();
+    } catch (e) {
+      setErrorForm(e.message || "No se pudo crear el usuario.");
+    } finally {
+      setCreando(false);
+    }
+  }
+
   return (
     <section className="gestionar-usuarios">
       <div
@@ -59,11 +140,131 @@ export default function GestionarUsuarios() {
           padding: "24px",
         }}
       >
-        <h1>Gestionar usuarios</h1>
+        <div className="usuarios-cabecera">
+          <div>
+            <h1>Gestionar usuarios</h1>
 
-        <p>
-          Administrá las cuentas registradas, sus permisos y su estado.
-        </p>
+            <p>
+              Administrá las cuentas registradas, sus permisos y su estado.
+            </p>
+          </div>
+
+          {!formAbierto && (
+            <button
+              type="button"
+              className="boton usuarios-nuevo-boton"
+              onClick={abrirFormulario}
+            >
+              + Nuevo usuario
+            </button>
+          )}
+        </div>
+
+        {formAbierto && (
+          <form
+            className="usuario-nuevo"
+            onSubmit={crearUsuario}
+            noValidate
+            aria-label="Nuevo usuario"
+          >
+            <h2>Nuevo usuario</h2>
+
+            <div className="usuario-nuevo-grilla">
+              <div className="campo">
+                <label htmlFor="nuevo-nombre">Nombre</label>
+                <input
+                  id="nuevo-nombre"
+                  type="text"
+                  autoComplete="off"
+                  value={form.nombre}
+                  onChange={(e) => cambiarCampo("nombre", e.target.value)}
+                  disabled={creando}
+                  required
+                />
+              </div>
+
+              <div className="campo">
+                <label htmlFor="nuevo-email">Correo electrónico</label>
+                <input
+                  id="nuevo-email"
+                  type="email"
+                  autoComplete="off"
+                  value={form.email}
+                  onChange={(e) => cambiarCampo("email", e.target.value)}
+                  disabled={creando}
+                  required
+                />
+              </div>
+
+              <div className="campo">
+                <label htmlFor="nuevo-contrasena">Contraseña</label>
+                <input
+                  id="nuevo-contrasena"
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.contrasena}
+                  onChange={(e) =>
+                    cambiarCampo("contrasena", e.target.value)
+                  }
+                  disabled={creando}
+                  aria-describedby="nuevo-contrasena-ayuda"
+                  required
+                />
+                <span id="nuevo-contrasena-ayuda" className="ayuda">
+                  Mínimo 8 caracteres.
+                </span>
+              </div>
+
+              <div className="campo">
+                <label htmlFor="nuevo-repetir">Repetir contraseña</label>
+                <input
+                  id="nuevo-repetir"
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.repetir}
+                  onChange={(e) => cambiarCampo("repetir", e.target.value)}
+                  disabled={creando}
+                  required
+                />
+              </div>
+
+              <div className="campo">
+                <label htmlFor="nuevo-rol">Rol</label>
+                <select
+                  id="nuevo-rol"
+                  value={form.es_admin ? "admin" : "cliente"}
+                  onChange={(e) =>
+                    cambiarCampo("es_admin", e.target.value === "admin")
+                  }
+                  disabled={creando}
+                >
+                  <option value="cliente">Cliente</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+            </div>
+
+            {errorForm && (
+              <p role="alert" className="error usuario-nuevo-error">
+                {errorForm}
+              </p>
+            )}
+
+            <div className="usuario-nuevo-acciones">
+              <button type="submit" className="boton" disabled={creando}>
+                {creando ? "Creando..." : "Crear usuario"}
+              </button>
+              <button
+                type="button"
+                className="boton boton-secundario"
+                onClick={cerrarFormulario}
+                disabled={creando}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
 
         <div
           className="gestionar-usuarios__busqueda"

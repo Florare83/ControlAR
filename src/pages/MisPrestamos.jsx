@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { listarMisPrestamos } from "../api/api.js";
 
@@ -14,6 +13,25 @@ function fechaArgentina(fecha) {
     month: "2-digit",
     year: "numeric",
   });
+}
+
+function diasDesde(fecha) {
+  if (!fecha) return null;
+
+  const valor = new Date(fecha);
+
+  if (Number.isNaN(valor.getTime())) return null;
+
+  const dias = Math.floor((Date.now() - valor.getTime()) / 86400000);
+
+  return dias < 0 ? 0 : dias;
+}
+
+function textoDias(dias) {
+  if (dias === null) return "";
+  if (dias === 0) return "Retirado hoy";
+  if (dias === 1) return "Hace 1 día";
+  return `Hace ${dias} días`;
 }
 
 function MisPrestamos() {
@@ -44,54 +62,108 @@ function MisPrestamos() {
     };
   }, []);
 
+  const activos = prestamos.filter((p) => p.estado === "activo").length;
+  const devueltos = prestamos.length - activos;
+
   return (
-    <main className="pagina">
+    <main className="pagina mis-prestamos">
       <h1>Mis préstamos</h1>
-      <p>
+      <p className="subtitle">
         Consultá los juegos que retiraste y el estado de cada préstamo.
       </p>
 
-      {cargando && <p role="status">Cargando historial...</p>}
+      {cargando && (
+        <p className="cargando" role="status">
+          <span className="spinner" aria-hidden="true" />
+          Cargando historial...
+        </p>
+      )}
 
       {!cargando && error && (
-        <div role="alert">
-          <p>No pudimos cargar tus préstamos.</p>
-          <p>{error}</p>
+        <div className="prestamos-error" role="alert">
+          <strong>No pudimos cargar tus préstamos.</strong>
+          <span>{error}</span>
         </div>
       )}
 
       {!cargando && !error && prestamos.length === 0 && (
-        <p>Todavía no hay préstamos asociados a tu cuenta.</p>
+        <div className="prestamos-vacio">
+          <p className="prestamos-vacio-icono" aria-hidden="true">
+            🎲
+          </p>
+          <p className="prestamos-vacio-titulo">Todavía no tenés préstamos</p>
+          <p>
+            Cuando retires un juego del club, vas a verlo acá con su estado
+            y sus fechas.
+          </p>
+        </div>
       )}
 
       {!cargando && !error && prestamos.length > 0 && (
-        <div className="tabla-contenedor">
-          <table>
-            <thead>
-              <tr>
-                <th>Juego</th>
-                <th>Fecha del préstamo</th>
-                <th>Fecha de devolución</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
+        <>
+          <dl className="prestamos-resumen">
+            <div>
+              <dd>{activos}</dd>
+              <dt>{activos === 1 ? "En préstamo" : "En préstamo ahora"}</dt>
+            </div>
+            <div>
+              <dd>{devueltos}</dd>
+              <dt>{devueltos === 1 ? "Devuelto" : "Devueltos"}</dt>
+            </div>
+            <div>
+              <dd>{prestamos.length}</dd>
+              <dt>En total</dt>
+            </div>
+          </dl>
 
-            <tbody>
-              {prestamos.map((prestamo) => (
-                <tr key={prestamo.id}>
-                  <td>{prestamo.titulo_juego}</td>
-                  <td>{fechaArgentina(prestamo.fecha_inicio)}</td>
-                  <td>{fechaArgentina(prestamo.fecha_cierre)}</td>
-                  <td>
-                    {prestamo.estado === "activo"
-                      ? "En préstamo"
-                      : "Devuelto"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <ul className="prestamos-lista">
+            {prestamos.map((prestamo) => {
+              const activo = prestamo.estado === "activo";
+              const dias = activo ? diasDesde(prestamo.fecha_inicio) : null;
+
+              return (
+                <li
+                  key={prestamo.id}
+                  className={`prestamo-item ${activo ? "activo" : "devuelto"}`}
+                >
+                  <div className="prestamo-cabecera">
+                    <h2 className="prestamo-titulo">
+                      {prestamo.titulo_juego}
+                    </h2>
+                    <span
+                      className={`prestamo-estado ${
+                        activo ? "activo" : "devuelto"
+                      }`}
+                    >
+                      {activo ? "En préstamo" : "Devuelto"}
+                    </span>
+                  </div>
+
+                  <dl className="prestamo-fechas">
+                    <div>
+                      <dt>Retirado el</dt>
+                      <dd>{fechaArgentina(prestamo.fecha_inicio)}</dd>
+                    </div>
+                    <div>
+                      <dt>Devuelto el</dt>
+                      <dd>
+                        {activo
+                          ? "Pendiente de devolución"
+                          : fechaArgentina(prestamo.fecha_cierre)}
+                      </dd>
+                    </div>
+                    {activo && dias !== null && (
+                      <div>
+                        <dt>Tiempo</dt>
+                        <dd>{textoDias(dias)}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </main>
   );

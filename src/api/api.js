@@ -261,3 +261,40 @@ export const actualizarUsuarioAdmin = (usuarioId, cambios) =>
     method: "PATCH",
     body: JSON.stringify(cambios),
   });
+
+// Alta de usuarios por el administrador.
+// Usa el registro existente (/auth/register) y, si el nuevo usuario debe ser
+// administrador, lo promueve con el PATCH de administración que ya existe.
+export async function crearUsuarioAdmin({
+  nombre,
+  email,
+  contrasena,
+  es_admin = false,
+}) {
+  const creado = await registrarUsuario({ nombre, email, contrasena });
+
+  if (!es_admin) return creado;
+
+  try {
+    let id = creado && creado.id;
+
+    if (!id) {
+      const lista = await listarUsuariosAdmin(email);
+      const encontrado = (Array.isArray(lista) ? lista : []).find(
+        (u) => String(u.email).toLowerCase() === email.toLowerCase()
+      );
+      id = encontrado && encontrado.id;
+    }
+
+    if (!id) throw new Error("No se encontró el usuario recién creado.");
+
+    await actualizarUsuarioAdmin(id, { es_admin: true });
+  } catch (e) {
+    throw new Error(
+      "El usuario se creó como cliente, pero no se pudo asignar el rol " +
+        `de administrador: ${e.message} Cambiá el rol desde la tabla.`
+    );
+  }
+
+  return creado;
+}

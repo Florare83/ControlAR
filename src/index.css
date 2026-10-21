@@ -3,6 +3,7 @@
    Variables de color y fuente
    ============================================ */
 :root {
+  --navbar-alto: 90px; /* altura aproximada del navbar fijo; ajústala si hace falta */
   --azul-marino: #161c3f;
   --azul-marino-hover: #232a5c;
   --fondo: #f4f4f2;
@@ -34,6 +35,9 @@ a {
    Barra de navegación
    ============================================ */
 .navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   background: #161c3f;
   color: #ffffff;
   display: flex;
@@ -581,9 +585,9 @@ body.oscuro {
 
 .panel-menu {
   position: sticky;
-  top: 20px;
+  top: calc(var(--navbar-alto) + 20px);
   align-self: start;
-  max-height: calc(100vh - 40px);
+  max-height: calc(100vh - var(--navbar-alto) - 40px);
   overflow-y: auto;
 
   background: var(--blanco);
@@ -724,6 +728,10 @@ body.oscuro {
 
 main:focus {
   outline: none;
+}
+
+html {
+  scroll-padding-top: var(--navbar-alto);
 }
 
 :focus-visible {
@@ -1983,5 +1991,282 @@ main:focus {
   .form-prestamo .form-grid,
   .prestamo-formulario .form-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* ============================================
+   Mis préstamos (vista del cliente)
+   ============================================ */
+.mis-prestamos .subtitle {
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.mis-prestamos .cargando {
+  line-height: 1.5;
+}
+
+/* Resumen */
+.prestamos-resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 24px;
+}
+
+.prestamos-resumen > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 14px 18px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.prestamos-resumen dd {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.prestamos-resumen dt {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Lista de préstamos */
+.prestamos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.prestamo-item {
+  padding: 16px 20px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-left: 5px solid var(--borde);
+  border-radius: 10px;
+}
+
+.prestamo-item.activo {
+  border-left-color: #d97706;
+}
+
+.prestamo-item.devuelto {
+  border-left-color: var(--exito);
+}
+
+.prestamo-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mis-prestamos .prestamo-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.prestamo-estado {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.prestamo-estado.activo {
+  background: rgba(217, 119, 6, 0.15);
+  color: #b45309;
+}
+
+.prestamo-estado.devuelto {
+  background: rgba(31, 157, 85, 0.15);
+  color: var(--exito);
+}
+
+body.oscuro .prestamo-estado.activo {
+  color: #fbbf24;
+}
+
+body.oscuro .prestamo-estado.devuelto {
+  color: #4ade80;
+}
+
+.prestamo-fechas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  margin: 0;
+}
+
+.prestamo-fechas dt {
+  font-size: 12.5px;
+  color: var(--texto-suave);
+  margin-bottom: 2px;
+}
+
+.prestamo-fechas dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Estados vacío y error */
+.prestamos-vacio {
+  max-width: 460px;
+  margin: 24px auto 0;
+  padding: 32px 24px;
+  text-align: center;
+  background: var(--blanco);
+  border: 1px dashed var(--borde);
+  border-radius: 10px;
+}
+
+.mis-prestamos .prestamos-vacio p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+  color: var(--texto-suave);
+}
+
+.mis-prestamos .prestamos-vacio .prestamos-vacio-icono {
+  font-size: 40px;
+  margin-bottom: 4px;
+}
+
+.mis-prestamos .prestamos-vacio .prestamos-vacio-titulo {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.prestamos-error {
+  display: grid;
+  gap: 4px;
+  padding: 14px 18px;
+  border: 1px solid #f1b5b0;
+  border-left: 5px solid var(--alerta);
+  border-radius: 8px;
+  background: #fbe9e7;
+  color: #8a2a20;
+}
+
+@media (max-width: 640px) {
+  .prestamos-resumen {
+    gap: 8px;
+  }
+
+  .prestamos-resumen > div {
+    padding: 10px 12px;
+  }
+
+  .prestamos-resumen dd {
+    font-size: 22px;
+  }
+
+  .prestamo-item {
+    padding: 14px;
+  }
+
+  .prestamo-cabecera {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .prestamo-fechas {
+    gap: 10px 24px;
+  }
+}
+
+
+/* ============================================
+   Gestionar usuarios: alta de usuario nuevo
+   ============================================ */
+.usuarios-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.usuarios-cabecera h1 {
+  margin-top: 0;
+}
+
+.boton.usuarios-nuevo-boton {
+  width: auto;
+  padding: 10px 18px;
+  white-space: nowrap;
+}
+
+.usuario-nuevo {
+  margin: 0 0 24px;
+  padding: 20px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.usuario-nuevo h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.usuario-nuevo-grilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+.usuario-nuevo .campo input,
+.usuario-nuevo .campo select {
+  background: var(--blanco);
+  color: var(--texto);
+}
+
+.usuario-nuevo-error {
+  margin: 0 0 12px;
+}
+
+.usuario-nuevo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.usuario-nuevo-acciones .boton {
+  width: auto;
+  padding: 10px 20px;
+}
+
+.boton.boton-secundario {
+  background: transparent;
+  color: var(--texto);
+  border: 1px solid var(--borde);
+}
+
+.boton.boton-secundario:hover:not(:disabled) {
+  background: var(--blanco);
+}
+
+@media (max-width: 640px) {
+  .usuario-nuevo-grilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .boton.usuarios-nuevo-boton {
+    width: 100%;
   }
 }
