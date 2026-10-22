@@ -19,6 +19,7 @@ class Prestamo(Base):
     id = Column(Integer, primary_key=True, index=True)
     dni = Column(String(20), nullable=False, index=True)
     nombre = Column(String(100), nullable=False)
+    email = Column(String(255), nullable=True, index=True)
     sexo = Column(String(10), nullable=False)  # "Femenino" o "Masculino"
     telefono = Column(String(30), nullable=False)
     estado = Column(String(10), nullable=False, default=ACTIVO)  # "activo" / "cerrado"
@@ -28,6 +29,10 @@ class Prestamo(Base):
     # Juego actual del préstamo (si la persona lo cambia, se actualiza este campo).
     juego_id = Column(Integer, ForeignKey("juegos.id"), nullable=False)
     juego = relationship("Juego")
+
+    # Copia del título del juego al momento del préstamo (así el historial no cambia si
+    # después se edita el juego). La base de producción la tiene como obligatoria.
+    titulo_juego = Column(String(100), nullable=True)
 
     # Reglas que garantiza la propia base de datos, incluso si dos operadores
     # registran a la vez: una persona solo puede tener UN préstamo activo y un

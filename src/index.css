@@ -3,6 +3,7 @@
    Variables de color y fuente
    ============================================ */
 :root {
+  --navbar-alto: 90px; /* altura aproximada del navbar fijo; ajústala si hace falta */
   --azul-marino: #161c3f;
   --azul-marino-hover: #232a5c;
   --fondo: #f4f4f2;
@@ -34,6 +35,9 @@ a {
    Barra de navegación
    ============================================ */
 .navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   background: #161c3f;
   color: #ffffff;
   display: flex;
@@ -152,11 +156,11 @@ a {
 
 /* ============================================
    Cuadrícula del catálogo de juegos
-   5 tarjetas por fila en pantallas grandes
+   4 tarjetas por fila en pantallas grandes (3 filas por página)
    ============================================ */
 .grilla-juegos {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   align-items: stretch;
   grid-auto-flow: row;
@@ -182,9 +186,9 @@ a {
   display: block;
   width: 100%;
   border-radius: 8px;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 10;
   object-fit: cover;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .tarjeta-juego h3 {
@@ -303,6 +307,9 @@ a {
    Formularios
    ============================================ */
 .formulario {
+  /* Ancho fijo: ocupa todo el espacio disponible hasta 500px (antes se encogía
+     al ancho de sus campos cuando estaba dentro de una tarjeta flexible). */
+  width: 100%;
   max-width: 500px;
   margin: 0 auto;
 }
@@ -565,15 +572,33 @@ body.oscuro {
 /* ============================================
    Paneles de operador y administrador
    ============================================ */
+
 .pagina.panel {
   display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 24px;
-  max-width: 1200px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 60px;
   align-items: start;
 }
 
+/* El <aside> solo reserva la columna del menú dentro de la grilla. */
 .panel-menu {
+  align-self: start;
+  margin-left: -12px;
+}
+
+/* El menú en sí queda fijo en pantalla: no se mueve al deslizar la página.
+   Sin "left", conserva su posición horizontal natural dentro de la columna. */
+.panel-menu-fijo {
+  position: fixed;
+  top: calc(var(--navbar-alto) + 20px);
+  z-index: 10;
+  width: 232px; /* columna de 220px + 12px del margen negativo */
+  max-height: calc(100vh - var(--navbar-alto) - 40px);
+  overflow-y: auto;
+
   background: var(--blanco);
   border: 1px solid var(--borde);
   border-radius: 10px;
@@ -622,6 +647,33 @@ body.oscuro {
 
 .panel-contenido {
   min-width: 0;
+}
+
+/* ============================================
+   Responsive del panel
+   ============================================ */
+
+@media (max-width: 1000px) {
+  .pagina.panel {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .pagina.panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel-menu {
+    margin-left: 0;
+  }
+
+  .panel-menu-fijo {
+    position: static;
+    width: auto;
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 /* ============================================
@@ -690,6 +742,10 @@ main:focus {
   outline: none;
 }
 
+html {
+  scroll-padding-top: var(--navbar-alto);
+}
+
 :focus-visible {
   outline: 3px solid #4c8dff;
   outline-offset: 2px;
@@ -755,5 +811,2519 @@ main:focus {
   .tarjeta-juego .boton {
     padding: 9px 6px;
     font-size: 12px;
+  }
+}
+
+/* ============================================
+   Carrito: botón del navbar
+   ============================================ */
+.navbar .boton-carrito {
+  position: relative;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.navbar .boton-carrito:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.carrito-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e63946;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* ============================================
+   Carrito: sidebar derecho
+   ============================================ */
+.carrito-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.carrito-fondo.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.carrito-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1600;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 100vw);
+  background: var(--blanco);
+  color: var(--texto);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.25);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.3s ease, visibility 0s linear 0.3s;
+}
+
+.carrito-sidebar.abierto {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carrito-sidebar,
+  .carrito-fondo {
+    transition: none;
+  }
+}
+
+.carrito-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.carrito-cabecera h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.carrito-cerrar {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 6px;
+}
+
+.carrito-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.carrito-linea {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.carrito-linea img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--fondo);
+}
+
+.carrito-linea-info p,
+.carrito-linea p {
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.carrito-linea-titulo {
+  font-weight: 600;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.carrito-linea-precio {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.carrito-linea-lado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.carrito-cantidad {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.carrito-cantidad button {
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.carrito-cantidad button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.carrito-cantidad span {
+  min-width: 28px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.carrito-quitar,
+.carrito-vaciar {
+  background: none;
+  border: none;
+  color: var(--alerta);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.carrito-pie {
+  display: grid;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--borde);
+}
+
+.carrito-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 18px;
+}
+
+.carrito-vaciar {
+  justify-self: center;
+}
+
+.carrito-vacio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* ============================================
+   Pantalla completa: confirmación y resultado de la compra
+   ============================================ */
+.pantalla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  overflow-y: auto;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+.pc-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: #161c3f;
+  color: #ffffff;
+}
+
+.pc-marca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.pc-marca img {
+  height: 40px;
+}
+
+.pc-volver {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.pc-contenido {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 60px;
+}
+
+.pc-contenido h1 {
+  margin: 0 0 24px;
+  font-size: 28px;
+}
+
+.pc-grilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.pc-grilla .carrito-lista {
+  padding: 0;
+  overflow: visible;
+}
+
+.pc-grilla h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.pc-pago {
+  display: grid;
+  gap: 14px;
+  position: sticky;
+  top: 24px;
+}
+
+.pc-pago .ayuda {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.boton-mp {
+  background: #009ee3;
+  padding: 14px;
+  font-size: 15px;
+}
+
+.boton-mp:hover {
+  background: #0086c3;
+}
+
+.pc-cancelar {
+  text-align: center;
+  font-size: 14px;
+  color: var(--texto-suave);
+  text-decoration: underline;
+}
+
+.pc-vacio {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: 420px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.pc-vacio .boton {
+  width: auto;
+}
+
+.pc-resultado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 560px;
+  gap: 8px;
+  padding-top: 60px;
+}
+
+.pc-resultado .boton {
+  width: auto;
+  margin-top: 16px;
+  padding: 12px 28px;
+}
+
+.pc-icono {
+  font-size: 64px;
+  margin: 0;
+}
+
+.pc-detalle {
+  list-style: none;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 0;
+  text-align: left;
+}
+
+.pc-detalle li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+@media (max-width: 800px) {
+  .pc-grilla {
+    grid-template-columns: 1fr;
+  }
+
+  .pc-pago {
+    position: static;
+  }
+
+  .pc-cabecera {
+    padding: 12px 16px;
+  }
+}
+
+
+/* ============================================
+   Tarjeta de juego compacta (iconos en línea)
+   ============================================ */
+.tarjeta-juego .etiquetas {
+  margin-bottom: 6px;
+}
+
+.tarjeta-juego .etiqueta {
+  white-space: nowrap;
+}
+
+.tarjeta-juego .datos-juego,
+.tarjeta-juego .datos-venta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.tarjeta-juego .datos-venta {
+  color: var(--texto);
+}
+
+.tarjeta-juego .datos-venta .precio {
+  margin: 0;
+  font-size: 15px;
+}
+
+.tarjeta-juego .sin-stock {
+  color: var(--alerta);
+  font-weight: 600;
+}
+
+.tarjeta-juego .acciones-tarjeta {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.tarjeta-juego .acciones-tarjeta .boton {
+  width: auto;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.tarjeta-juego .boton-favorito {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.tarjeta-juego .boton-favorito.activo {
+  background: #e63946;
+}
+
+.tarjeta-juego .boton-carrito-tarjeta {
+  flex: 1;
+}
+
+
+/* Botón flotante del carrito */
+.carrito-flotante {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1400;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--azul-marino);
+  color: #ffffff;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.carrito-flotante:hover {
+  transform: scale(1.06);
+}
+
+.carrito-flotante .carrito-badge {
+  top: -4px;
+  right: -4px;
+}
+
+/* ============================================
+   Contacto: contenedor del formulario
+   ============================================ */
+.tarjeta.tarjeta-central.tarjeta-contacto {
+  max-width: 560px;
+  text-align: left;
+}
+
+.tarjeta-contacto .formulario {
+  max-width: none;
+}
+
+.tarjeta-contacto .subtitulo {
+  margin-bottom: 16px;
+}
+
+/* ============================================
+   Panel: bandeja de mensajes
+   ============================================ */
+.panel-contador {
+  display: inline-block;
+  margin-left: 8px;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e63946;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.mensajes-filtros {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filtro-boton {
+  padding: 6px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filtro-boton.activo {
+  background: var(--azul-marino);
+  border-color: var(--azul-marino);
+  color: #ffffff;
+}
+
+.mensajes-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.tarjeta.mensaje {
+  display: block;
+}
+
+.tarjeta.mensaje-nuevo {
+  border-left: 4px solid var(--azul-marino);
+}
+
+.mensaje h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+}
+
+.mensaje .mensaje-meta {
+  margin: 2px 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.mensaje .mensaje-texto {
+  margin: 0 0 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mensaje-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mensaje-acciones .boton {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.mensaje-acciones .boton-peligro {
+  background: #e63946;
+}
+
+.mensajes-pie {
+  margin: 12px 0 8px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.mensajes-mas {
+  width: auto;
+  padding: 10px 24px;
+}
+
+
+/* ============================================
+   Catálogo compacto exclusivo para administradores
+   La vista pública de clientes conserva su diseño.
+   ============================================ */
+.grilla-juegos-admin {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.grilla-juegos-admin > .tarjeta.tarjeta-juego {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 14px;
+  height: auto;
+  min-height: 0;
+  padding: 12px;
+}
+
+/* Contenedor de imagen dentro de la tarjeta administrativa */
+.grilla-juegos-admin > .tarjeta.tarjeta-juego > div:first-child {
+  flex: 0 0 112px;
+  width: 112px;
+  align-self: flex-start;
+}
+
+.grilla-juegos-admin > .tarjeta.tarjeta-juego > div:first-child img {
+  display: block;
+  width: 112px;
+  height: 90px;
+  aspect-ratio: auto;
+  object-fit: cover;
+  margin: 0;
+  border-radius: 6px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  gap: 4px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .etiquetas {
+  margin: 0 0 2px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .caracteristicas-juego {
+  margin: 4px 0 !important;
+  gap: 4px 12px !important;
+  font-size: 13px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .detalle {
+  margin: 2px 0;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .precio {
+  margin: 2px 0 4px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin .boton {
+  width: auto;
+  min-width: 88px;
+  padding: 7px 12px;
+}
+
+.grilla-juegos-admin .contenido-tarjeta-admin > div[style*="display: flex"] {
+  margin-top: 4px !important;
+}
+
+/* En pantallas pequeñas, conservar una sola columna y reducir la imagen */
+@media (max-width: 640px) {
+  .grilla-juegos-admin {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .grilla-juegos-admin > .tarjeta.tarjeta-juego {
+    flex-direction: row;
+    gap: 10px;
+    padding: 9px;
+  }
+
+  .grilla-juegos-admin > .tarjeta.tarjeta-juego > div:first-child {
+    flex: 0 0 82px;
+    width: 82px;
+  }
+
+  .grilla-juegos-admin > .tarjeta.tarjeta-juego > div:first-child img {
+    width: 82px;
+    height: 72px;
+  }
+
+  .grilla-juegos-admin .contenido-tarjeta-admin h3 {
+    font-size: 14px;
+  }
+
+  .grilla-juegos-admin .contenido-tarjeta-admin .etiqueta {
+    white-space: normal;
+    font-size: 10px;
+  }
+
+  .grilla-juegos-admin .contenido-tarjeta-admin .caracteristicas-juego {
+    gap: 4px 8px !important;
+    font-size: 12px;
+  }
+
+  .grilla-juegos-admin .contenido-tarjeta-admin .boton {
+    min-width: 0;
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+}
+
+
+/* ============================================
+   Botón "me gusta" sobre la foto
+   ============================================ */
+.juego-foto {
+  position: relative;
+}
+
+.favorito-foto {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #e63946;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.favorito-foto:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.favorito-foto:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.tarjeta-juego .boton-carrito-tarjeta {
+  width: 100%;
+}
+
+/* Textos de la tarjeta más juntos (anula el interlineado general de .pagina p) */
+.tarjeta-juego .datos-juego,
+.tarjeta-juego .datos-venta {
+  line-height: 1.4;
+}
+
+/* ============================================
+   Filtros: básicos visibles, avanzados ocultos
+   ============================================ */
+.filtros .boton-avanzados,
+.filtros .boton {
+  width: auto;
+}
+
+.filtros-avanzados {
+  flex: 1 0 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+}
+
+.filtros-avanzados input,
+.filtros-avanzados select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   Buscador compacto y orden en la misma línea
+   ============================================ */
+.filtros #buscar-juego {
+  flex: 0 1 220px;
+  min-width: 150px;
+}
+
+.orden-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 20px;
+  font-size: 14px;
+}
+
+.orden-inline label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.orden-inline select {
+  padding: 9px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* ============================================
+   Catálogo del administrador: tarjetas compactas
+   ============================================ */
+
+.grilla-juegos.grilla-admin {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.tarjeta.tarjeta-juego.tarjeta-juego-admin {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: auto;
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+
+.tarjeta-juego-admin .juego-foto {
+  width: 120px;
+  margin: 0;
+}
+
+.tarjeta-juego-admin img {
+  display: block;
+  width: 120px;
+  height: 90px;
+  aspect-ratio: auto;
+  margin: 0;
+  object-fit: contain;
+}
+
+.tarjeta-info {
+  display: contents;
+}
+
+.tarjeta-juego-admin .tarjeta-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  min-width: 0;
+}
+
+.tarjeta-juego-admin h3 {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.tarjeta-juego-admin .etiquetas,
+.tarjeta-juego-admin .datos-juego,
+.tarjeta-juego-admin .datos-venta {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.tarjeta-juego-admin .tarjeta-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.tarjeta-juego-admin .acciones-tarjeta,
+.tarjeta-juego-admin .admin-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.tarjeta-juego-admin .tarjeta-acciones .boton {
+  width: auto;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .grilla-juegos.grilla-admin {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tarjeta.tarjeta-juego.tarjeta-juego-admin {
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .tarjeta-juego-admin .juego-foto,
+  .tarjeta-juego-admin img {
+    width: 80px;
+  }
+
+  .tarjeta-juego-admin img {
+    height: 70px;
+  }
+
+  .tarjeta-juego-admin .tarjeta-acciones {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .tarjeta-juego-admin h3 {
+    font-size: 15px;
+  }
+
+  .orden-inline {
+    margin-left: 0;
+  }
+}
+
+/* ============================================
+   ADMIN: tarjetas de juegos en una sola línea
+   Este bloque debe quedar al FINAL del CSS.
+   No modifica las tarjetas de clientes.
+   ============================================ */
+
+.grilla-juegos.grilla-admin {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  padding: 16px 20px;
+}
+
+/* Imagen */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .juego-foto {
+  flex: 0 0 clamp(110px, 12vw, 170px);
+  width: clamp(110px, 12vw, 170px);
+  margin: 0;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .juego-foto img {
+  display: block;
+  width: 100%;
+  height: clamp(85px, 8vw, 120px);
+  aspect-ratio: auto;
+  object-fit: contain;
+  margin: 0;
+  border-radius: 8px;
+}
+
+/* Información: todos los elementos en una fila flexible */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  min-width: 0;
+}
+
+/* Título */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin h3 {
+  flex: 0 1 auto;
+  min-width: 140px;
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(17px, 1.4vw, 22px);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* Etiquetas */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .etiqueta {
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Jugadores, duración y categoría */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-juego,
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-venta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-juego > span,
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-venta > span {
+  white-space: nowrap;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-venta .precio {
+  margin: 0;
+  font-size: clamp(17px, 1.4vw, 21px);
+  white-space: nowrap;
+}
+
+/* Acciones alineadas a la derecha cuando hay espacio */
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-acciones {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0 0 0 auto;
+  padding: 0;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .admin-acciones {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.grilla-juegos.grilla-admin .tarjeta-juego-admin .admin-acciones .boton {
+  width: auto;
+  min-width: 100px;
+  margin: 0;
+  padding: 11px 16px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+/* Pantallas medianas: se permite que los datos bajen si es necesario */
+@media (max-width: 1050px) {
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin {
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-info {
+    gap: 8px 12px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-acciones {
+    margin-left: auto;
+  }
+}
+
+/* Celulares: imagen e información arriba, acciones debajo */
+@media (max-width: 640px) {
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .juego-foto {
+    flex-basis: 82px;
+    width: 82px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .juego-foto img {
+    height: 72px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-info {
+    flex: 1 1 180px;
+    gap: 8px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin h3 {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .etiqueta {
+    font-size: 11px;
+    white-space: normal;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-juego,
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .datos-venta {
+    gap: 6px 10px;
+    font-size: 13px;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .tarjeta-acciones {
+    flex: 1 0 100%;
+    margin-left: 0;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .admin-acciones {
+    flex-wrap: wrap;
+  }
+
+  .grilla-juegos.grilla-admin .tarjeta-juego-admin .admin-acciones .boton {
+    min-width: 0;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+}
+
+
+
+/* Gestionar préstamos: ampliar campos del formulario */
+.formulario-prestamo,
+.form-prestamo,
+.prestamo-formulario {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.formulario-prestamo input,
+.formulario-prestamo select,
+.formulario-prestamo textarea,
+.form-prestamo input,
+.form-prestamo select,
+.form-prestamo textarea,
+.prestamo-formulario input,
+.prestamo-formulario select,
+.prestamo-formulario textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.formulario-prestamo .campo,
+.form-prestamo .campo,
+.prestamo-formulario .campo {
+  width: 100%;
+  min-width: 0;
+}
+
+.formulario-prestamo .form-grid,
+.form-prestamo .form-grid,
+.prestamo-formulario .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .formulario-prestamo .form-grid,
+  .form-prestamo .form-grid,
+  .prestamo-formulario .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* ============================================
+   Mis préstamos (vista del cliente)
+   ============================================ */
+.mis-prestamos .subtitle {
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.mis-prestamos .cargando {
+  line-height: 1.5;
+}
+
+/* Resumen */
+.prestamos-resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 24px;
+}
+
+.prestamos-resumen > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 14px 18px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.prestamos-resumen dd {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.prestamos-resumen dt {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Lista de préstamos */
+.prestamos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.prestamo-item {
+  padding: 16px 20px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-left: 5px solid var(--borde);
+  border-radius: 10px;
+}
+
+.prestamo-item.activo {
+  border-left-color: #d97706;
+}
+
+.prestamo-item.devuelto {
+  border-left-color: var(--exito);
+}
+
+.prestamo-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mis-prestamos .prestamo-titulo {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.prestamo-estado {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.prestamo-estado.activo {
+  background: rgba(217, 119, 6, 0.15);
+  color: #b45309;
+}
+
+.prestamo-estado.devuelto {
+  background: rgba(31, 157, 85, 0.15);
+  color: var(--exito);
+}
+
+body.oscuro .prestamo-estado.activo {
+  color: #fbbf24;
+}
+
+body.oscuro .prestamo-estado.devuelto {
+  color: #4ade80;
+}
+
+.prestamo-fechas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  margin: 0;
+}
+
+.prestamo-fechas dt {
+  font-size: 12.5px;
+  color: var(--texto-suave);
+  margin-bottom: 2px;
+}
+
+.prestamo-fechas dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Estados vacío y error */
+.prestamos-vacio {
+  max-width: 460px;
+  margin: 24px auto 0;
+  padding: 32px 24px;
+  text-align: center;
+  background: var(--blanco);
+  border: 1px dashed var(--borde);
+  border-radius: 10px;
+}
+
+.mis-prestamos .prestamos-vacio p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+  color: var(--texto-suave);
+}
+
+.mis-prestamos .prestamos-vacio .prestamos-vacio-icono {
+  font-size: 40px;
+  margin-bottom: 4px;
+}
+
+.mis-prestamos .prestamos-vacio .prestamos-vacio-titulo {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.prestamos-error {
+  display: grid;
+  gap: 4px;
+  padding: 14px 18px;
+  border: 1px solid #f1b5b0;
+  border-left: 5px solid var(--alerta);
+  border-radius: 8px;
+  background: #fbe9e7;
+  color: #8a2a20;
+}
+
+@media (max-width: 640px) {
+  .prestamos-resumen {
+    gap: 8px;
+  }
+
+  .prestamos-resumen > div {
+    padding: 10px 12px;
+  }
+
+  .prestamos-resumen dd {
+    font-size: 22px;
+  }
+
+  .prestamo-item {
+    padding: 14px;
+  }
+
+  .prestamo-cabecera {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .prestamo-fechas {
+    gap: 10px 24px;
+  }
+}
+
+
+/* ============================================
+   Gestionar usuarios: alta de usuario nuevo
+   ============================================ */
+.usuarios-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.usuarios-cabecera h1 {
+  margin-top: 0;
+}
+
+.boton.usuarios-nuevo-boton {
+  width: auto;
+  padding: 10px 18px;
+  white-space: nowrap;
+}
+
+.usuario-nuevo {
+  margin: 0 0 24px;
+  padding: 20px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.usuario-nuevo h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.usuario-nuevo-grilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+.usuario-nuevo .campo input,
+.usuario-nuevo .campo select {
+  background: var(--blanco);
+  color: var(--texto);
+}
+
+.usuario-nuevo-error {
+  margin: 0 0 12px;
+}
+
+.usuario-nuevo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.usuario-nuevo-acciones .boton {
+  width: auto;
+  padding: 10px 20px;
+}
+
+.boton.boton-secundario {
+  background: transparent;
+  color: var(--texto);
+  border: 1px solid var(--borde);
+}
+
+.boton.boton-secundario:hover:not(:disabled) {
+  background: var(--blanco);
+}
+
+@media (max-width: 640px) {
+  .usuario-nuevo-grilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .boton.usuarios-nuevo-boton {
+    width: 100%;
+  }
+}
+
+
+/* ============================================
+   Mis compras (reutiliza los estilos de "Mis préstamos")
+   ============================================ */
+.prestamo-item.pendiente {
+  border-left-color: #d97706;
+}
+
+.prestamo-item.rechazado {
+  border-left-color: var(--alerta);
+}
+
+.prestamo-item.aprobado {
+  border-left-color: var(--exito);
+}
+
+.prestamo-estado.aprobado {
+  background: rgba(31, 157, 85, 0.15);
+  color: var(--exito);
+}
+
+.prestamo-estado.pendiente {
+  background: rgba(217, 119, 6, 0.15);
+  color: #b45309;
+}
+
+.prestamo-estado.rechazado {
+  background: rgba(220, 53, 69, 0.15);
+  color: var(--alerta);
+}
+
+body.oscuro .prestamo-estado.aprobado {
+  color: #4ade80;
+}
+
+body.oscuro .prestamo-estado.pendiente {
+  color: #fbbf24;
+}
+
+body.oscuro .prestamo-estado.rechazado {
+  color: #f87171;
+}
+
+.prestamos-resumen dd.compras-monto {
+  font-size: 22px;
+}
+
+.compra-detalle {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  border-top: 1px solid var(--borde);
+}
+
+.compra-detalle li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--borde);
+  font-size: 15px;
+}
+
+.compra-detalle-nombre {
+  overflow-wrap: anywhere;
+}
+
+.compra-detalle-cantidad {
+  color: var(--texto-suave);
+}
+
+.compra-pie {
+  justify-content: space-between;
+}
+
+
+/* ============================================
+   Páginas Nosotros y Club
+   ============================================ */
+:root {
+  --acento: #f0b429;
+}
+
+.nos p,
+.club p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ---------- Portada ---------- */
+.pg-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 48px 40px;
+  border-radius: 16px;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 88% 15%, rgba(240, 180, 41, 0.28), transparent 45%),
+    linear-gradient(135deg, #161c3f 0%, #232a5c 100%);
+}
+
+.pg-hero::after {
+  content: "🎲";
+  position: absolute;
+  right: 32px;
+  bottom: -24px;
+  font-size: 150px;
+  line-height: 1;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.pagina .pg-hero h1 {
+  margin: 4px 0 12px;
+  font-size: clamp(30px, 5vw, 44px);
+  line-height: 1.1;
+}
+
+.pg-hero .pg-hero-etiqueta {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(240, 180, 41, 0.18);
+  color: var(--acento);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.pg-hero .pg-hero-texto {
+  max-width: 620px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pg-hero-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* ---------- Botones en forma de enlace ---------- */
+.pg-boton {
+  display: inline-block;
+  padding: 11px 20px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.pg-boton:hover {
+  transform: translateY(-1px);
+}
+
+.pg-boton-claro {
+  background: var(--acento);
+  color: #161c3f;
+}
+
+.pg-boton-claro:hover {
+  background: #f7c548;
+}
+
+.pg-boton-borde {
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+}
+
+.pg-boton-borde:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.pg-boton-azul {
+  background: var(--azul-marino);
+  color: #ffffff;
+}
+
+.pg-boton-azul:hover {
+  background: var(--azul-marino-hover);
+}
+
+.pg-boton-contorno {
+  border-color: var(--azul-marino);
+  color: var(--azul-marino);
+}
+
+.pg-boton-contorno:hover {
+  background: rgba(22, 28, 63, 0.07);
+}
+
+body.oscuro .pg-boton-azul {
+  background: #3a4380;
+}
+
+body.oscuro .pg-boton-azul:hover {
+  background: #4a54a0;
+}
+
+body.oscuro .pg-boton-contorno {
+  border-color: #9aa6ff;
+  color: #c7ceff;
+}
+
+body.oscuro .pg-boton-contorno:hover {
+  background: rgba(154, 166, 255, 0.12);
+}
+
+.pg-boton:focus-visible,
+.acordeon-pregunta:focus-visible,
+.club-anteriores summary:focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ---------- Secciones ---------- */
+.pg-seccion {
+  margin-top: 48px;
+  scroll-margin-top: calc(var(--navbar-alto) + 12px);
+}
+
+.pagina .pg-titulo {
+  position: relative;
+  margin: 0 0 20px;
+  padding-bottom: 10px;
+  font-size: 24px;
+}
+
+.pg-titulo::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--acento);
+}
+
+/* ---------- Cierre con llamada a la acción ---------- */
+.pg-cierre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 56px;
+  padding: 28px 32px;
+  border-radius: 14px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #161c3f 0%, #232a5c 100%);
+}
+
+.pg-cierre h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.pg-cierre p {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ============================================
+   Nosotros
+   ============================================ */
+.nos-datos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nos-datos li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+
+.nos-datos strong {
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.nos-datos span {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.nos-historia {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 40px;
+  align-items: center;
+}
+
+.nos-historia-texto p + p {
+  margin-top: 14px;
+}
+
+.nos-historia-texto p {
+  font-size: 17px;
+}
+
+.nos-historia-imagen {
+  margin: 0;
+}
+
+.nos-historia-imagen img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.nos-historia-imagen figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+.nos-ventajas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nos-ventaja {
+  padding: 22px 20px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.nos-ventaja:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.nos-ventaja-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: rgba(240, 180, 41, 0.2);
+  font-size: 24px;
+}
+
+.nos-ventaja h3,
+.nos-paso h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.nos-ventaja p,
+.nos-paso p {
+  color: var(--texto-suave);
+  font-size: 15px;
+}
+
+.nos-pasos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nos-paso {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+}
+
+.nos-paso-numero {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--azul-marino);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+body.oscuro .nos-paso-numero {
+  background: #3a4380;
+}
+
+.nos-faq {
+  padding: 4px 22px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+}
+
+.nos-faq .acordeon-item:last-child {
+  border-bottom: none;
+}
+
+.nos-faq-pregunta {
+  margin: 0;
+  font-size: inherit;
+}
+
+.nos-faq .acordeon-pregunta {
+  gap: 16px;
+  padding: 18px 0;
+  font-size: 16px;
+}
+
+.nos-faq-icono {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(240, 180, 41, 0.25);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.nos-faq .acordeon-respuesta {
+  padding: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ============================================
+   Club
+   ============================================ */
+.club-info {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.club-info li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+
+.club-info-icono {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(240, 180, 41, 0.2);
+  font-size: 22px;
+}
+
+.club-info strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.club-info li span:not(.club-info-icono) {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--texto-suave);
+}
+
+.club-lista {
+  display: grid;
+  gap: 16px;
+}
+
+.club-evento {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 220px;
+  gap: 20px;
+  align-items: stretch;
+  padding: 20px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.club-evento:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.club-evento.pasado {
+  opacity: 0.75;
+}
+
+.club-fecha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  padding: 10px 0;
+  border-radius: 12px;
+  background: var(--azul-marino);
+  color: #ffffff;
+  text-align: center;
+}
+
+body.oscuro .club-fecha {
+  background: #3a4380;
+}
+
+.club-fecha-mes {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--acento);
+}
+
+.club-fecha-dia {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.club-evento-cuerpo h3 {
+  margin: 8px 0 6px;
+  font-size: 20px;
+}
+
+.club-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.club-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(22, 28, 63, 0.08);
+  color: var(--azul-marino);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.club-tag-aviso {
+  background: rgba(217, 119, 6, 0.15);
+  color: #b45309;
+}
+
+.club-tag-gris {
+  background: rgba(107, 114, 128, 0.18);
+  color: var(--texto-suave);
+}
+
+body.oscuro .club-tag {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--texto);
+}
+
+body.oscuro .club-tag-aviso {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.club-descripcion {
+  margin-bottom: 14px;
+  color: var(--texto-suave);
+}
+
+.club-datos {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.club-datos li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.club-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.club-acciones .pg-boton {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.club-evento-media {
+  align-self: start;
+}
+
+.club-evento-media a {
+  display: block;
+}
+
+.club-evento-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+}
+
+.club-evento.destacado {
+  border: 2px solid var(--acento);
+  box-shadow: 0 8px 24px rgba(240, 180, 41, 0.22);
+}
+
+.club-tag-destacado {
+  background: var(--acento);
+  color: #161c3f;
+}
+
+body.oscuro .club-tag-destacado {
+  background: var(--acento);
+  color: #161c3f;
+}
+
+.club-aviso {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border: 1px solid rgba(240, 180, 41, 0.6);
+  border-left: 5px solid var(--acento);
+  border-radius: 10px;
+  background: rgba(240, 180, 41, 0.14);
+}
+
+.club-info-alerta {
+  border-color: rgba(59, 130, 246, 0.55) !important;
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+
+/* Aviso del próximo evento dentro de la portada */
+.pg-proximo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 15px;
+  transition: background 0.15s;
+}
+
+.pg-proximo:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.pg-proximo:focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.pg-proximo-etiqueta {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--acento);
+  color: #161c3f;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.pg-proximo-texto {
+  font-weight: 600;
+}
+
+.club-vacio {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 28px;
+  background: var(--blanco);
+  border: 1px dashed var(--borde);
+  border-radius: 14px;
+}
+
+.club-anteriores {
+  margin-top: 40px;
+}
+
+.club-anteriores summary {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 8px 4px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Pantallas medianas ---------- */
+@media (max-width: 1000px) {
+  .nos-datos,
+  .nos-ventajas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .club-evento {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .club-evento-media {
+    grid-column: 1 / -1;
+    width: min(100%, 260px);
+  }
+}
+
+/* ---------- Celulares ---------- */
+@media (max-width: 760px) {
+  .pg-hero {
+    padding: 32px 22px;
+  }
+
+  .pg-hero::after {
+    font-size: 100px;
+    right: 12px;
+  }
+
+  .nos-historia,
+  .nos-pasos,
+  .club-info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nos-historia {
+    gap: 24px;
+  }
+
+  .pg-cierre {
+    padding: 22px;
+  }
+}
+
+@media (max-width: 520px) {
+  .nos-ventajas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .club-evento {
+    grid-template-columns: 60px minmax(0, 1fr);
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .club-fecha-dia {
+    font-size: 24px;
+  }
+
+  .pg-hero-acciones .pg-boton,
+  .pg-cierre .pg-boton {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-boton,
+  .nos-ventaja,
+  .club-evento {
+    transition: none;
+  }
+
+  .pg-boton:hover,
+  .nos-ventaja:hover,
+  .club-evento:hover {
+    transform: none;
+  }
+}
+
+
+/* ---------- Club: sección de torneos ---------- */
+.club-torneos-vacio {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 24px;
+  background: var(--blanco);
+  border: 1px dashed var(--borde);
+  border-radius: 14px;
+}
+
+.club-torneos-icono {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(240, 180, 41, 0.22);
+  font-size: 28px;
+}
+
+.club-torneos-vacio p + p {
+  margin-top: 6px;
+}
+
+.club-torneos-vacio .club-torneos-nota {
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+@media (max-width: 520px) {
+  .club-torneos-vacio {
+    flex-direction: column;
+    padding: 18px;
+  }
+}
+
+
+/* ============================================
+   Panel: Ventas (administrador)
+   ============================================ */
+.ventas h1 {
+  margin-bottom: 6px;
+}
+
+.ventas .ventas-subtitulo {
+  margin-bottom: 20px;
+  color: var(--texto-suave);
+  line-height: 1.5;
+}
+
+.prestamos-resumen.ventas-resumen {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ventas-top {
+  margin: 0 0 24px;
+  padding: 18px 20px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.ventas-top h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.ventas-top ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ventas-top li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto;
+  gap: 12px;
+  align-items: center;
+  font-size: 14.5px;
+}
+
+.ventas-top-nombre {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.ventas-top-barra {
+  display: block;
+  height: 10px;
+  min-width: 6px;
+  border-radius: 999px;
+  background: var(--acento, #f0b429);
+}
+
+.ventas-top-cantidad {
+  color: var(--texto-suave);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ventas-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.ventas-filtro {
+  display: grid;
+  gap: 6px;
+}
+
+.ventas-filtro-busqueda {
+  flex: 1 1 280px;
+}
+
+.ventas-filtro label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ventas-filtro input,
+.ventas-filtro select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14.5px;
+}
+
+.boton.ventas-exportar {
+  width: auto;
+  padding: 11px 18px;
+}
+
+.ventas .ventas-cantidad {
+  margin-bottom: 8px;
+  font-size: 13.5px;
+  color: var(--texto-suave);
+}
+
+.ventas-tabla-contenedor {
+  overflow-x: auto;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.ventas-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+.ventas-tabla th,
+.ventas-tabla td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--borde);
+}
+
+.ventas-tabla th {
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--texto-suave);
+}
+
+.ventas-tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ventas-cliente,
+.ventas-correo {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.ventas-cliente {
+  font-weight: 600;
+}
+
+.ventas-correo {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.ventas-juegos {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ventas-total {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .prestamos-resumen.ventas-resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .ventas-top li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .ventas-top-barra {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .boton.ventas-exportar {
+    width: 100%;
   }
 }

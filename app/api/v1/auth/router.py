@@ -1,7 +1,7 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 import secrets
 
@@ -14,7 +14,7 @@ from app.core.security import (
 from app.models.usuario import Usuario
 from app.models.favorito import Favorito
 from . import repository as repo
-from .dependencies import get_current_user
+from .dependencies import get_current_user, require_admin
 from .schemas import Token, UsuarioCreate, UsuarioOut
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -27,6 +27,22 @@ class CambiarContrasena(BaseModel):
 
 class ConfirmarEliminacion(BaseModel):
     contrasena: str
+
+
+class UsuarioAdminOut(BaseModel):
+    id: int
+    nombre: str
+    email: EmailStr
+    es_admin: bool
+    activo: bool
+
+    class Config:
+        from_attributes = True
+
+
+class ActualizarUsuarioAdmin(BaseModel):
+    es_admin: bool | None = None
+    activo: bool | None = None
 
 
 @router.post("/register", response_model=UsuarioOut, status_code=201)
@@ -117,12 +133,10 @@ def eliminar_cuenta(
             detail="La contraseña es incorrecta",
         )
 
-    # Conservamos los préstamos históricos, pero quitamos los favoritos.
     db.query(Favorito).filter(
         Favorito.usuario_id == usuario.id
     ).delete(synchronize_session=False)
 
-    # Desactivamos y anonimizamos la cuenta.
     usuario.nombre = "Cuenta eliminada"
     usuario.email = f"cuenta-eliminada-{usuario.id}@invalid.local"
     usuario.contrasena_hash = hashear_contrasena(
@@ -132,6 +146,82 @@ def eliminar_cuenta(
 
     db.commit()
 
-    return {
-        "mensaje": "La cuenta fue desactivada correctamente"
-    }
+    return {"mensaje": "La cuenta fue desactivada correctamente"}
+
+
+# ---------------------------------------------------------
+# ADMINISTRACIÓN DE USUARIOS
+# ---------------------------------------------------------
+
+@router.get(
+    "/admin/usuarios",
+    response_model=list[UsuarioAdminOut],
+)
+def listar_usuarios_admin(
+    buscar: str = Query(default="", max_length=150),
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(require_admin),
+):
+    consulta = db.query(Usuario)
+
+    termino = buscar.strip()
+
+    if termino:
+        patron = f"%{termino}%"
+        consulta = consulta.filter(
+            (Usuario.nombre.ilike(patron))
+            | (Usuario.email.ilike(patron))
+        )
+
+    return consulta.order_by(Usuario.id.desc()).all()
+
+
+@router.patch(
+    "/admin/usuarios/{usuario_id}",
+    response_model=UsuarioAdminOut,
+)
+def actualizar_usuario_admin(
+    usuario_id: int,
+    datos: ActualizarUsuarioAdmin,
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(require_admin),
+):
+    usuario = repo.get_by_id(db, usuario_id)
+
+    if usuario is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontró el usuario",
+        )
+
+    cambios = datos.model_dump(exclude_unset=True)
+
+    if not cambios:
+        raise HTTPException(
+            status_code=400,
+            detail="No se indicaron cambios",
+        )
+
+    if usuario.id == admin.id:
+        if cambios.get("activo") is False:
+            raise HTTPException(
+                status_code=400,
+                detail="No podés desactivar tu propia cuenta",
+            )
+
+        if cambios.get("es_admin") is False:
+            raise HTTPException(
+                status_code=400,
+                detail="No podés quitarte tu propio rol de administrador",
+            )
+
+    if cambios.get("activo") is not None:
+        usuario.activo = cambios["activo"]
+
+    if cambios.get("es_admin") is not None:
+        usuario.es_admin = cambios["es_admin"]
+
+    db.commit()
+    db.refresh(usuario)
+
+    return usuario

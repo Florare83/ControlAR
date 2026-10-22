@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -6,7 +7,7 @@ import { useToast } from "../context/ToastContext.jsx";
 import logo from "../img/logo.png";
 
 function Navbar({ modoOscuro, onCambiarTema }) {
-  const { usuario, puedeOperar, logout } = useAuth();
+  const { usuario, rol, puedeOperar, logout } = useAuth();
   const { cantidadTotal } = useCarrito();
   const toast = useToast();
   const navegar = useNavigate();
@@ -100,8 +101,7 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   setMenuCuentaAbierto((abierto) => !abierto)
                 }
               >
-                Mi cuenta: {usuario.nombre}{" "}
-                {menuCuentaAbierto ? "▲" : "▼"}
+                {usuario.nombre} {menuCuentaAbierto ? "▲" : "▼"}
               </button>
 
               {menuCuentaAbierto && (
@@ -124,23 +124,36 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                     gap: 4,
                   }}
                 >
-                  <NavLink
-                    to="/cuenta"
-                    className={clase}
-                    onClick={cerrarMenuCuenta}
-                    style={{ padding: 10 }}
-                  >
-                    👤 Mi cuenta
-                  </NavLink>
+                  {rol === "cliente" && (
+                    <>
+                      <NavLink
+                        to="/mis-prestamos"
+                        className={clase}
+                        onClick={cerrarMenuCuenta}
+                        style={{ padding: 10 }}
+                      >
+                        🎲 Mis préstamos
+                      </NavLink>
 
-                  <NavLink
-                    to="/favoritos"
-                    className={clase}
-                    onClick={cerrarMenuCuenta}
-                    style={{ padding: 10 }}
-                  >
-                    ❤️ Mis favoritos
-                  </NavLink>
+                      <NavLink
+                        to="/mis-compras"
+                        className={clase}
+                        onClick={cerrarMenuCuenta}
+                        style={{ padding: 10 }}
+                      >
+                        🛍️ Mis compras
+                      </NavLink>
+
+                      <NavLink
+                        to="/favoritos"
+                        className={clase}
+                        onClick={cerrarMenuCuenta}
+                        style={{ padding: 10 }}
+                      >
+                        ❤️ Mis favoritos
+                      </NavLink>
+                    </>
+                  )}
 
                   <NavLink
                     to="/cambiar-contrasena"

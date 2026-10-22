@@ -59,7 +59,7 @@ async function pedir(ruta, opciones = {}) {
   } catch {
     throw new Error(
       `No se pudo conectar con la API (${API_URL}). ` +
-      "Verificá que el backend esté funcionando y que VITE_API_URL sea correcta."
+        "Verificá que el backend esté funcionando y que VITE_API_URL sea correcta."
     );
   }
 
@@ -96,6 +96,7 @@ async function pedir(ruta, opciones = {}) {
   return texto ? JSON.parse(texto) : null;
 }
 
+// Juegos
 export const listarJuegos = () => pedir("/juegos/");
 
 export const crearJuego = (datos) =>
@@ -115,6 +116,7 @@ export const eliminarJuego = (id) =>
 
 export const listarCategorias = () => pedir("/categorias/");
 
+// Autenticación
 export const iniciarSesion = (email, contrasena) =>
   pedir("/auth/login", {
     method: "POST",
@@ -135,10 +137,14 @@ export const registrarUsuario = (datos) =>
 
 export const obtenerPerfil = () => pedir("/auth/me");
 
+// Préstamos: administración
 export const listarPrestamos = (estado) =>
   pedir(
-    estado ? `/prestamos/?estado=${estado}` : "/prestamos/"
+    estado ? `/prestamos/?estado=${encodeURIComponent(estado)}` : "/prestamos/"
   );
+
+export const buscarPersonaPorDni = (dni) =>
+  pedir(`/prestamos/buscar-persona/${encodeURIComponent(dni)}`);
 
 export const registrarPrestamo = (datos) =>
   pedir("/prestamos/", {
@@ -156,6 +162,10 @@ export const devolverPrestamo = (id) =>
   pedir(`/prestamos/${id}/devolver`, {
     method: "POST",
   });
+
+// Préstamos: historial del cliente autenticado
+export const listarMisPrestamos = () =>
+  pedir("/mi-cuenta/prestamos");
 
 // Favoritos
 export const listarFavoritos = () => pedir("/favoritos/");
@@ -181,3 +191,127 @@ export const eliminarCuenta = (contrasena) =>
     method: "DELETE",
     body: JSON.stringify({ contrasena }),
   });
+
+// Compras: carrito -> Mercado Pago
+export const crearCheckout = (items) =>
+  pedir("/pedidos/checkout", {
+    method: "POST",
+    body: JSON.stringify({
+      items: items.map((i) => ({
+        juego_id: i.id,
+        cantidad: i.cantidad,
+      })),
+    }),
+  });
+
+export const confirmarPedido = (pedidoId, pagoId) =>
+  pedir(`/pedidos/${pedidoId}/confirmar`, {
+    method: "POST",
+    body: JSON.stringify({ pago_id: pagoId || null }),
+  });
+
+// Contacto
+export const enviarContacto = (datos) =>
+  pedir("/contacto/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+
+// Mensajes de contacto: administración
+export const listarMensajes = ({
+  soloNoLeidos = false,
+  limite = 20,
+  desplazamiento = 0,
+} = {}) =>
+  pedir(
+    `/contacto/?solo_no_leidos=${soloNoLeidos}&limite=${limite}&desplazamiento=${desplazamiento}`
+  );
+
+export const marcarMensaje = (id, leido) =>
+  pedir(`/contacto/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ leido }),
+  });
+
+export const eliminarMensaje = (id) =>
+  pedir(`/contacto/${id}`, { method: "DELETE" });
+
+
+// ---------------------------------------------------------
+// ADMINISTRACIÓN DE USUARIOS
+// ---------------------------------------------------------
+
+export const listarUsuariosAdmin = (buscar = "") => {
+  const parametros = new URLSearchParams();
+  const termino = buscar.trim();
+
+  if (termino) {
+    parametros.set("buscar", termino);
+  }
+
+  const query = parametros.toString();
+
+  return pedir(
+    `/auth/admin/usuarios${query ? `?${query}` : ""}`
+  );
+};
+
+export const actualizarUsuarioAdmin = (usuarioId, cambios) =>
+  pedir(`/auth/admin/usuarios/${usuarioId}`, {
+    method: "PATCH",
+    body: JSON.stringify(cambios),
+  });
+
+// Alta de usuarios por el administrador.
+// Usa el registro existente (/auth/register) y, si el nuevo usuario debe ser
+// administrador, lo promueve con el PATCH de administración que ya existe.
+export async function crearUsuarioAdmin({
+  nombre,
+  email,
+  contrasena,
+  es_admin = false,
+}) {
+  const creado = await registrarUsuario({ nombre, email, contrasena });
+
+  if (!es_admin) return creado;
+
+  try {
+    let id = creado && creado.id;
+
+    if (!id) {
+      const lista = await listarUsuariosAdmin(email);
+      const encontrado = (Array.isArray(lista) ? lista : []).find(
+        (u) => String(u.email).toLowerCase() === email.toLowerCase()
+      );
+      id = encontrado && encontrado.id;
+    }
+
+    if (!id) throw new Error("No se encontró el usuario recién creado.");
+
+    await actualizarUsuarioAdmin(id, { es_admin: true });
+  } catch (e) {
+    throw new Error(
+      "El usuario se creó como cliente, pero no se pudo asignar el rol " +
+        `de administrador: ${e.message} Cambiá el rol desde la tabla.`
+    );
+  }
+
+  return creado;
+}
+
+
+// Historial de compras del cliente autenticado
+export const listarMisCompras = () => pedir("/pedidos/mis-compras");
+
+
+// Ventas: administración
+export const listarVentasAdmin = ({ estado = "", buscar = "" } = {}) => {
+  const parametros = new URLSearchParams();
+
+  if (estado) parametros.set("estado", estado);
+  if (buscar.trim()) parametros.set("buscar", buscar.trim());
+
+  const query = parametros.toString();
+
+  return pedir(`/pedidos/admin/ventas${query ? `?${query}` : ""}`);
+};

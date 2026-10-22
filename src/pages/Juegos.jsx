@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   listarJuegos,
@@ -17,10 +18,47 @@ import { useToast } from "../context/ToastContext.jsx";
 import TarjetaJuego from "../components/TarjetaJuego.jsx";
 import FormularioJuego from "../components/FormularioJuego.jsx";
 
-const JUEGOS_POR_PAGINA = 10;
+// Visitantes y clientes: 4 columnas x 3 filas. Administrador: lista de 1 columna.
+const JUEGOS_POR_PAGINA_CLIENTES = 12;
+const JUEGOS_POR_PAGINA_ADMIN = 10;
+
+// Ordena una lista de juegos. Los que no están en tienda (sin precio)
+// van siempre al final cuando se ordena por precio.
+function ordenarJuegos(lista, orden) {
+  if (!orden) return lista;
+
+  const [campo, sentido] = orden.split("-");
+  const dir = sentido === "desc" ? -1 : 1;
+  const porTitulo = (a, b) =>
+    a.titulo.localeCompare(b.titulo, "es", { sensitivity: "base" });
+
+  return [...lista].sort((a, b) => {
+    if (campo === "titulo") return dir * porTitulo(a, b);
+
+    if (campo === "popularidad") {
+      return (
+        dir * (Number(a.me_gusta || 0) - Number(b.me_gusta || 0)) ||
+        porTitulo(a, b)
+      );
+    }
+
+    if (campo === "precio") {
+      if (!a.en_venta && !b.en_venta) return porTitulo(a, b);
+      if (!a.en_venta) return 1;
+      if (!b.en_venta) return -1;
+      return dir * (Number(a.precio) - Number(b.precio)) || porTitulo(a, b);
+    }
+
+    // edad
+    return (
+      dir * (Number(a.edad_minima) - Number(b.edad_minima)) || porTitulo(a, b)
+    );
+  });
+}
 
 function Juegos() {
   const { esAdmin, usuario } = useAuth();
+  const navegar = useNavigate();
   const toast = useToast();
 
   const [juegos, setJuegos] = useState([]);
@@ -45,6 +83,12 @@ function Juegos() {
   const [edadMax, setEdadMax] = useState("");
 
   const [pagina, setPagina] = useState(1);
+  const [orden, setOrden] = useState("titulo-asc");
+  const [verAvanzados, setVerAvanzados] = useState(false);
+
+  const porPagina = esAdmin
+    ? JUEGOS_POR_PAGINA_ADMIN
+    : JUEGOS_POR_PAGINA_CLIENTES;
 
   async function cargarDatos() {
     setErrorCarga("");
@@ -110,7 +154,8 @@ function Juegos() {
 
   async function alternarFavorito(juego) {
     if (!usuario) {
-      toast.error("Iniciá sesión para guardar tus juegos favoritos.");
+      toast.info("Iniciá sesión para guardar tus juegos favoritos.");
+      navegar("/login");
       return;
     }
 
@@ -183,7 +228,7 @@ function Juegos() {
   ].sort((a, b) => a.localeCompare(b, "es"));
 
   // Aplicar todos los filtros seleccionados.
-  const juegosFiltrados = juegos.filter((juego) => {
+  const juegosCoincidentes = juegos.filter((juego) => {
     const texto = busqueda.trim().toLowerCase();
 
     const coincideNombre = juego.titulo
@@ -246,18 +291,32 @@ function Juegos() {
     );
   });
 
+  const juegosFiltrados = ordenarJuegos(juegosCoincidentes, orden);
+
+  // Cantidad de filtros avanzados activos (se muestra en el botón).
+  const avanzadosActivos = [
+    tiendaElegida !== "Todas",
+    prestamoElegido !== "Todos",
+    editorialElegida !== "Todas",
+    duracionMax !== "",
+    precioMin !== "",
+    precioMax !== "",
+    edadMin !== "",
+    edadMax !== "",
+  ].filter(Boolean).length;
+
   const totalPaginas = Math.max(
     1,
-    Math.ceil(juegosFiltrados.length / JUEGOS_POR_PAGINA)
+    Math.ceil(juegosFiltrados.length / porPagina)
   );
 
   // Si cambia la cantidad de resultados, evitamos quedar en una página vacía.
   const paginaActual = Math.min(pagina, totalPaginas);
-  const inicio = (paginaActual - 1) * JUEGOS_POR_PAGINA;
+  const inicio = (paginaActual - 1) * porPagina;
 
   const juegosDeEstaPagina = juegosFiltrados.slice(
     inicio,
-    inicio + JUEGOS_POR_PAGINA
+    inicio + porPagina
   );
 
   function limpiarFiltros() {
@@ -315,6 +374,46 @@ function Juegos() {
           ))}
         </select>
 
+        <button
+          type="button"
+          className="boton boton-avanzados"
+          aria-expanded={verAvanzados}
+          aria-controls="filtros-avanzados"
+          onClick={() => setVerAvanzados((v) => !v)}
+        >
+          Filtros avanzados{avanzadosActivos > 0 ? ` (${avanzadosActivos})` : ""}{" "}
+          <span aria-hidden="true">{verAvanzados ? "▴" : "▾"}</span>
+        </button>
+
+        <button
+          type="button"
+          className="boton"
+          style={{ width: "auto" }}
+          onClick={limpiarFiltros}
+        >
+          Limpiar filtros
+        </button>
+
+        {/* Orden: en la misma línea, un poco separado de los filtros */}
+        <div className="orden-inline">
+          <label htmlFor="ordenar-juegos">Ordenar por</label>
+          <select
+            id="ordenar-juegos"
+            value={orden}
+            onChange={(e) => cambiarFiltro(setOrden, e.target.value)}
+          >
+            <option value="titulo-asc">Título (A → Z)</option>
+            <option value="titulo-desc">Título (Z → A)</option>
+            <option value="precio-asc">Precio (menor a mayor)</option>
+            <option value="precio-desc">Precio (mayor a menor)</option>
+            <option value="edad-asc">Edad (menor a mayor)</option>
+            <option value="edad-desc">Edad (mayor a menor)</option>
+            <option value="popularidad-desc">Popularidad (más me gusta)</option>
+          </select>
+        </div>
+
+        {verAvanzados && (
+          <div id="filtros-avanzados" className="filtros-avanzados">
         <label className="solo-lectores" htmlFor="filtro-tienda">
           Disponibilidad en tienda
         </label>
@@ -436,14 +535,8 @@ function Juegos() {
           }
         />
 
-        <button
-          type="button"
-          className="boton"
-          style={{ width: "auto" }}
-          onClick={limpiarFiltros}
-        >
-          Limpiar filtros
-        </button>
+          </div>
+        )}
       </div>
 
       {/* Solo los administradores pueden crear o editar juegos. */}
@@ -488,7 +581,7 @@ function Juegos() {
       ) : juegosDeEstaPagina.length === 0 ? (
         <p>No encontramos juegos con esos filtros.</p>
       ) : (
-        <div className="grilla-juegos">
+        <div className={`grilla-juegos ${esAdmin ? "grilla-admin" : ""}`}>
           {juegosDeEstaPagina.map((juego) => (
             <TarjetaJuego
               juego={juego}

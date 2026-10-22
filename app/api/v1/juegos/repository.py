@@ -1,6 +1,8 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models.juego import Juego
 from app.models.categoria import Categoria
+from app.models.favorito import Favorito
 from app.models.prestamo import ACTIVO, Prestamo
 
 
@@ -17,12 +19,22 @@ def ensure_categoria(db: Session, categoria_id: int):
 
 # --- Disponibilidad: un juego está "en préstamo" si tiene un préstamo activo ---
 def marcar_en_prestamo(db: Session, juegos: list[Juego]) -> list[Juego]:
-    """Le agrega a cada juego el dato en_prestamo (True/False) que lee JuegoResponse.
+    """Le agrega a cada juego los datos en_prestamo (True/False) y me_gusta (cantidad)
+    que lee JuegoResponse.
     Es UNA consulta para toda la lista, no una por juego."""
     filas = db.query(Prestamo.juego_id).filter(Prestamo.estado == ACTIVO).all()
     ids_en_prestamo = {fila[0] for fila in filas}
+
+    # Popularidad: cantidad de "me gusta" (favoritos) de cada juego, también en UNA consulta.
+    me_gusta = dict(
+        db.query(Favorito.juego_id, func.count(Favorito.id))
+        .group_by(Favorito.juego_id)
+        .all()
+    )
+
     for juego in juegos:
         juego.en_prestamo = juego.id in ids_en_prestamo
+        juego.me_gusta = me_gusta.get(juego.id, 0)
     return juegos
 
 

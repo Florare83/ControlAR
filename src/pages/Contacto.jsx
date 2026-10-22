@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { enviarContacto } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
 
 const OBLIGATORIOS = ["nombre", "apellido", "mensaje"];
@@ -45,6 +46,7 @@ function Contacto() {
   const [datos, setDatos] = useState(VACIO);
   const [errores, setErrores] = useState({});
   const [enviado, setEnviado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   // Validamos en tiempo real, pero solo el campo que se está escribiendo.
   function manejarCambio(evento) {
@@ -58,7 +60,7 @@ function Contacto() {
     }));
   }
 
-  function manejarEnvio(evento) {
+  async function manejarEnvio(evento) {
     evento.preventDefault();
     const todos = validarTodo(datos);
     setErrores(todos);
@@ -72,11 +74,25 @@ function Contacto() {
       return;
     }
 
-    console.log("Datos enviados:", datos);
-    setEnviado(true);
-    setDatos(VACIO);
-    setErrores({});
-    toast.exito("¡Gracias! Recibimos tu mensaje.");
+    setEnviando(true);
+    try {
+      await enviarContacto({
+        nombre: datos.nombre.trim(),
+        apellido: datos.apellido.trim(),
+        telefono: datos.telefono.trim(),
+        email: datos.email.trim(),
+        mensaje: datos.mensaje.trim(),
+      });
+      setEnviado(true);
+      setDatos(VACIO);
+      setErrores({});
+      toast.exito("¡Gracias! Recibimos tu mensaje.");
+    } catch (e) {
+      setEnviado(false);
+      toast.error(e.message);
+    } finally {
+      setEnviando(false);
+    }
   }
 
   // Atributos de accesibilidad comunes a todos los campos:
@@ -99,7 +115,9 @@ function Contacto() {
 
   return (
     <div className="pagina">
-      <h1>Contacto</h1>
+      <div className="tarjeta tarjeta-central tarjeta-contacto">
+      <h1 className="titulo-tarjeta">Contacto</h1>
+      <p className="subtitulo">Escribinos y te respondemos a la brevedad.</p>
 
       {enviado && (
         <p style={{ color: "var(--exito, green)", fontWeight: 600 }} role="status">
@@ -166,10 +184,11 @@ function Contacto() {
           )}
         </div>
 
-        <button type="submit" className="boton">
-          Enviar
+        <button type="submit" className="boton" disabled={enviando}>
+          {enviando ? "Enviando..." : "Enviar"}
         </button>
       </form>
+      </div>
     </div>
   );
 }
