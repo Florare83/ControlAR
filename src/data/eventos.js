@@ -1,20 +1,10 @@
 import tardes from "../img/eventos.jpeg";
-import flyerOctubre from "../img/tarde-25-octubre.jpeg";
 
 // ---------------------------------------------------------------
-// Datos de los eventos del club (compartidos por Club y Nosotros).
-// Cuando el backend tenga esta info, esto se va a reemplazar
-// por un fetch a la API (igual que los juegos).
-//
-// Cómo cargar un evento nuevo:
-// - fechaISO: "AAAA-MM-DD". Con esto la página decide sola si el evento es
-//   próximo o anterior (pasada la fecha, pasa a "Eventos anteriores").
-// - Si todavía no hay fecha exacta, dejá fechaISO en null y completá
-//   fechaTexto (ej: "Durante junio") y mesCorto (ej: "JUN").
-// - imagen / imagenAlt son opcionales (si faltan, se usa una foto genérica).
-// - Los eventos con tipo: "Torneo" se muestran en la sección "Torneos".
-//   Para indicar el valor de la inscripción agregá, por ejemplo:
-//   aporte: "Inscripción: $5.000 por persona"
+// Eventos del club (compartidos por Club y Nosotros).
+// Los eventos ya no se escriben acá: los carga el administrador desde el panel
+// ("Eventos") y se leen de la API con el hook useEventos().
+// Este archivo solo tiene las funciones para mostrarlos.
 // ---------------------------------------------------------------
 
 export const APORTE_MINIMO = "$2.000";
@@ -26,63 +16,31 @@ export const aviso = {
   hasta: "2026-11-30",
 };
 
-export const eventos = [
-  {
-    id: 4,
-    tipo: "Tarde de juegos",
-    titulo: "Tarde de juegos",
-    descripcion: "Una tarde mensual para descubrir juegos de mesa modernos.",
-    fechaISO: "2026-10-25",
-    hora: "17 a 21 h",
-    lugar: "Fundación Copaipa",
-    direccion: "Zuviría 291",
-    inscripcion: false,
-    aporte: `Aporte mínimo: ${APORTE_MINIMO} por persona`,
-    imagen: flyerOctubre,
-    imagenAlt:
-      "Flyer de la tarde de juegos del domingo 25 de octubre, a las 17 horas, en Fundación Copaipa, Zuviría 291. Aporte mínimo de $2.000 por persona.",
-  },
-  {
-    id: 1,
-    tipo: "Tarde de juegos",
-    titulo: "Tarde de juegos",
-    descripcion: "Una tarde mensual para descubrir juegos de mesa modernos",
-    fechaISO: "2026-09-27",
-    hora: "17 a 21 h",
-    lugar: "Fundación Copaipa",
-    direccion: "Zuviría 291",
-    inscripcion: false,
-  },
-  {
-    id: 2,
-    tipo: "Torneo",
-    titulo: "Torneo de Catan",
-    descripcion:
-      "Torneo abierto a todos los niveles. Inscripción previa por Whatsapp",
-    fechaISO: "2026-09-27",
-    hora: "17 a 21 h",
-    lugar: "Fundación Copaipa",
-    direccion: "Zuviría 291",
-    inscripcion: true,
-  },
-  {
-    id: 3,
-    tipo: "Encuentro",
-    titulo: "Encuentro Provincial de Juegos de Mesa",
-    descripcion:
-      "Clubes y Editoriales brindando sus servicios al público en general",
-    fechaISO: null,
-    fechaTexto: "Durante junio",
-    mesCorto: "JUN",
-    hora: "12 a 22 h",
-    lugar: "Usina Cultural",
-    direccion: "España 1-98",
-    inscripcion: false,
-  },
-];
-
 // Foto genérica para los eventos que no tienen flyer propio.
 export const imagenGenerica = tardes;
+
+// Convierte un evento de la API al formato que usan las pantallas.
+// La hora de inicio llega como "17:00:00"; se muestra "hora_texto" ("17 a 21 h").
+export function adaptarEvento(e) {
+  return {
+    id: e.id,
+    tipo: e.tipo,
+    titulo: e.titulo,
+    descripcion: e.descripcion || "",
+    fechaISO: e.fecha || null,
+    fechaTexto: e.fecha_texto || "",
+    mesCorto: e.mes_corto || "",
+    hora: e.hora_texto || "",
+    horaInicio: e.hora_inicio ? e.hora_inicio.slice(0, 5) : "",
+    lugar: e.lugar,
+    direccion: e.direccion,
+    inscripcion: Boolean(e.inscripcion),
+    aporte: e.aporte || "",
+    imagen: e.imagen_url || "",
+    imagenAlt: `Flyer de ${e.titulo}`,
+    permiteReservas: Boolean(e.permite_reservas),
+  };
+}
 
 const MESES_CORTOS = [
   "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
@@ -123,7 +81,7 @@ export function inicioDeHoy() {
   return hoy;
 }
 
-export function clasificarEventos() {
+export function clasificarEventos(eventos = []) {
   const hoy = inicioDeHoy();
 
   const conFecha = eventos.map((evento) => ({
@@ -149,8 +107,8 @@ export function clasificarEventos() {
 }
 
 // Primer evento próximo que ya tiene fecha exacta (o null).
-export function proximoEvento() {
-  const { proximos } = clasificarEventos();
+export function proximoEvento(eventos = []) {
+  const { proximos } = clasificarEventos(eventos);
   return proximos.find((evento) => evento.fechaISO) || null;
 }
 

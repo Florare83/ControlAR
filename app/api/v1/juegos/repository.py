@@ -4,6 +4,7 @@ from app.models.juego import Juego
 from app.models.categoria import Categoria
 from app.models.favorito import Favorito
 from app.models.prestamo import ACTIVO, Prestamo
+from app.models.reserva import Reserva
 
 
 def _find_categoria(db: Session, categoria_id: int) -> Categoria | None:
@@ -61,6 +62,11 @@ def get_by_id(db: Session, juego_id: int) -> Juego | None:
 def tiene_prestamos(db: Session, juego_id: int) -> bool:
     """True si el juego tiene préstamos, activos o ya cerrados (historial)."""
     return db.query(Prestamo.id).filter(Prestamo.juego_id == juego_id).first() is not None
+
+
+def tiene_reservas(db: Session, juego_id: int) -> bool:
+    """True si el juego tiene reservas, activas o ya cerradas."""
+    return db.query(Reserva.id).filter(Reserva.juego_id == juego_id).first() is not None
 
 
 def create(db: Session, datos) -> Juego:

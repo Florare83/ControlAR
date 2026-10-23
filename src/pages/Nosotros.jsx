@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import grupo from "../img/grupo.jpeg";
 import { partesFecha, proximoEvento } from "../data/eventos.js";
+import { useEventos } from "../hooks/useEventos.js";
 
 // Datos destacados (franja debajo de la portada).
 const estadisticas = [
@@ -99,7 +100,8 @@ function Nosotros() {
   // Guardamos qué pregunta está abierta. Si es null, están todas cerradas.
   const [abierta, setAbierta] = useState(null);
 
-  const proximo = proximoEvento();
+  const { eventos } = useEventos();
+  const proximo = proximoEvento(eventos);
   const partesProximo = proximo ? partesFecha(proximo.fechaISO) : null;
 
   function alternar(indice) {

@@ -113,6 +113,12 @@ def _juego_libre(db: Session, juego_id: int):
             detail=f"El juego {juego_id} no existe",
         )
 
+    if not juego.se_presta:
+        raise HTTPException(
+            status_code=400,
+            detail="Ese juego no está disponible para préstamo",
+        )
+
     if juego.en_prestamo:
         raise HTTPException(
             status_code=409,

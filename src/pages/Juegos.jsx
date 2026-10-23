@@ -11,12 +11,17 @@ import {
   listarFavoritos,
   agregarFavorito,
   quitarFavorito,
+  obtenerEstadoReservas,
+  listarMisReservas,
+  reservarJuego,
+  cancelarReserva,
 } from "../api/api.js";
 
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import TarjetaJuego from "../components/TarjetaJuego.jsx";
 import FormularioJuego from "../components/FormularioJuego.jsx";
+import { partesFecha } from "../data/eventos.js";
 
 // Visitantes y clientes: 4 columnas x 3 filas. Administrador: lista de 1 columna.
 const JUEGOS_POR_PAGINA_CLIENTES = 12;
@@ -69,6 +74,11 @@ function Juegos() {
   const [cargandoFavoritos, setCargandoFavoritos] = useState(false);
 
   const [formulario, setFormulario] = useState(null);
+
+  // Reservas para el próximo evento.
+  const [estadoReservas, setEstadoReservas] = useState(null);
+  const [misReservas, setMisReservas] = useState([]);
+  const [reservando, setReservando] = useState(false);
 
   // Filtros del catálogo.
   const [busqueda, setBusqueda] = useState("");
@@ -151,6 +161,98 @@ function Juegos() {
       activo = false;
     };
   }, [usuario]);
+
+  // Estado de las reservas: público (evento y juegos reservados) + las mías si hay sesión.
+  async function cargarReservas() {
+    try {
+      setEstadoReservas(await obtenerEstadoReservas());
+    } catch {
+      setEstadoReservas(null);
+    }
+
+    if (!usuario) {
+      setMisReservas([]);
+      return;
+    }
+
+    try {
+      const lista = await listarMisReservas();
+      setMisReservas(Array.isArray(lista) ? lista : []);
+    } catch {
+      setMisReservas([]);
+    }
+  }
+
+  useEffect(() => {
+    cargarReservas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario]);
+
+  const eventoReservas = estadoReservas?.evento ?? null;
+
+  // Mi reserva activa para el evento que se puede reservar ahora.
+  const miReservaActiva = eventoReservas
+    ? misReservas.find(
+        (r) => r.estado === "activa" && r.evento?.id === eventoReservas.id
+      ) ?? null
+    : null;
+
+  function datosReservaDe(juego) {
+    if (!eventoReservas) return null;
+
+    return {
+      evento: eventoReservas,
+      abiertas: Boolean(estadoReservas?.reservas_abiertas),
+      reservada: estadoReservas.juegos_reservados.includes(juego.id),
+      miReserva:
+        miReservaActiva && miReservaActiva.juego.id === juego.id
+          ? miReservaActiva
+          : null,
+      tieneOtra:
+        Boolean(miReservaActiva) && miReservaActiva.juego.id !== juego.id,
+      ocupado: reservando,
+    };
+  }
+
+  async function reservar(juego) {
+    if (!usuario) {
+      toast.info("Iniciá sesión para reservar un juego.");
+      navegar("/login");
+      return;
+    }
+
+    setReservando(true);
+
+    try {
+      await reservarJuego(juego.id);
+      toast.exito(
+        `Reservaste "${juego.titulo}". Retiralo en el evento: te lo guardamos hasta 30 minutos después del inicio.`
+      );
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      await cargarReservas();
+      setReservando(false);
+    }
+  }
+
+  async function cancelarMiReserva(reserva) {
+    if (!window.confirm(`¿Cancelar la reserva de "${reserva.juego.titulo}"?`)) {
+      return;
+    }
+
+    setReservando(true);
+
+    try {
+      await cancelarReserva(reserva.id);
+      toast.exito("Reserva cancelada.");
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      await cargarReservas();
+      setReservando(false);
+    }
+  }
 
   async function alternarFavorito(juego) {
     if (!usuario) {
@@ -249,7 +351,7 @@ function Juegos() {
       prestamoElegido === "Todos" ||
       (prestamoElegido === "Si"
         ? Boolean(juego.en_prestamo)
-        : !juego.en_prestamo);
+        : Boolean(juego.se_presta) && !juego.en_prestamo);
 
     const coincideEditorial =
       editorialElegida === "Todas" ||
@@ -340,6 +442,33 @@ function Juegos() {
       <p className="subtitle">
         Explorá los juegos que forman parte de nuestra ludoteca y/o de nuestra tienda.
       </p>
+
+      {/* Reservas para el próximo evento */}
+      {!esAdmin && eventoReservas && (
+        <div className="club-aviso" role="note">
+          <span aria-hidden="true">🎲</span>
+          <p>
+            <strong>Reservá tu juego para el próximo evento: </strong>
+            {eventoReservas.titulo}
+            {partesFecha(eventoReservas.fecha)
+              ? `, ${partesFecha(eventoReservas.fecha).larga}`
+              : ""}
+            {eventoReservas.hora_texto ? ` · ${eventoReservas.hora_texto}` : ""}.{" "}
+            {estadoReservas.reservas_abiertas
+              ? `Podés reservar un juego hasta ${new Date(
+                  estadoReservas.cierre_reservas
+                ).toLocaleString("es-AR", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone: "America/Argentina/Salta",
+                })} h. Lo retirás en el evento y te lo guardamos hasta 30 minutos después de que empiece.`
+              : "Las reservas ya cerraron: podés pedir el juego directamente en el evento, si está disponible."}
+          </p>
+        </div>
+      )}
 
       {/* Filtros del catálogo */}
       <div className="filtros" role="search">
@@ -592,6 +721,9 @@ function Juegos() {
               onToggleFavorito={() => alternarFavorito(juego)}
               onEditar={setFormulario}
               onEliminar={borrarJuego}
+              reservas={datosReservaDe(juego)}
+              onReservar={reservar}
+              onCancelarReserva={cancelarMiReserva}
             />
           ))}
         </div>

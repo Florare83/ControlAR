@@ -47,6 +47,7 @@ class JuegoBase(BaseModel):
 
 class JuegoCreate(JuegoBase):
     en_venta: bool = False
+    se_presta: bool = False
     stock: int = Field(ge=0)
     categoria_id: int = Field(ge=1)
 
@@ -58,6 +59,7 @@ class JuegoUpdate(BaseModel):
     duracion_minutos: int | None = None
     edad_minima: int | None = None
     en_venta: bool | None = None
+    se_presta: bool | None = None
     stock: int | None = None
     precio: float | None = None
     categoria_id: int | None = None
@@ -78,8 +80,9 @@ class CategoriaOut(BaseModel):
 class JuegoResponse(JuegoBase):
     id: int
     en_venta: bool
+    se_presta: bool = False  # forma parte de la ludoteca (se puede prestar y reservar)
     stock: int
-    en_prestamo: bool = False
+    en_prestamo: bool = False  # está prestado ahora mismo
     me_gusta: int = 0  # cantidad de usuarios que lo marcaron como favorito
     categoria: CategoriaOut
 

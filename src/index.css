@@ -1262,6 +1262,15 @@ html {
   flex: 1;
 }
 
+.tarjeta-juego .boton-reservar-tarjeta {
+  flex: 1;
+}
+
+.tarjeta-juego .boton-reservar-tarjeta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 
 /* Botón flotante del carrito */
 .carrito-flotante {

@@ -18,6 +18,9 @@ import Login from "./pages/Login.jsx";
 import Registro from "./pages/Registro.jsx";
 import Prestamos from "./pages/Prestamos.jsx";
 import MisPrestamos from "./pages/MisPrestamos.jsx";
+import MisReservas from "./pages/MisReservas.jsx";
+import Reservas from "./pages/Reservas.jsx";
+import Eventos from "./pages/Eventos.jsx";
 import MisCompras from "./pages/MisCompras.jsx";
 import Ventas from "./pages/Ventas.jsx";
 import PanelResumen from "./pages/PanelResumen.jsx";
@@ -136,6 +139,16 @@ function App() {
             }
           />
 
+          {/* Reservas de juegos del cliente */}
+          <Route
+            path="/mis-reservas"
+            element={
+              <RutaProtegida roles={["cliente"]}>
+                <MisReservas />
+              </RutaProtegida>
+            }
+          />
+
           {/* Historial de compras del cliente */}
           <Route
             path="/mis-compras"
@@ -164,10 +177,20 @@ function App() {
                 element={<Prestamos />}
               />
 
+              <Route
+                path="reservas"
+                element={<Reservas />}
+              />
+
               <Route element={<RutaProtegida roles={["admin"]} />}>
                 <Route
                   path="resumen"
                   element={<PanelResumen />}
+                />
+
+                <Route
+                  path="eventos"
+                  element={<Eventos />}
                 />
 
                 <Route

@@ -7,6 +7,7 @@ import {
   inicioDeHoy,
   partesFecha,
 } from "../data/eventos.js";
+import { useEventos } from "../hooks/useEventos.js";
 
 // Lo que hay que saber antes de venir a una tarde de juegos.
 const reglas = [
@@ -44,6 +45,12 @@ const reglas = [
     icono: "📚",
     titulo: "Préstamos",
     texto: "Los juegos se prestan sólo durante los eventos y en el lugar.",
+  },
+  {
+    icono: "🎲",
+    titulo: "Reservá tu juego",
+    texto:
+      "Si tenés cuenta, podés reservar un juego de la ludoteca desde el catálogo, hasta las 20:00 del día anterior. Lo retirás en el evento y te lo guardamos hasta 30 minutos después de que empiece.",
   },
 ];
 
@@ -186,7 +193,8 @@ function TarjetaEvento({ evento, pasado = false, destacado = false }) {
 }
 
 function Club() {
-  const { proximos, anteriores } = clasificarEventos();
+  const { eventos, cargando, error } = useEventos();
+  const { proximos, anteriores } = clasificarEventos(eventos);
   const mostrarAviso = avisoVigente();
 
   // Los torneos tienen su propia sección (con otro valor de inscripción).
@@ -227,7 +235,16 @@ function Club() {
           </div>
         )}
 
-        {proximosEventos.length === 0 ? (
+        {cargando ? (
+          <p className="cargando" role="status">
+            <span className="spinner" aria-hidden="true" />
+            Cargando eventos...
+          </p>
+        ) : error ? (
+          <p className="error" role="alert">
+            No pudimos cargar los eventos. {error}
+          </p>
+        ) : proximosEventos.length === 0 ? (
           <div className="club-vacio">
             <p>
               <strong>Por ahora no hay eventos programados.</strong>

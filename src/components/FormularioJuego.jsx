@@ -13,6 +13,7 @@ const VACIO = {
   precio: "",
   stock: "0",
   en_venta: false,
+  se_presta: false,
   categoria_id: "",
   imagen_url: "",
 };
@@ -29,6 +30,7 @@ function desdeJuego(juego) {
     precio: String(juego.precio),
     stock: String(juego.stock),
     en_venta: juego.en_venta,
+    se_presta: Boolean(juego.se_presta),
     categoria_id: String(juego.categoria.id),
     imagen_url: juego.imagen_url ?? "",
   };
@@ -84,6 +86,7 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
       precio: Number(form.precio),
       stock: Number(form.stock),
       en_venta: form.en_venta,
+      se_presta: form.se_presta,
       categoria_id: Number(form.categoria_id),
       imagen_url: urlImagen || null,
     };
@@ -263,6 +266,23 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
           <small id="ayuda-en-venta" className="ayuda">
             Solo los juegos en venta muestran stock, precio y el botón
             "Agregar al carrito".
+          </small>
+        </div>
+
+        <div className="campo">
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="checkbox"
+              checked={form.se_presta}
+              onChange={(e) => cambiar("se_presta", e.target.checked)}
+              style={{ width: "auto" }}
+              aria-describedby="ayuda-se-presta"
+            />
+            Disponible para préstamo
+          </label>
+          <small id="ayuda-se-presta" className="ayuda">
+            Tildalo si el juego es de la ludoteca. Solo estos juegos se pueden
+            prestar en los eventos y reservar desde el catálogo.
           </small>
         </div>
 

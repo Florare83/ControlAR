@@ -136,6 +136,15 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                       </NavLink>
 
                       <NavLink
+                        to="/mis-reservas"
+                        className={clase}
+                        onClick={cerrarMenuCuenta}
+                        style={{ padding: 10 }}
+                      >
+                        📌 Mis reservas
+                      </NavLink>
+
+                      <NavLink
                         to="/mis-compras"
                         className={clase}
                         onClick={cerrarMenuCuenta}

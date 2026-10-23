@@ -46,8 +46,9 @@ function Prestamos() {
     cargar();
   }, []);
 
-  // Solo se puede prestar (o cambiar por) un juego que no esté ya en préstamo.
-  const juegosLibres = juegos.filter((j) => !j.en_prestamo);
+  // Solo se puede prestar (o cambiar por) un juego de la ludoteca que no esté ya en préstamo.
+  const juegosLibres = juegos.filter((j) => j.se_presta && !j.en_prestamo);
+  const hayJuegosDeLudoteca = juegos.some((j) => j.se_presta);
   const prestamosVisibles = prestamos.filter((p) => verCerrados || p.estado === "activo");
 
   function cambiar(campo, valor) {
@@ -228,7 +229,11 @@ function Prestamos() {
             {guardando ? "Guardando..." : "Registrar préstamo"}
           </button>
           {!cargando && juegosLibres.length === 0 && (
-            <p>No hay juegos disponibles: todos están en préstamo.</p>
+            <p>
+              {hayJuegosDeLudoteca
+                ? "No hay juegos disponibles: todos están en préstamo."
+                : "Todavía no hay juegos marcados como \"Disponible para préstamo\". Tildá esa opción al editar cada juego de la ludoteca."}
+            </p>
           )}
         </form>
       </section>

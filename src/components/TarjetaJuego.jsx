@@ -12,10 +12,19 @@ function TarjetaJuego({
   onToggleFavorito,
   onEditar,
   onEliminar,
+  reservas = null, // { evento, abiertas, reservada, miReserva, tieneOtra, ocupado }
+  onReservar,
+  onCancelarReserva,
 }) {
   const { agregar } = useCarrito();
 
   const enPrestamo = Boolean(juego.en_prestamo);
+  const sePresta = Boolean(juego.se_presta);
+  const hayEventoConReservas = Boolean(reservas?.evento);
+  const miReserva = reservas?.miReserva ?? null;
+  const reservadoPorOtro = Boolean(reservas?.reservada) && !miReserva;
+  const puedeReservar =
+    sePresta && hayEventoConReservas && !esAdmin;
   const enVenta = Boolean(juego.en_venta);
   const sinStock = juego.stock <= 0;
   const idTitulo = `juego-${juego.id}-titulo`;
@@ -70,11 +79,21 @@ function TarjetaJuego({
 
       <div className="tarjeta-info">
         <div className="etiquetas">
-          <span
-            className={`etiqueta ${enPrestamo ? "no-disponible" : "disponible"}`}
-          >
-            {enPrestamo ? "Prestado" : "En préstamo"}
-          </span>
+          {sePresta && (
+            <span
+              className={`etiqueta ${
+                enPrestamo || reservadoPorOtro ? "no-disponible" : "disponible"
+              }`}
+            >
+              {enPrestamo
+                ? "Prestado"
+                : miReserva
+                ? "Reservado por vos"
+                : reservadoPorOtro
+                ? "Reservado"
+                : "Se presta en eventos"}
+            </span>
+          )}
 
           <span className={`etiqueta ${enVenta ? "disponible" : "neutra"}`}>
             {enVenta ? "En tienda" : "No está en tienda"}
@@ -137,23 +156,66 @@ function TarjetaJuego({
           </div>
         </div>
       ) : (
-        enVenta && (
+        (enVenta || puedeReservar) && (
           <div className="tarjeta-acciones">
             <div className="acciones-tarjeta">
-              <button
-                type="button"
-                className="boton boton-carrito-tarjeta"
-                disabled={sinStock}
-                aria-label={
-                  sinStock
-                    ? `${juego.titulo}: sin stock`
-                    : `Agregar ${juego.titulo} al carrito`
-                }
-                title={sinStock ? "Sin stock" : "Agregar al carrito"}
-                onClick={() => agregar(juego)}
-              >
-                {sinStock ? "Sin stock" : "🛒 Agregar"}
-              </button>
+              {enVenta && (
+                <button
+                  type="button"
+                  className="boton boton-carrito-tarjeta"
+                  disabled={sinStock}
+                  aria-label={
+                    sinStock
+                      ? `${juego.titulo}: sin stock`
+                      : `Agregar ${juego.titulo} al carrito`
+                  }
+                  title={sinStock ? "Sin stock" : "Agregar al carrito"}
+                  onClick={() => agregar(juego)}
+                >
+                  {sinStock ? "Sin stock" : "🛒 Agregar"}
+                </button>
+              )}
+
+              {puedeReservar &&
+                (miReserva ? (
+                  <button
+                    type="button"
+                    className="boton boton-reservar-tarjeta"
+                    disabled={reservas.ocupado}
+                    aria-label={`Cancelar la reserva de ${juego.titulo}`}
+                    onClick={() => onCancelarReserva(miReserva)}
+                  >
+                    Cancelar reserva
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="boton boton-reservar-tarjeta"
+                    disabled={
+                      reservadoPorOtro ||
+                      !reservas.abiertas ||
+                      reservas.tieneOtra ||
+                      reservas.ocupado
+                    }
+                    aria-label={`Reservar ${juego.titulo}`}
+                    title={
+                      reservadoPorOtro
+                        ? "Ya lo reservó otra persona"
+                        : !reservas.abiertas
+                        ? "Las reservas para el próximo evento ya cerraron"
+                        : reservas.tieneOtra
+                        ? "Ya tenés una reserva para este evento"
+                        : "Reservar para retirarlo en el evento"
+                    }
+                    onClick={() => onReservar(juego)}
+                  >
+                    {reservadoPorOtro
+                      ? "Reservado"
+                      : !reservas.abiertas
+                      ? "Reservas cerradas"
+                      : "🎲 Reservar"}
+                  </button>
+                ))}
             </div>
           </div>
         )

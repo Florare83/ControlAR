@@ -56,4 +56,9 @@ def eliminar(juego_id: int, db: Session = Depends(get_db), _=Depends(require_adm
             status_code=409,
             detail="No se puede eliminar: el juego tiene préstamos registrados",
         )
+    if repo.tiene_reservas(db, juego_id):
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede eliminar: el juego tiene reservas registradas",
+        )
     repo.delete(db, juego_id)
