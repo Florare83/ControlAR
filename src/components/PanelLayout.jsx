@@ -61,6 +61,14 @@ function PanelLayout() {
               </NavLink>
             </li>
 
+            {esAdmin && (
+              <li>
+                <NavLink to="/panel/historial" className={clase}>
+                  Historial
+                </NavLink>
+              </li>
+            )}
+
             <li>
               <NavLink to="/panel/reservas" className={clase}>
                 Reservas

@@ -3378,3 +3378,58 @@ body.oscuro .club-tag-destacado {
     width: 100%;
   }
 }
+
+
+/* ============================================
+   Historial de préstamos (administración)
+   ============================================ */
+.historial-herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 24px;
+  margin-bottom: 16px;
+}
+
+.historial-buscador {
+  flex: 1 1 260px;
+  max-width: 420px;
+  margin-bottom: 0;
+}
+
+.historial-herramientas .mensajes-filtros {
+  margin-bottom: 0;
+}
+
+.historial-email,
+.historial-fecha-cierre {
+  display: block;
+  margin-top: 2px;
+  color: var(--texto-suave);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.historial-volver {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--azul-marino);
+}
+
+.historial-persona-datos {
+  overflow-wrap: anywhere;
+}
+
+.usuario-enlace-historial {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 13px;
+  color: var(--azul-marino);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.usuario-enlace-historial:hover {
+  color: var(--azul-marino-hover);
+}

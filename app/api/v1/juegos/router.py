@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.api.v1.auth.dependencies import require_admin
@@ -13,6 +13,13 @@ def listar(query: str | None = None, db: Session = Depends(get_db)):
     if query:
         return repo.search_by_titulo(db, query)
     return repo.list_juegos(db)
+
+
+# Va antes de "/{juego_id}": si no, "populares" se tomaría como un id y daría error 422.
+@router.get("/populares", response_model=list[JuegoResponse])
+def populares(limite: int = Query(2, ge=1, le=12), db: Session = Depends(get_db)):
+    """Juegos de la tienda más populares (los que más "me gusta" tienen). Público."""
+    return repo.list_populares(db, limite)
 
 
 @router.get("/{juego_id}", response_model=JuegoResponse)

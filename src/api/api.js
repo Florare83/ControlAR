@@ -99,6 +99,9 @@ async function pedir(ruta, opciones = {}) {
 // Juegos
 export const listarJuegos = () => pedir("/juegos/");
 
+export const listarJuegosPopulares = (limite = 2) =>
+  pedir(`/juegos/populares?limite=${limite}`);
+
 export const crearJuego = (datos) =>
   pedir("/juegos/", {
     method: "POST",
@@ -164,6 +167,26 @@ export const devolverPrestamo = (id) =>
   });
 
 // Préstamos: historial del cliente autenticado
+// Historial de préstamos de los clientes (administración)
+export const listarHistorialPrestamos = ({
+  buscar = "",
+  estado = "",
+  limite = 20,
+  desplazamiento = 0,
+} = {}) => {
+  const parametros = new URLSearchParams({ limite, desplazamiento });
+  if (buscar.trim()) parametros.set("buscar", buscar.trim());
+  if (estado) parametros.set("estado", estado);
+  return pedir(`/prestamos/historial?${parametros}`);
+};
+
+export const historialPrestamosDePersona = ({ dni = "", email = "" } = {}) => {
+  const parametros = new URLSearchParams();
+  if (dni) parametros.set("dni", dni);
+  else if (email) parametros.set("email", email);
+  return pedir(`/prestamos/historial/persona?${parametros}`);
+};
+
 export const listarMisPrestamos = () =>
   pedir("/mi-cuenta/prestamos");
 

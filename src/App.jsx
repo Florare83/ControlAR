@@ -17,6 +17,7 @@ import Contacto from "./pages/Contacto.jsx";
 import Login from "./pages/Login.jsx";
 import Registro from "./pages/Registro.jsx";
 import Prestamos from "./pages/Prestamos.jsx";
+import HistorialPrestamos from "./pages/HistorialPrestamos.jsx";
 import MisPrestamos from "./pages/MisPrestamos.jsx";
 import MisReservas from "./pages/MisReservas.jsx";
 import Reservas from "./pages/Reservas.jsx";
@@ -186,6 +187,11 @@ function App() {
                 <Route
                   path="resumen"
                   element={<PanelResumen />}
+                />
+
+                <Route
+                  path="historial"
+                  element={<HistorialPrestamos />}
                 />
 
                 <Route

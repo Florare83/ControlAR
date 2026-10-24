@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import grupo from "../img/grupo.jpeg";
 import { partesFecha, proximoEvento } from "../data/eventos.js";
 import { useEventos } from "../hooks/useEventos.js";
+import JuegosPopulares from "../components/JuegosPopulares.jsx";
 
 // Datos destacados (franja debajo de la portada).
 const estadisticas = [
@@ -153,6 +154,9 @@ function Nosotros() {
           </li>
         ))}
       </ul>
+
+      {/* Los 2 juegos más populares de la tienda (se actualizan solos) */}
+      <JuegosPopulares />
 
       {/* Historia */}
       <section className="pg-seccion nos-historia">

@@ -47,6 +47,24 @@ def list_juegos(db: Session) -> list[Juego]:
     return marcar_en_prestamo(db, db.query(Juego).all())
 
 
+def list_populares(db: Session, limite: int = 2) -> list[Juego]:
+    """Los juegos de la tienda con más "me gusta" (favoritos).
+
+    Es la misma definición de popularidad del catálogo. Si hay empate, desempata por título
+    para que el resultado no cambie de un pedido a otro.
+    """
+    juegos = (
+        db.query(Juego)
+        .outerjoin(Favorito, Favorito.juego_id == Juego.id)
+        .filter(Juego.en_venta.is_(True))
+        .group_by(Juego.id)
+        .order_by(func.count(Favorito.id).desc(), Juego.titulo.asc())
+        .limit(limite)
+        .all()
+    )
+    return marcar_en_prestamo(db, juegos)
+
+
 def search_by_titulo(db: Session, query: str) -> list[Juego]:
     juegos = db.query(Juego).filter(Juego.titulo.ilike(f"%{query}%")).all()
     return marcar_en_prestamo(db, juegos)

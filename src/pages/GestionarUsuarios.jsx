@@ -1,5 +1,6 @@
 
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   actualizarUsuarioAdmin,
   crearUsuarioAdmin,
@@ -404,6 +405,14 @@ export default function GestionarUsuarios() {
                             ? "Desactivar"
                             : "Activar"}
                       </button>
+
+                      <Link
+                        className="usuario-enlace-historial"
+                        to={`/panel/historial?email=${encodeURIComponent(usuario.email)}`}
+                        aria-label={`Ver préstamos de ${usuario.nombre}`}
+                      >
+                        Ver préstamos
+                      </Link>
                     </td>
                   </tr>
                 ))}
