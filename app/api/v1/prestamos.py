@@ -2,13 +2,15 @@
 # Endpoints del sistema de préstamos. Solo los administradores pueden usarlos.
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api.v1.auth.dependencies import require_admin
 from app.api.v1.juegos import repository as juegos_repo
@@ -158,6 +160,131 @@ def buscar_persona_por_dni(
         "email": prestamo.email,
         "sexo": prestamo.sexo,
         "telefono": prestamo.telefono,
+    }
+
+
+def _escapar_like(texto: str) -> str:
+    """Evita que % y _ escritos en la búsqueda funcionen como comodines."""
+    return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _fila_historial(p: Prestamo) -> dict:
+    return {
+        "id": p.id,
+        "dni": p.dni,
+        "nombre": p.nombre,
+        "email": p.email or "",
+        "telefono": p.telefono,
+        "titulo_juego": (
+            p.titulo_juego
+            or (p.juego.titulo if p.juego else "Juego no disponible")
+        ),
+        "estado": p.estado,
+        "fecha_inicio": p.fecha_inicio,
+        "fecha_cierre": p.fecha_cierre,
+    }
+
+
+# Historial para el administrador (las rutas fijas van antes que las de "/{prestamo_id}/...").
+@router.get("/historial")
+def historial_prestamos(
+    buscar: str = Query("", max_length=100),
+    estado: Literal["activo", "cerrado"] | None = None,
+    limite: int = Query(20, ge=1, le=100),
+    desplazamiento: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Historial completo de préstamos, con búsqueda por nombre, DNI, email o juego."""
+
+    consulta = db.query(Prestamo).options(joinedload(Prestamo.juego))
+
+    termino = buscar.strip()
+    if termino:
+        patron = f"%{_escapar_like(termino)}%"
+        condiciones = [
+            Prestamo.nombre.ilike(patron, escape="\\"),
+            Prestamo.email.ilike(patron, escape="\\"),
+            Prestamo.titulo_juego.ilike(patron, escape="\\"),
+            Prestamo.dni.ilike(patron, escape="\\"),
+        ]
+
+        # Permite buscar un DNI escrito con puntos o espacios (12.345.678).
+        solo_digitos = re.sub(r"[.\s]", "", termino)
+        if solo_digitos.isdigit():
+            condiciones.append(Prestamo.dni.ilike(f"%{solo_digitos}%"))
+
+        consulta = consulta.filter(or_(*condiciones))
+
+    if estado:
+        consulta = consulta.filter(Prestamo.estado == estado)
+
+    total = consulta.count()
+    prestamos = (
+        consulta.order_by(Prestamo.fecha_inicio.desc(), Prestamo.id.desc())
+        .offset(desplazamiento)
+        .limit(limite)
+        .all()
+    )
+
+    return {"items": [_fila_historial(p) for p in prestamos], "total": total}
+
+
+@router.get("/historial/persona")
+def historial_de_persona(
+    dni: str | None = Query(None, max_length=20),
+    email: str | None = Query(None, max_length=255),
+    db: Session = Depends(get_db),
+):
+    """Todos los préstamos de una persona, buscada por DNI o, si no hay DNI, por email.
+
+    Por email se usa el mismo criterio que la pantalla "Mis préstamos" del cliente,
+    así el administrador ve lo mismo que ve el cliente.
+    """
+
+    dni = (dni or "").strip()
+    email = (email or "").strip().lower()
+
+    if not dni and not email:
+        raise HTTPException(
+            status_code=422,
+            detail="Indicá un DNI o un email para ver el historial",
+        )
+
+    consulta = db.query(Prestamo).options(joinedload(Prestamo.juego))
+
+    if dni:
+        consulta = consulta.filter(Prestamo.dni == dni)
+    else:
+        consulta = consulta.filter(func.lower(func.trim(Prestamo.email)) == email)
+
+    # Tope de seguridad: una sola persona no debería acercarse a esta cantidad.
+    prestamos = (
+        consulta.order_by(Prestamo.fecha_inicio.desc(), Prestamo.id.desc())
+        .limit(500)
+        .all()
+    )
+
+    activos = sum(1 for p in prestamos if p.estado == ACTIVO)
+
+    # Los datos de contacto se toman del préstamo más reciente.
+    persona = None
+    if prestamos:
+        ultimo = prestamos[0]
+        persona = {
+            "dni": ultimo.dni,
+            "nombre": ultimo.nombre,
+            "email": ultimo.email or "",
+            "telefono": ultimo.telefono,
+        }
+
+    return {
+        "persona": persona,
+        "resumen": {
+            "total": len(prestamos),
+            "activos": activos,
+            "devueltos": len(prestamos) - activos,
+        },
+        "items": [_fila_historial(p) for p in prestamos],
     }
 
 

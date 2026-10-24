@@ -1,13 +1,22 @@
 # Formulario de contacto: lo envía cualquier visitante y lo gestiona el administrador.
-import re
 import time
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth.dependencies import require_admin
+from app.core.correo import enviar_correo
 from app.core.db import get_db
+from app.core.validaciones import (
+    ErrorValidacion,
+    validar_email,
+    validar_mensaje,
+    validar_nombre,
+    validar_telefono,
+)
 from app.models.mensaje import MensajeContacto
 from app.models.usuario import Usuario
 
@@ -39,48 +48,70 @@ def _controlar_limite(ip: str) -> None:
 
 # ---------- Schemas ----------
 
+def _aplicar(funcion, *args):
+    # Los errores salen con el texto en español, sin el prefijo "Value error, ".
+    try:
+        return funcion(*args)
+    except ErrorValidacion as e:
+        raise PydanticCustomError("contacto", str(e))
+
+
 class ContactoIn(BaseModel):
-    nombre: str = Field(min_length=1, max_length=60)
-    apellido: str = Field(min_length=1, max_length=60)
-    telefono: str = Field(default="", max_length=30)
-    email: str = Field(default="", max_length=120)
-    mensaje: str = Field(min_length=1, max_length=2000)
+    nombre: str
+    apellido: str
+    telefono: str = ""
+    email: str = ""
+    mensaje: str
 
-    @field_validator("nombre", "apellido", "telefono", "email", "mensaje")
+    @field_validator("nombre")
     @classmethod
-    def _limpiar(cls, v: str) -> str:
-        return v.strip()
+    def _nombre(cls, v: str) -> str:
+        return _aplicar(validar_nombre, v, "nombre")
 
-    @field_validator("nombre", "apellido", "mensaje")
+    @field_validator("apellido")
     @classmethod
-    def _no_vacio(cls, v: str) -> str:
-        if not v:
-            raise ValueError("No puede estar vacío")
-        return v
+    def _apellido(cls, v: str) -> str:
+        return _aplicar(validar_nombre, v, "apellido")
 
     @field_validator("telefono")
     @classmethod
     def _telefono(cls, v: str) -> str:
-        if v and not re.fullmatch(r"[0-9+\s-]+", v):
-            raise ValueError("Teléfono inválido")
-        return v
+        return _aplicar(validar_telefono, v)
 
     @field_validator("email")
     @classmethod
     def _email(cls, v: str) -> str:
-        if v and not re.fullmatch(r"\S+@\S+\.\S+", v):
-            raise ValueError("Email inválido")
-        return v
+        return _aplicar(validar_email, v)
+
+    @field_validator("mensaje")
+    @classmethod
+    def _mensaje(cls, v: str) -> str:
+        return _aplicar(validar_mensaje, v)
 
     @model_validator(mode="after")
     def _algun_contacto(self):
         if not self.email and not self.telefono:
-            raise ValueError("Ingresá al menos un email o un teléfono")
+            raise PydanticCustomError(
+                "contacto", "Ingresá al menos un email o un teléfono"
+            )
         return self
 
 
 class LeidoIn(BaseModel):
     leido: bool
+
+
+class RespuestaIn(BaseModel):
+    asunto: str = Field(min_length=1, max_length=150)
+    cuerpo: str = Field(min_length=1, max_length=5000)
+
+    @field_validator("asunto", "cuerpo")
+    @classmethod
+    def _no_vacio(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("No puede estar vacío")
+        return v
 
 
 def _serializar(m: MensajeContacto) -> dict:
@@ -93,6 +124,7 @@ def _serializar(m: MensajeContacto) -> dict:
         "mensaje": m.mensaje,
         "leido": m.leido,
         "creado_en": m.creado_en.isoformat() if m.creado_en else None,
+        "respondido_en": m.respondido_en.isoformat() if m.respondido_en else None,
     }
 
 
@@ -165,6 +197,36 @@ def marcar_mensaje(
         raise HTTPException(404, "Mensaje no encontrado")
 
     mensaje.leido = datos.leido
+    db.commit()
+    return _serializar(mensaje)
+
+
+@router.post("/{mensaje_id}/responder")
+def responder_mensaje(
+    mensaje_id: int,
+    datos: RespuestaIn,
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(require_admin),
+):
+    mensaje = db.query(MensajeContacto).filter(MensajeContacto.id == mensaje_id).first()
+    if mensaje is None:
+        raise HTTPException(404, "Mensaje no encontrado")
+    if not mensaje.email:
+        raise HTTPException(400, "Este contacto no dejó un email para responderle.")
+
+    # Se agrega el mensaje original citado al final, como en un "Responder" normal.
+    fecha = mensaje.creado_en.strftime("%d/%m/%Y %H:%M") if mensaje.creado_en else ""
+    citado = "\n".join(f"> {linea}" for linea in mensaje.mensaje.splitlines())
+    cuerpo = (
+        f"{datos.cuerpo}\n\n"
+        f"El {fecha}, {mensaje.nombre} {mensaje.apellido} escribió:\n{citado}\n"
+    )
+
+    # Si falla el SMTP se lanza HTTPException y no se toca la base.
+    enviar_correo(mensaje.email, datos.asunto, cuerpo)
+
+    mensaje.respondido_en = datetime.now(timezone.utc)
+    mensaje.leido = True
     db.commit()
     return _serializar(mensaje)
 

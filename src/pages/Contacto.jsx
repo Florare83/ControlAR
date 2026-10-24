@@ -1,33 +1,35 @@
 import { useState } from "react";
 import { enviarContacto } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
+import {
+  LIMITES,
+  MENSAJE_MAX,
+  errorContacto,
+  errorEmail,
+  errorMensaje,
+  errorNombre,
+  errorTelefono,
+  normalizarEspacios,
+} from "../utils/validacionesContacto.js";
 
 const OBLIGATORIOS = ["nombre", "apellido", "mensaje"];
 
 // Devuelve el mensaje de error de un campo ("" si está bien).
 function errorDeCampo(campo, valor) {
-  const texto = valor.trim();
   switch (campo) {
     case "nombre":
-      return texto ? "" : "Ingresá tu nombre.";
+      return errorNombre(valor, "nombre");
     case "apellido":
-      return texto ? "" : "Ingresá tu apellido.";
+      return errorNombre(valor, "apellido");
     case "mensaje":
-      return texto ? "" : "Escribí tu mensaje.";
+      return errorMensaje(valor);
     case "email":
-      return texto && !/\S+@\S+\.\S+/.test(texto) ? "Ejemplo válido: usuario@dominio.com" : "";
+      return errorEmail(valor);
     case "telefono":
-      return texto && !/^[0-9+\s-]+$/.test(texto) ? "Ingresá solo números, espacios o +" : "";
+      return errorTelefono(valor);
     default:
       return "";
   }
-}
-
-// Regla extra: tiene que haber al menos un Email o un Teléfono.
-function errorDeContacto(datos) {
-  return !datos.email.trim() && !datos.telefono.trim()
-    ? "Ingresá al menos un Email o un Teléfono de contacto."
-    : "";
 }
 
 function validarTodo(datos) {
@@ -35,7 +37,7 @@ function validarTodo(datos) {
   for (const campo of Object.keys(datos)) {
     errores[campo] = errorDeCampo(campo, datos[campo]);
   }
-  errores.contacto = errorDeContacto(datos);
+  errores.contacto = errorContacto(datos);
   return errores;
 }
 
@@ -56,7 +58,7 @@ function Contacto() {
     setErrores((previos) => ({
       ...previos,
       [name]: errorDeCampo(name, value),
-      contacto: errorDeContacto(nuevosDatos),
+      contacto: errorContacto(nuevosDatos),
     }));
   }
 
@@ -77,8 +79,8 @@ function Contacto() {
     setEnviando(true);
     try {
       await enviarContacto({
-        nombre: datos.nombre.trim(),
-        apellido: datos.apellido.trim(),
+        nombre: normalizarEspacios(datos.nombre),
+        apellido: normalizarEspacios(datos.apellido),
         telefono: datos.telefono.trim(),
         email: datos.email.trim(),
         mensaje: datos.mensaje.trim(),
@@ -110,6 +112,7 @@ function Contacto() {
       "aria-invalid": hayError ? "true" : undefined,
       "aria-describedby": ids.length ? ids.join(" ") : undefined,
       "aria-required": OBLIGATORIOS.includes(campo) ? "true" : undefined,
+      maxLength: LIMITES[campo],
     };
   }
 
@@ -177,6 +180,9 @@ function Contacto() {
         <div className="campo">
           <label htmlFor="mensaje">Mensaje *</label>
           <textarea {...atributos("mensaje")} />
+          <span className="ayuda" aria-hidden="true">
+            {datos.mensaje.length}/{MENSAJE_MAX}
+          </span>
           {errores.mensaje && (
             <span id="error-mensaje" className="error">
               {errores.mensaje}

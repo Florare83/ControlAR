@@ -3,6 +3,7 @@ import {
   eliminarMensaje,
   listarMensajes,
   marcarMensaje,
+  responderMensaje,
 } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
 
@@ -31,6 +32,12 @@ function Mensajes() {
   const [cargandoMas, setCargandoMas] = useState(false);
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(null); // id del mensaje en proceso
+
+  // Panel de respuesta por correo (SMTP): un solo mensaje abierto a la vez.
+  const [respondiendoId, setRespondiendoId] = useState(null);
+  const [asunto, setAsunto] = useState("");
+  const [cuerpo, setCuerpo] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
   const cargar = useCallback(async () => {
     setError("");
@@ -85,6 +92,45 @@ function Mensajes() {
       toast.error(e.message);
     } finally {
       setOcupado(null);
+    }
+  }
+
+  function abrirRespuesta(mensaje) {
+    if (respondiendoId === mensaje.id) {
+      setRespondiendoId(null);
+      return;
+    }
+    setRespondiendoId(mensaje.id);
+    setAsunto("Re: Tu consulta en ControlAR");
+    setCuerpo(`Hola ${mensaje.nombre},\n\n`);
+  }
+
+  async function enviarRespuesta(evento, mensaje) {
+    evento.preventDefault();
+    if (enviando) return;
+
+    setEnviando(true);
+    try {
+      const actualizado = await responderMensaje(mensaje.id, { asunto, cuerpo });
+
+      // Responder lo marca como leído: se mantiene coherente el filtro y el contador.
+      if (!mensaje.leido) {
+        setNoLeidos((n) => n - 1);
+        if (soloNoLeidos) setTotal((t) => t - 1);
+      }
+      setMensajes((actuales) =>
+        soloNoLeidos
+          ? actuales.filter((m) => m.id !== mensaje.id)
+          : actuales.map((m) => (m.id === mensaje.id ? actualizado : m))
+      );
+
+      setRespondiendoId(null);
+      avisarCambio();
+      toast.exito(`Respuesta enviada a ${mensaje.email}.`);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -166,13 +212,24 @@ function Mensajes() {
                     <h2>
                       {m.nombre} {m.apellido}
                       {!m.leido && <span className="etiqueta disponible">Nuevo</span>}
+                      {m.respondido_en && (
+                        <span className="etiqueta mensaje-respondido">Respondido</span>
+                      )}
                     </h2>
                     <p className="mensaje-meta">
                       {formatearFecha(m.creado_en)}
                       {m.email && (
                         <>
                           {" · "}
-                          <a href={`mailto:${m.email}`}>{m.email}</a>
+                          <button
+                            type="button"
+                            className="mensaje-email"
+                            aria-expanded={respondiendoId === m.id}
+                            title="Responder por correo"
+                            onClick={() => abrirRespuesta(m)}
+                          >
+                            {m.email}
+                          </button>
                         </>
                       )}
                       {m.telefono && (
@@ -186,6 +243,54 @@ function Mensajes() {
                 </div>
 
                 <p className="mensaje-texto">{m.mensaje}</p>
+
+                {respondiendoId === m.id && (
+                  <form
+                    className="mensaje-responder"
+                    onSubmit={(e) => enviarRespuesta(e, m)}
+                  >
+                    <div className="campo">
+                      <label htmlFor={`para-${m.id}`}>Para</label>
+                      <input id={`para-${m.id}`} type="email" value={m.email} readOnly />
+                    </div>
+                    <div className="campo">
+                      <label htmlFor={`asunto-${m.id}`}>Asunto</label>
+                      <input
+                        id={`asunto-${m.id}`}
+                        type="text"
+                        value={asunto}
+                        maxLength={150}
+                        required
+                        onChange={(e) => setAsunto(e.target.value)}
+                      />
+                    </div>
+                    <div className="campo">
+                      <label htmlFor={`cuerpo-${m.id}`}>Mensaje</label>
+                      <textarea
+                        id={`cuerpo-${m.id}`}
+                        rows={6}
+                        value={cuerpo}
+                        maxLength={5000}
+                        required
+                        autoFocus
+                        onChange={(e) => setCuerpo(e.target.value)}
+                      />
+                    </div>
+                    <div className="mensaje-acciones">
+                      <button type="submit" className="boton" disabled={enviando}>
+                        {enviando ? "Enviando..." : "Enviar respuesta"}
+                      </button>
+                      <button
+                        type="button"
+                        className="boton boton-secundario"
+                        disabled={enviando}
+                        onClick={() => setRespondiendoId(null)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 <div className="mensaje-acciones">
                   <button

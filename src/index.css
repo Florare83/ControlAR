@@ -1408,6 +1408,48 @@ html {
   background: #e63946;
 }
 
+.mensaje-email {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--azul-marino);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mensaje-email:hover,
+.mensaje-email[aria-expanded="true"] {
+  color: var(--azul-marino-hover);
+  font-weight: 600;
+}
+
+.etiqueta.mensaje-respondido {
+  background: #e8f5ee;
+  color: var(--exito);
+}
+
+.mensaje-responder {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 14px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--fondo);
+}
+
+.mensaje-responder .campo input[readonly] {
+  background: #ececea;
+  color: var(--texto-suave);
+}
+
+.mensaje-acciones .boton-secundario {
+  background: var(--blanco);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+}
+
 .mensajes-pie {
   margin: 12px 0 8px;
   font-size: 13px;

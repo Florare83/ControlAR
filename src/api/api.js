@@ -233,6 +233,12 @@ export const marcarMensaje = (id, leido) =>
     body: JSON.stringify({ leido }),
   });
 
+export const responderMensaje = (id, { asunto, cuerpo }) =>
+  pedir(`/contacto/${id}/responder`, {
+    method: "POST",
+    body: JSON.stringify({ asunto, cuerpo }),
+  });
+
 export const eliminarMensaje = (id) =>
   pedir(`/contacto/${id}`, { method: "DELETE" });
 

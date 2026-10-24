@@ -24,3 +24,4 @@ class MensajeContacto(Base):
     creado_en = Column(
         DateTime(timezone=True), nullable=False, default=_ahora, index=True
     )
+    respondido_en = Column(DateTime(timezone=True), nullable=True)
