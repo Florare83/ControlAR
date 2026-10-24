@@ -3629,3 +3629,108 @@ body.oscuro .juego-observaciones {
     padding: 16px;
   }
 }
+
+
+/* ============================================
+   Ventas: botón "ojo" y detalle de la venta
+   ============================================ */
+.venta-ojo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.venta-ojo:hover {
+  background: var(--fondo);
+  border-color: var(--azul-marino);
+}
+
+.venta-detalle-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  margin: 0 0 20px;
+}
+
+.venta-detalle-datos dt {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.venta-detalle-datos dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.venta-detalle-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.venta-detalle-tabla th,
+.venta-detalle-tabla td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--borde);
+}
+
+.venta-detalle-tabla thead th {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.venta-detalle-tabla .venta-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.venta-detalle-tabla tfoot th,
+.venta-detalle-tabla tfoot td {
+  border-bottom: none;
+  font-weight: 700;
+}
+
+.venta-detalle-total {
+  font-size: 18px;
+}
+
+@media (max-width: 640px) {
+  .venta-detalle-datos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* Pedido cancelado y confirmación de pagos en efectivo/transferencia */
+.prestamo-item.cancelado {
+  border-left-color: var(--texto-suave);
+}
+
+.prestamo-estado.cancelado {
+  background: rgba(107, 114, 128, 0.18);
+  color: var(--texto-suave);
+}
+
+body.oscuro .prestamo-estado.cancelado {
+  color: #cbd5e1;
+}
+
+.venta-detalle-confirmar {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+}
+
+.venta-detalle-confirmar .ayuda {
+  margin: 0 0 12px;
+}

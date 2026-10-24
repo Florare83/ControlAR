@@ -15,6 +15,11 @@ from app.core.db import Base
 PENDIENTE = "pendiente"
 APROBADO = "aprobado"
 RECHAZADO = "rechazado"
+CANCELADO = "cancelado"  # pedido en efectivo/transferencia que no se concretó
+
+# Formas de pago
+MERCADO_PAGO = "mercadopago"
+EFECTIVO_TRANSFERENCIA = "efectivo_transferencia"
 
 
 def _ahora():
@@ -33,6 +38,11 @@ class Pedido(Base):
     )
     total = Column(Float, nullable=False)
     estado = Column(String(12), nullable=False, default=PENDIENTE)
+
+    # Cómo se paga: Mercado Pago (se acredita solo) o efectivo/transferencia
+    # (el administrador confirma a mano cuando se concreta). Los pedidos
+    # anteriores quedan como Mercado Pago.
+    forma_pago = Column(String(30), nullable=False, default=MERCADO_PAGO)
 
     # Datos de Mercado Pago
     preferencia_id = Column(String(100), nullable=True)

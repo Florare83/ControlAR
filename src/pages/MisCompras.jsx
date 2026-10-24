@@ -26,7 +26,10 @@ const ESTADOS = {
   aprobado: "Pagado",
   pendiente: "Pago pendiente",
   rechazado: "Rechazado",
+  cancelado: "Cancelado",
 };
+
+const EFECTIVO = "efectivo_transferencia";
 
 function MisCompras() {
   const [compras, setCompras] = useState([]);
@@ -123,6 +126,13 @@ function MisCompras() {
                   </span>
                 </div>
 
+                {compra.forma_pago === EFECTIVO && compra.estado === "pendiente" && (
+                  <p className="ayuda">
+                    Pago en efectivo/transferencia: coordinalo con la tienda por
+                    WhatsApp. Cuando lo confirmemos, pasa a "Pagado".
+                  </p>
+                )}
+
                 <ul className="compra-detalle">
                   {compra.items.map((item, indice) => (
                     <li key={`${compra.id}-${indice}`}>
@@ -144,6 +154,14 @@ function MisCompras() {
                   <div>
                     <dt>Fecha</dt>
                     <dd>{fechaArgentina(compra.fecha)}</dd>
+                  </div>
+                  <div>
+                    <dt>Forma de pago</dt>
+                    <dd>
+                      {compra.forma_pago === EFECTIVO
+                        ? "Efectivo / Transferencia"
+                        : "Mercado Pago"}
+                    </dd>
                   </div>
                   <div>
                     <dt>Total</dt>

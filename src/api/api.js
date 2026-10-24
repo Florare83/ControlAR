@@ -227,6 +227,25 @@ export const crearCheckout = (items) =>
     }),
   });
 
+// Pedido para pagar en efectivo o por transferencia: queda pendiente hasta
+// que el administrador confirma que el pago se concretó.
+export const crearPedidoEfectivo = (items) =>
+  pedir("/pedidos/efectivo", {
+    method: "POST",
+    body: JSON.stringify({
+      items: items.map((i) => ({
+        juego_id: i.id,
+        cantidad: i.cantidad,
+      })),
+    }),
+  });
+
+export const marcarPedidoPagado = (pedidoId) =>
+  pedir(`/pedidos/${pedidoId}/marcar-pagado`, { method: "POST" });
+
+export const cancelarPedidoEfectivo = (pedidoId) =>
+  pedir(`/pedidos/${pedidoId}/cancelar`, { method: "POST" });
+
 export const confirmarPedido = (pedidoId, pagoId) =>
   pedir(`/pedidos/${pedidoId}/confirmar`, {
     method: "POST",
