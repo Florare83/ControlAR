@@ -166,6 +166,12 @@ export const devolverPrestamo = (id) =>
     method: "POST",
   });
 
+// Deshace una devolución registrada por error (hasta 48 horas después).
+export const reabrirPrestamo = (id) =>
+  pedir(`/prestamos/${id}/reabrir`, {
+    method: "POST",
+  });
+
 // Préstamos: historial del cliente autenticado
 // Historial de préstamos de los clientes (administración)
 export const listarHistorialPrestamos = ({

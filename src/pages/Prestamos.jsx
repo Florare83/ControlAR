@@ -6,9 +6,18 @@ import {
   buscarPersonaPorDni,
   cambiarJuegoPrestamo,
   devolverPrestamo,
+  reabrirPrestamo,
 } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
 import Modal from "../components/Modal.jsx";
+
+// Una devolución se puede deshacer hasta 48 horas después (lo valida la API).
+const VENTANA_DESHACER_MS = 48 * 60 * 60 * 1000;
+
+function sePuedeDeshacer(prestamo) {
+  if (prestamo.estado !== "cerrado" || !prestamo.fecha_cierre) return false;
+  return Date.now() - new Date(prestamo.fecha_cierre).getTime() <= VENTANA_DESHACER_MS;
+}
 
 const FORMULARIO_VACIO = { juego_id: "", dni: "", nombre: "", email: "", sexo: "Femenino", telefono: "" };
 
@@ -124,12 +133,37 @@ function Prestamos() {
     }
   }
 
+  async function deshacerDevolucion(prestamo) {
+    setOcupado(prestamo.id);
+    try {
+      await reabrirPrestamo(prestamo.id);
+      toast.exito(`Devolución deshecha: "${prestamo.juego.titulo}" vuelve a estar prestado a ${prestamo.nombre}.`);
+      await cargar();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setOcupado(null);
+    }
+  }
+
   async function devolver(prestamo) {
-    if (!window.confirm(`¿Registrar la devolución de "${prestamo.juego.titulo}"?`)) return;
+    if (
+      !window.confirm(
+        `¿Registrar la devolución de "${prestamo.juego.titulo}" de ${prestamo.nombre} (DNI ${prestamo.dni})?`
+      )
+    ) {
+      return;
+    }
     setOcupado(prestamo.id);
     try {
       await devolverPrestamo(prestamo.id);
-      toast.exito("Devolución registrada. El juego quedó disponible.");
+      toast.exito("Devolución registrada. El juego quedó disponible.", {
+        duracion: 10000,
+        accion: {
+          texto: "Deshacer",
+          onClick: () => deshacerDevolucion(prestamo),
+        },
+      });
       await cargar();
     } catch (err) {
       toast.error(err.message);
@@ -339,6 +373,24 @@ function Prestamos() {
                           Devolver
                         </button>
                       </div>
+                    ) : sePuedeDeshacer(p) ? (
+                      <button
+                        className="boton boton-secundario"
+                        style={{ width: "auto" }}
+                        disabled={ocupado === p.id}
+                        title="Solo disponible hasta 48 horas después de la devolución"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `¿Deshacer la devolución de "${p.juego.titulo}"? Vuelve a figurar prestado a ${p.nombre}.`
+                            )
+                          ) {
+                            deshacerDevolucion(p);
+                          }
+                        }}
+                      >
+                        Deshacer devolución
+                      </button>
                     ) : (
                       "—"
                     )}

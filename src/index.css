@@ -3734,3 +3734,25 @@ body.oscuro .prestamo-estado.cancelado {
 .venta-detalle-confirmar .ayuda {
   margin: 0 0 12px;
 }
+
+
+/* Botón de acción dentro de un aviso (p. ej. "Deshacer") */
+.toast-accion {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.toast-accion:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.toast > span:first-child {
+  flex: 1;
+}

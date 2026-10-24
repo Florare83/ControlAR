@@ -3,7 +3,7 @@
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -88,6 +88,10 @@ def _registrar_error_integridad(operacion: str, error: IntegrityError):
         getattr(original, "pgcode", None),
         getattr(diagnostico, "message_primary", None),
     )
+
+
+# Tiempo máximo para deshacer una devolución registrada por error.
+VENTANA_REAPERTURA = timedelta(hours=48)
 
 
 def _buscar(db: Session, prestamo_id: int) -> Prestamo:
@@ -432,6 +436,91 @@ def devolver_prestamo(
         raise HTTPException(
             status_code=409,
             detail="No se pudo registrar la devolución.",
+        ) from e
+
+    db.refresh(prestamo)
+    return prestamo
+
+
+@router.post("/{prestamo_id}/reabrir", response_model=PrestamoRespuesta)
+def reabrir_prestamo(
+    prestamo_id: int,
+    db: Session = Depends(get_db),
+):
+    """Deshace una devolución registrada por error: el préstamo vuelve a estar
+    activo y conserva su fecha de inicio. Solo dentro de las 48 horas
+    siguientes a la devolución, y solo si el juego sigue libre y la persona
+    no tiene otro préstamo activo."""
+    prestamo = _buscar(db, prestamo_id)
+
+    if prestamo.estado != CERRADO:
+        raise HTTPException(
+            status_code=409,
+            detail="El préstamo ya está activo",
+        )
+
+    cierre = prestamo.fecha_cierre
+    if cierre is not None and cierre.tzinfo is None:
+        cierre = cierre.replace(tzinfo=timezone.utc)
+
+    if cierre is None or datetime.now(timezone.utc) - cierre > VENTANA_REAPERTURA:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Solo se puede deshacer una devolución dentro de las 48 horas "
+                "siguientes. Registrá un préstamo nuevo."
+            ),
+        )
+
+    # Mensajes claros antes de llegar a las restricciones de la base.
+    ocupa_juego = (
+        db.query(Prestamo)
+        .filter(
+            Prestamo.juego_id == prestamo.juego_id,
+            Prestamo.estado == ACTIVO,
+            Prestamo.id != prestamo.id,
+        )
+        .first()
+    )
+    if ocupa_juego is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"No se puede deshacer: el juego ya está prestado a "
+                f"{ocupa_juego.nombre}."
+            ),
+        )
+
+    otro_de_la_persona = (
+        db.query(Prestamo)
+        .filter(
+            Prestamo.dni == prestamo.dni,
+            Prestamo.estado == ACTIVO,
+            Prestamo.id != prestamo.id,
+        )
+        .first()
+    )
+    if otro_de_la_persona is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"No se puede deshacer: {prestamo.nombre} ya tiene otro "
+                f"préstamo activo."
+            ),
+        )
+
+    try:
+        prestamo.estado = ACTIVO
+        prestamo.fecha_cierre = None
+        db.commit()
+
+    except IntegrityError as e:
+        db.rollback()
+        _registrar_error_integridad("reabrir préstamo", e)
+
+        raise HTTPException(
+            status_code=409,
+            detail="No se pudo deshacer la devolución.",
         ) from e
 
     db.refresh(prestamo)
