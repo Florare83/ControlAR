@@ -7,6 +7,7 @@ import {
   listarEventos,
 } from "../api/api.js";
 import { partesFecha } from "../data/eventos.js";
+import Modal from "../components/Modal.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
 const TIPOS = ["Tarde de juegos", "Torneo", "Encuentro"];
@@ -183,10 +184,16 @@ function Eventos() {
         pasa solo a "anteriores" después de ese día.
       </p>
 
-      {editando ? (
-        <section className="tarjeta tarjeta-columna" style={{ marginBottom: 28 }} aria-labelledby="titulo-evento">
-          <h2 id="titulo-evento">{editando === "nuevo" ? "Nuevo evento" : `Editar "${editando.titulo}"`}</h2>
+      <button className="boton" style={{ width: "auto", marginBottom: 20 }} onClick={() => abrir("nuevo")}>
+        Nuevo evento
+      </button>
 
+      {editando && (
+        <Modal
+          titulo={editando === "nuevo" ? "Nuevo evento" : `Editar "${editando.titulo}"`}
+          ocupado={guardando}
+          onCerrar={() => setEditando(null)}
+        >
           <form className="formulario" onSubmit={guardar} aria-busy={guardando}>
             <div className="campo">
               <label htmlFor="ev-tipo">Tipo</label>
@@ -285,7 +292,7 @@ function Eventos() {
               </span>
             )}
 
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <div className="modal-acciones">
               <button className="boton" type="submit" disabled={guardando}>
                 {guardando ? "Guardando..." : "Guardar"}
               </button>
@@ -294,11 +301,7 @@ function Eventos() {
               </button>
             </div>
           </form>
-        </section>
-      ) : (
-        <button className="boton" style={{ width: "auto", marginBottom: 20 }} onClick={() => abrir("nuevo")}>
-          Nuevo evento
-        </button>
+        </Modal>
       )}
 
       {cargando ? (

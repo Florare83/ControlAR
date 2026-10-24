@@ -8,6 +8,7 @@ import {
   devolverPrestamo,
 } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
+import Modal from "../components/Modal.jsx";
 
 const FORMULARIO_VACIO = { juego_id: "", dni: "", nombre: "", email: "", sexo: "Femenino", telefono: "" };
 
@@ -21,6 +22,7 @@ function Prestamos() {
   const [form, setForm] = useState(FORMULARIO_VACIO);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [formAbierto, setFormAbierto] = useState(false);
   const [errorCarga, setErrorCarga] = useState("");
   const [errorForm, setErrorForm] = useState("");
   const [mensajeBusqueda, setMensajeBusqueda] = useState("");
@@ -96,6 +98,7 @@ function Prestamos() {
       });
       setForm(FORMULARIO_VACIO);
       setMensajeBusqueda("");
+      setFormAbierto(false);
       toast.exito("Préstamo registrado.");
       await cargar();
     } catch (err) {
@@ -140,8 +143,24 @@ function Prestamos() {
       <h1>Gestión de préstamos</h1>
       <p className="subtitulo">Registrá quién se lleva un juego, cambialo o registrá su devolución.</p>
 
-      <section className="tarjeta tarjeta-columna" style={{ marginBottom: 28 }} aria-labelledby="titulo-registrar">
-        <h2 id="titulo-registrar">Registrar préstamo</h2>
+      <button
+        type="button"
+        className="boton"
+        style={{ width: "auto", marginBottom: 28 }}
+        onClick={() => {
+          setErrorForm("");
+          setFormAbierto(true);
+        }}
+      >
+        Registrar préstamo
+      </button>
+
+      {formAbierto && (
+        <Modal
+          titulo="Registrar préstamo"
+          ocupado={guardando}
+          onCerrar={() => setFormAbierto(false)}
+        >
         <form className="formulario" onSubmit={enviar} aria-busy={guardando}>
           <div className="campo">
             <label htmlFor="juego_id">Juego disponible</label>
@@ -236,7 +255,8 @@ function Prestamos() {
             </p>
           )}
         </form>
-      </section>
+        </Modal>
+      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <h2>Préstamos {verCerrados ? "registrados" : "activos"}</h2>

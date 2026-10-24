@@ -109,8 +109,8 @@ function PanelLayout() {
 
             {esAdmin && (
               <li>
-                <NavLink to="/panel/agregar-juego" className={clase}>
-                  Agregar juegos
+                <NavLink to="/panel/juegos" className={clase}>
+                  Juegos
                 </NavLink>
               </li>
             )}
@@ -118,7 +118,7 @@ function PanelLayout() {
             {esAdmin && (
               <li>
                 <NavLink to="/panel/usuarios" className={clase}>
-                  Gestionar usuarios
+                  Usuarios
                 </NavLink>
               </li>
             )}

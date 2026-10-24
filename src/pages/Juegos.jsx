@@ -21,6 +21,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import TarjetaJuego from "../components/TarjetaJuego.jsx";
 import FormularioJuego from "../components/FormularioJuego.jsx";
+import Modal from "../components/Modal.jsx";
 import { partesFecha } from "../data/eventos.js";
 
 // Visitantes y clientes: 4 columnas x 3 filas. Administrador: lista de 1 columna.
@@ -61,7 +62,8 @@ function ordenarJuegos(lista, orden) {
   });
 }
 
-function Juegos() {
+// enPanel: se muestra dentro del panel de administración (sección "Juegos").
+function Juegos({ enPanel = false }) {
   const { esAdmin, usuario } = useAuth();
   const navegar = useNavigate();
   const toast = useToast();
@@ -74,6 +76,7 @@ function Juegos() {
   const [cargandoFavoritos, setCargandoFavoritos] = useState(false);
 
   const [formulario, setFormulario] = useState(null);
+  const [guardandoJuego, setGuardandoJuego] = useState(false);
 
   // Reservas para el próximo evento.
   const [estadoReservas, setEstadoReservas] = useState(null);
@@ -289,6 +292,7 @@ function Juegos() {
       await actualizarJuego(formulario.id, datos);
     }
 
+    setGuardandoJuego(false);
     setFormulario(null);
     setPagina(1);
     await cargarDatos();
@@ -436,11 +440,13 @@ function Juegos() {
   }
 
   return (
-    <div className="pagina">
-      <h1>Catálogo de juegos</h1>
+    <div className={enPanel ? undefined : "pagina"}>
+      <h1>{enPanel ? "Juegos" : "Catálogo de juegos"}</h1>
 
       <p className="subtitle">
-        Explorá los juegos que forman parte de nuestra ludoteca y/o de nuestra tienda.
+        {enPanel
+          ? "Administrá el catálogo: agregá juegos nuevos, editalos o eliminalos."
+          : "Explorá los juegos que forman parte de nuestra ludoteca y/o de nuestra tienda."}
       </p>
 
       {/* Reservas para el próximo evento */}
@@ -668,25 +674,39 @@ function Juegos() {
         )}
       </div>
 
-      {/* Solo los administradores pueden crear o editar juegos. */}
-      {esAdmin &&
-        (formulario === null ? (
-          <button
-            className="boton"
-            style={{ width: "auto", marginBottom: 22 }}
-            onClick={() => setFormulario("nuevo")}
-          >
-            Agregar juego
-          </button>
-        ) : (
+      {/* Solo los administradores pueden crear o editar juegos (en una ventana modal). */}
+      {esAdmin && (
+        <button
+          type="button"
+          className="boton"
+          style={{ width: "auto", marginBottom: 22 }}
+          onClick={() => setFormulario("nuevo")}
+        >
+          Agregar juego
+        </button>
+      )}
+
+      {esAdmin && formulario !== null && (
+        <Modal
+          titulo={
+            formulario === "nuevo"
+              ? "Agregar juego"
+              : `Editar "${formulario.titulo}"`
+          }
+          ocupado={guardandoJuego}
+          onCerrar={() => setFormulario(null)}
+        >
           <FormularioJuego
             key={formulario === "nuevo" ? "nuevo" : formulario.id}
             juego={formulario === "nuevo" ? null : formulario}
             categorias={categorias}
             onGuardar={guardarJuego}
             onCancelar={() => setFormulario(null)}
+            onOcupado={setGuardandoJuego}
+            enModal
           />
-        ))}
+        </Modal>
+      )}
 
       {cargando ? (
         <p className="cargando" role="status">

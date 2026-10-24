@@ -40,7 +40,14 @@ function desdeJuego(juego) {
   };
 }
 
-function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
+function FormularioJuego({
+  juego,
+  categorias,
+  onGuardar,
+  onCancelar,
+  enModal = false, // dentro de una ventana modal: sin tarjeta ni título propios
+  onOcupado, // avisa al modal cuando está guardando
+}) {
   const [form, setForm] = useState(() => desdeJuego(juego));
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -50,6 +57,10 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
   useEffect(() => {
     campoTitulo.current?.focus();
   }, []);
+
+  useEffect(() => {
+    onOcupado?.(guardando);
+  }, [guardando]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function cambiar(campo, valor) {
     setForm((actual) => ({ ...actual, [campo]: valor }));
@@ -105,8 +116,11 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
   }
 
   return (
-    <div className="tarjeta tarjeta-columna" style={{ marginBottom: 24 }}>
-      <h2>{juego ? `Editar "${juego.titulo}"` : "Agregar juego"}</h2>
+    <div
+      className={enModal ? undefined : "tarjeta tarjeta-columna"}
+      style={enModal ? undefined : { marginBottom: 24 }}
+    >
+      {!enModal && <h2>{juego ? `Editar "${juego.titulo}"` : "Agregar juego"}</h2>}
 
       <form className="formulario" onSubmit={enviar} aria-busy={guardando}>
         <div className="campo">
@@ -315,7 +329,7 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
           </span>
         )}
 
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <div className={enModal ? "modal-acciones" : undefined} style={enModal ? undefined : { display: "flex", gap: 8, marginTop: 12 }}>
           <button className="boton" type="submit" disabled={guardando}>
             {guardando ? "Guardando..." : "Guardar"}
           </button>

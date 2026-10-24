@@ -1,6 +1,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import Modal from "../components/Modal.jsx";
 import {
   actualizarUsuarioAdmin,
   crearUsuarioAdmin,
@@ -143,33 +144,33 @@ export default function GestionarUsuarios() {
       >
         <div className="usuarios-cabecera">
           <div>
-            <h1>Gestionar usuarios</h1>
+            <h1>Usuarios</h1>
 
             <p>
               Administrá las cuentas registradas, sus permisos y su estado.
             </p>
           </div>
 
-          {!formAbierto && (
-            <button
-              type="button"
-              className="boton usuarios-nuevo-boton"
-              onClick={abrirFormulario}
-            >
-              + Nuevo usuario
-            </button>
-          )}
+          <button
+            type="button"
+            className="boton usuarios-nuevo-boton"
+            onClick={abrirFormulario}
+          >
+            + Nuevo usuario
+          </button>
         </div>
 
         {formAbierto && (
+          <Modal
+            titulo="Nuevo usuario"
+            ocupado={creando}
+            onCerrar={cerrarFormulario}
+          >
           <form
-            className="usuario-nuevo"
             onSubmit={crearUsuario}
             noValidate
             aria-label="Nuevo usuario"
           >
-            <h2>Nuevo usuario</h2>
-
             <div className="usuario-nuevo-grilla">
               <div className="campo">
                 <label htmlFor="nuevo-nombre">Nombre</label>
@@ -251,7 +252,7 @@ export default function GestionarUsuarios() {
               </p>
             )}
 
-            <div className="usuario-nuevo-acciones">
+            <div className="modal-acciones">
               <button type="submit" className="boton" disabled={creando}>
                 {creando ? "Creando..." : "Crear usuario"}
               </button>
@@ -265,6 +266,7 @@ export default function GestionarUsuarios() {
               </button>
             </div>
           </form>
+          </Modal>
         )}
 
         <div

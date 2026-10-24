@@ -13,7 +13,7 @@ function PanelResumen() {
         <p>Resumen de préstamos activos, juegos más pedidos y stock de la tienda.</p>
         <p>
           Mientras tanto: <Link to="/panel/prestamos">gestionar préstamos</Link> o{" "}
-          <Link to="/juegos">administrar el catálogo de juegos</Link>.
+          <Link to="/panel/juegos">administrar el catálogo de juegos</Link>.
         </p>
       </div>
     </div>

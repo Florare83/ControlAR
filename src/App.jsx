@@ -26,7 +26,6 @@ import MisCompras from "./pages/MisCompras.jsx";
 import Ventas from "./pages/Ventas.jsx";
 import PanelResumen from "./pages/PanelResumen.jsx";
 import Mensajes from "./pages/Mensajes.jsx";
-import AgregarJuego from "./pages/AgregarJuego.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import CompraResultado from "./pages/CompraResultado.jsx";
 import GestionarUsuarios from "./pages/GestionarUsuarios.jsx";
@@ -210,8 +209,13 @@ function App() {
                 />
 
                 <Route
+                  path="juegos"
+                  element={<Juegos enPanel />}
+                />
+
+                <Route
                   path="agregar-juego"
-                  element={<AgregarJuego />}
+                  element={<Navigate to="/panel/juegos" replace />}
                 />
 
                 <Route
