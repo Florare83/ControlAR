@@ -31,6 +31,15 @@ def validar_url_imagen(valor: str | None) -> str | None:
     return valor
 
 
+def limpiar_observaciones(valor: str | None) -> str | None:
+    """Saca espacios sobrantes; un texto vacío significa "sin observaciones"."""
+    if valor is None:
+        return None
+
+    valor = valor.strip()
+    return valor or None
+
+
 class JuegoBase(BaseModel):
     titulo: str = Field(min_length=2, max_length=100)
     editorial: str | None = None
@@ -48,6 +57,10 @@ class JuegoBase(BaseModel):
 class JuegoCreate(JuegoBase):
     en_venta: bool = False
     se_presta: bool = False
+    observaciones: str | None = Field(default=None, max_length=300)
+    _limpiar_observaciones = field_validator("observaciones")(
+        limpiar_observaciones
+    )
     stock: int = Field(ge=0)
     categoria_id: int = Field(ge=1)
 
@@ -64,9 +77,13 @@ class JuegoUpdate(BaseModel):
     precio: float | None = None
     categoria_id: int | None = None
     imagen_url: str | None = Field(default=None, max_length=1000)
+    observaciones: str | None = Field(default=None, max_length=300)
 
     _validar_imagen = field_validator("imagen_url")(
         validar_url_imagen
+    )
+    _limpiar_observaciones = field_validator("observaciones")(
+        limpiar_observaciones
     )
 
 
@@ -84,6 +101,8 @@ class JuegoResponse(JuegoBase):
     stock: int
     en_prestamo: bool = False  # está prestado ahora mismo
     me_gusta: int = 0  # cantidad de usuarios que lo marcaron como favorito
+    # Nota interna: la API solo la devuelve a administradores (a los demás les llega vacía).
+    observaciones: str | None = None
     categoria: CategoriaOut
 
     model_config = ConfigDict(from_attributes=True)

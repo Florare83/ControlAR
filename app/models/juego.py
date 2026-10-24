@@ -24,6 +24,10 @@ class Juego(Base):
     # URL opcional de la imagen personalizada del juego.
     imagen_url = Column(String(1000), nullable=True)
 
+    # Nota interna de los administradores (ej. "Faltan piezas"): explica por qué un juego
+    # no está disponible para préstamo. No se muestra a clientes ni visitantes.
+    observaciones = Column(String(300), nullable=True)
+
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
     categoria = relationship("Categoria")
     

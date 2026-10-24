@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 // Formulario para crear un juego nuevo o editar uno existente.
 // La imagen es opcional y se guarda como una URL pública.
 
+const OBSERVACIONES_MAX = 300;
+
 const VACIO = {
   titulo: "",
   editorial: "",
@@ -16,6 +18,7 @@ const VACIO = {
   se_presta: false,
   categoria_id: "",
   imagen_url: "",
+  observaciones: "",
 };
 
 function desdeJuego(juego) {
@@ -33,6 +36,7 @@ function desdeJuego(juego) {
     se_presta: Boolean(juego.se_presta),
     categoria_id: String(juego.categoria.id),
     imagen_url: juego.imagen_url ?? "",
+    observaciones: juego.observaciones ?? "",
   };
 }
 
@@ -89,6 +93,7 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
       se_presta: form.se_presta,
       categoria_id: Number(form.categoria_id),
       imagen_url: urlImagen || null,
+      observaciones: form.observaciones.trim() || null,
     };
 
     try {
@@ -283,6 +288,24 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
           <small id="ayuda-se-presta" className="ayuda">
             Tildalo si el juego es de la ludoteca. Solo estos juegos se pueden
             prestar en los eventos y reservar desde el catálogo.
+          </small>
+        </div>
+
+        <div className="campo">
+          <label htmlFor="observaciones">Observaciones (opcional)</label>
+          <textarea
+            id="observaciones"
+            rows={3}
+            maxLength={OBSERVACIONES_MAX}
+            value={form.observaciones}
+            onChange={(e) => cambiar("observaciones", e.target.value)}
+            placeholder="Ej.: Faltan piezas, caja dañada, en reparación..."
+            aria-describedby="ayuda-observaciones"
+          />
+          <small id="ayuda-observaciones" className="ayuda">
+            Nota interna para explicar por qué el juego no está disponible para
+            préstamo. Solo la ven los administradores.{" "}
+            {form.observaciones.length}/{OBSERVACIONES_MAX}
           </small>
         </div>
 

@@ -117,6 +117,14 @@ function TarjetaJuego({
           </span>
         </p>
 
+        {/* Nota interna: solo la ve el administrador (la API no se la manda a los demás). */}
+        {esAdmin && juego.observaciones && (
+          <p className="juego-observaciones">
+            <span role="img" aria-label="Observaciones">📝</span>{" "}
+            {juego.observaciones}
+          </p>
+        )}
+
         {enVenta && (
           <p className="datos-venta">
             <span

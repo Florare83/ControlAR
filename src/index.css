@@ -3433,3 +3433,76 @@ body.oscuro .club-tag-destacado {
 .usuario-enlace-historial:hover {
   color: var(--azul-marino-hover);
 }
+
+
+/* ============================================
+   Portada: juegos más populares
+   ============================================ */
+.populares-subtitulo {
+  margin: 0 0 16px;
+  color: var(--texto-suave);
+}
+
+.grilla-juegos.grilla-populares {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(2, minmax(0, 340px));
+  justify-content: center;
+  gap: 20px;
+}
+
+.popular-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.popular-item > .tarjeta.tarjeta-juego {
+  flex: 1;
+}
+
+.popular-insignia {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--azul-marino);
+}
+
+.popular-insignia span:last-child:not([aria-hidden]) {
+  font-weight: 500;
+  color: var(--texto-suave);
+}
+
+.populares-enlace {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .grilla-juegos.grilla-populares {
+    grid-template-columns: minmax(0, 340px);
+  }
+}
+
+
+/* ============================================
+   Observaciones internas de un juego (solo administración)
+   ============================================ */
+.juego-observaciones {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid #e0a800;
+  border-radius: 4px;
+  background: #fff8e1;
+  color: var(--texto);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+body.oscuro .juego-observaciones {
+  background: #3a3115;
+  color: #f3e7b5;
+}
