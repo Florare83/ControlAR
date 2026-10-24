@@ -27,6 +27,8 @@ from app.models.prestamo import Prestamo  # noqa: F401
 from app.models.favorito import Favorito  # noqa: F401
 from app.models.pedido import Pedido, PedidoItem  # noqa: F401
 from app.models.mensaje import MensajeContacto  # noqa: F401
+from app.models.evento import Evento  # noqa: F401
+from app.models.reserva import Reserva  # noqa: F401
 
 log = logging.getLogger("uvicorn.error")
 
@@ -231,7 +233,17 @@ def asegurar_esquema() -> None:
         # Antes de create_all, para que la tabla vacía se vuelva a crear bien.
         _recrear_prestamos_si_esta_vacia()
 
+        # Si "eventos" todavía no existe, se crea y se cargan los eventos iniciales
+        # (los que antes estaban en src/data/eventos.js). Solo pasa esa vez: si después
+        # el administrador borra eventos, no vuelven a aparecer.
+        eventos_ya_existia = "eventos" in inspect(engine).get_table_names()
+
         Base.metadata.create_all(bind=engine)
+
+        if not eventos_ya_existia:
+            from app.core.cargar_eventos import sembrar_eventos_iniciales
+
+            sembrar_eventos_iniciales()
 
         agregadas = _agregar_columnas_faltantes()
 

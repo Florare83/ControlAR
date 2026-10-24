@@ -8,6 +8,8 @@ from app.models.prestamo import Prestamo
 from app.models.favorito import Favorito
 from app.models.pedido import Pedido, PedidoItem
 from app.models.mensaje import MensajeContacto
+from app.models.evento import Evento
+from app.models.reserva import Reserva
 
 Base.metadata.create_all(bind=engine)
 

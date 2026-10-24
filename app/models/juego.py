@@ -17,6 +17,10 @@ class Juego(Base):
     stock = Column(Integer, nullable=False, default=0)
     precio = Column(Float, nullable=False)
 
+    # True si el juego forma parte de la ludoteca y se puede prestar (y reservar)
+    # en los eventos. Es distinto de "en_prestamo", que significa "prestado ahora".
+    se_presta = Column(Boolean, nullable=False, default=False)
+
     # URL opcional de la imagen personalizada del juego.
     imagen_url = Column(String(1000), nullable=True)
 

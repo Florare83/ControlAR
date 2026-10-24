@@ -315,3 +315,55 @@ export const listarVentasAdmin = ({ estado = "", buscar = "" } = {}) => {
 
   return pedir(`/pedidos/admin/ventas${query ? `?${query}` : ""}`);
 };
+
+
+// ---------------------------------------------------------
+// EVENTOS
+// ---------------------------------------------------------
+
+export const listarEventos = () => pedir("/eventos/");
+
+export const crearEvento = (datos) =>
+  pedir("/eventos/", { method: "POST", body: JSON.stringify(datos) });
+
+export const actualizarEvento = (id, datos) =>
+  pedir(`/eventos/${id}`, { method: "PUT", body: JSON.stringify(datos) });
+
+export const duplicarEvento = (id, datos) =>
+  pedir(`/eventos/${id}/duplicar`, {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+
+export const eliminarEvento = (id) =>
+  pedir(`/eventos/${id}`, { method: "DELETE" });
+
+
+// ---------------------------------------------------------
+// RESERVAS
+// ---------------------------------------------------------
+
+// Público: evento reservable, si siguen abiertas y qué juegos ya están reservados.
+export const obtenerEstadoReservas = () => pedir("/reservas/estado");
+
+// Cliente autenticado
+export const listarMisReservas = () => pedir("/reservas/mias");
+
+export const reservarJuego = (juegoId) =>
+  pedir("/reservas/", {
+    method: "POST",
+    body: JSON.stringify({ juego_id: juegoId }),
+  });
+
+export const cancelarReserva = (id) =>
+  pedir(`/reservas/${id}`, { method: "DELETE" });
+
+// Administración
+export const listarReservasAdmin = (eventoId) =>
+  pedir(eventoId ? `/reservas/?evento_id=${eventoId}` : "/reservas/");
+
+export const entregarReserva = (id, datos) =>
+  pedir(`/reservas/${id}/entregar`, {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
