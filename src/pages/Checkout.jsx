@@ -2,17 +2,46 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { crearCheckout } from "../api/api.js";
 import { useCarrito } from "../context/CarritoContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import LineaCarrito, { formatearPrecio } from "../components/LineaCarrito.jsx";
 import logo from "../img/logo.png";
 
-// Pantalla completa de confirmación de compra. Al confirmar, el servidor
-// crea el pedido y el cliente pasa a pagar en Mercado Pago.
+// Número de WhatsApp de la tienda (formato internacional, sin "+" ni espacios).
+const WHATSAPP_TIENDA = "543874491907";
+
+// Pantalla completa de confirmación de compra. El cliente elige cómo pagar:
+//  - Efectivo / transferencia: se abre WhatsApp con el pedido ya redactado.
+//  - Mercado Pago: el servidor crea el pedido y el cliente paga en Mercado Pago.
 function Checkout() {
   const { items, cantidadTotal, total } = useCarrito();
+  const { usuario } = useAuth();
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState("");
 
-  async function pagar() {
+  function pagarPorWhatsApp() {
+    const lineas = items.map(
+      (i) =>
+        `• ${i.cantidad} x ${i.titulo} - ${formatearPrecio(i.precio * i.cantidad)}`
+    );
+
+    const mensaje = [
+      "¡Hola! Quiero pagar mi compra en efectivo/transferencia.",
+      usuario?.nombre ? `Nombre: ${usuario.nombre}` : null,
+      "",
+      "Pedido:",
+      ...lineas,
+      "",
+      `Total: ${formatearPrecio(total)}`,
+    ]
+      .filter((l) => l !== null)
+      .join("\n");
+
+    const url = `https://wa.me/${WHATSAPP_TIENDA}?text=${encodeURIComponent(mensaje)}`;
+    // Pestaña nueva: el carrito queda intacto por si el cliente vuelve.
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function pagarConMercadoPago() {
     setError("");
     setProcesando(true);
 
@@ -65,23 +94,38 @@ function Checkout() {
                 <strong>{formatearPrecio(total)}</strong>
               </div>
 
-              <p className="ayuda">
-                Vas a pasar a Mercado Pago para completar el pago de forma
-                segura. Cuando termines, volvés automáticamente a la tienda.
-              </p>
+              <p className="ayuda">Elegí cómo querés pagar:</p>
 
               {error && (
                 <p className="error" role="alert">{error}</p>
               )}
 
-              <button
-                type="button"
-                className="boton boton-mp"
-                disabled={procesando}
-                onClick={pagar}
-              >
-                {procesando ? "Conectando con Mercado Pago..." : "Confirmar y pagar con Mercado Pago"}
-              </button>
+              <div className="pc-opciones">
+                <button
+                  type="button"
+                  className="boton boton-wa"
+                  disabled={procesando}
+                  onClick={pagarPorWhatsApp}
+                >
+                  Efectivo / Transferencia
+                </button>
+                <p className="ayuda pc-opcion-ayuda">
+                  Te llevamos a WhatsApp para coordinar el pago con nosotros.
+                </p>
+
+                <button
+                  type="button"
+                  className="boton boton-mp"
+                  disabled={procesando}
+                  onClick={pagarConMercadoPago}
+                >
+                  {procesando ? "Conectando con Mercado Pago..." : "Mercado Pago"}
+                </button>
+                <p className="ayuda pc-opcion-ayuda">
+                  Pagás de forma segura en Mercado Pago y volvés
+                  automáticamente a la tienda.
+                </p>
+              </div>
 
               <Link to="/juegos" className="pc-cancelar">Cancelar</Link>
             </section>
