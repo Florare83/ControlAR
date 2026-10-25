@@ -10,6 +10,17 @@ import {
 } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
 import Modal from "../components/Modal.jsx";
+import FiltroFechas from "../components/FiltroFechas.jsx";
+import ThOrdenable, { siguienteOrden } from "../components/ThOrdenable.jsx";
+import {
+  ENCABEZADO_CSV_PRESTAMOS,
+  descargarCsv,
+  diaArgentina,
+  diasSinDevolver,
+  fechaHoraArgentina,
+  filaCsvPrestamo,
+  textoDiasSinDevolver,
+} from "../utils/prestamos.js";
 
 // Una devolución se puede deshacer hasta 48 horas después (lo valida la API).
 const VENTANA_DESHACER_MS = 48 * 60 * 60 * 1000;
@@ -18,6 +29,22 @@ function sePuedeDeshacer(prestamo) {
   if (prestamo.estado !== "cerrado" || !prestamo.fecha_cierre) return false;
   return Date.now() - new Date(prestamo.fecha_cierre).getTime() <= VENTANA_DESHACER_MS;
 }
+
+// Sin tildes ni mayúsculas, para que "carcasone" encuentre "Carcassonne" y "Peña" a "pena".
+function normalizar(texto) {
+  return String(texto ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+const FILTROS_ESTADO = [
+  { valor: "activo", texto: "Activos" },
+  { valor: "atrasado", texto: "Sin devolver" },
+  { valor: "cerrado", texto: "Cerrados" },
+  { valor: "todos", texto: "Todos" },
+];
 
 const FORMULARIO_VACIO = { juego_id: "", dni: "", nombre: "", email: "", sexo: "Femenino", telefono: "" };
 
@@ -36,7 +63,11 @@ function Prestamos() {
   const [errorForm, setErrorForm] = useState("");
   const [mensajeBusqueda, setMensajeBusqueda] = useState("");
   const [buscandoPersona, setBuscandoPersona] = useState(false);
-  const [verCerrados, setVerCerrados] = useState(false);
+  const [filtroEstado, setFiltroEstado] = useState("activo"); // activo | cerrado | todos
+  const [busqueda, setBusqueda] = useState("");
+  const [desde, setDesde] = useState(""); // fecha de retiro, AAAA-MM-DD
+  const [hasta, setHasta] = useState("");
+  const [orden, setOrden] = useState({ campo: "fecha", direccion: "desc" });
   const [nuevoJuego, setNuevoJuego] = useState({}); // { [id del préstamo]: id del juego elegido }
   const [ocupado, setOcupado] = useState(null); // id del préstamo que se está procesando
 
@@ -60,7 +91,74 @@ function Prestamos() {
   // Solo se puede prestar (o cambiar por) un juego de la ludoteca que no esté ya en préstamo.
   const juegosLibres = juegos.filter((j) => j.se_presta && !j.en_prestamo);
   const hayJuegosDeLudoteca = juegos.some((j) => j.se_presta);
-  const prestamosVisibles = prestamos.filter((p) => verCerrados || p.estado === "activo");
+
+  const termino = normalizar(busqueda);
+  const dniBuscado = busqueda.replace(/[.\s]/g, ""); // permite escribir 12.345.678
+  const rangoInvalido = Boolean(desde && hasta && desde > hasta);
+
+  // Búsqueda y fechas (sin el estado): sobre esto se cuentan los botones.
+  const prestamosBuscados = prestamos.filter((p) => {
+    if (desde || hasta) {
+      const dia = diaArgentina(p.fecha_inicio);
+      if (desde && dia < desde) return false;
+      if (hasta && dia > hasta) return false;
+    }
+
+    if (!termino) return true;
+
+    const buscaDni = /^\d+$/.test(dniBuscado) ? dniBuscado : termino;
+
+    return (
+      String(p.dni ?? "").includes(buscaDni) ||
+      normalizar(p.juego?.titulo ?? p.titulo_juego).includes(termino) ||
+      normalizar(p.nombre).includes(termino)
+    );
+  });
+
+  const cantidadPorEstado = {
+    activo: prestamosBuscados.filter((p) => p.estado === "activo").length,
+    atrasado: prestamosBuscados.filter((p) => diasSinDevolver(p) > 0).length,
+    cerrado: prestamosBuscados.filter((p) => p.estado === "cerrado").length,
+    todos: prestamosBuscados.length,
+  };
+
+  const prestamosVisibles = rangoInvalido
+    ? []
+    : prestamosBuscados
+        .filter((p) => {
+          if (filtroEstado === "todos") return true;
+          if (filtroEstado === "atrasado") return diasSinDevolver(p) > 0;
+          return p.estado === filtroEstado;
+        })
+        .sort((a, b) => {
+          const sentido = orden.direccion === "asc" ? 1 : -1;
+
+          if (orden.campo === "cliente" || orden.campo === "estado") {
+            const porColumna =
+              orden.campo === "cliente"
+                ? normalizar(a.nombre).localeCompare(normalizar(b.nombre), "es")
+                : a.estado.localeCompare(b.estado);
+            if (porColumna !== 0) return porColumna * sentido;
+            // Empate: el más reciente primero.
+            return new Date(b.fecha_inicio) - new Date(a.fecha_inicio);
+          }
+
+          if (orden.campo === "juego") {
+            const porJuego = normalizar(a.juego?.titulo).localeCompare(
+              normalizar(b.juego?.titulo),
+              "es"
+            );
+            if (porJuego !== 0) return porJuego * sentido;
+            // Mismo juego: el más reciente primero.
+            return new Date(b.fecha_inicio) - new Date(a.fecha_inicio);
+          }
+
+          const porFecha = new Date(a.fecha_inicio) - new Date(b.fecha_inicio);
+          return (porFecha !== 0 ? porFecha : a.id - b.id) * sentido;
+        });
+
+  const etiquetaEstado =
+    filtroEstado === "activo" ? "activos" : filtroEstado === "cerrado" ? "cerrados" : "registrados";
 
   function cambiar(campo, valor) {
     setForm((anterior) => ({ ...anterior, [campo]: valor }));
@@ -292,12 +390,70 @@ function Prestamos() {
         </Modal>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <h2>Préstamos {verCerrados ? "registrados" : "activos"}</h2>
-        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14 }}>
-          <input type="checkbox" checked={verCerrados} onChange={(e) => setVerCerrados(e.target.checked)} />
-          Mostrar también los cerrados
-        </label>
+      <div className="prestamos-cabecera">
+        <h2>Préstamos</h2>
+        <button
+          type="button"
+          className="boton boton-secundario"
+          style={{ width: "auto" }}
+          disabled={prestamosVisibles.length === 0}
+          onClick={() =>
+            descargarCsv("prestamos", [
+              ENCABEZADO_CSV_PRESTAMOS,
+              ...prestamosVisibles.map((p) =>
+                filaCsvPrestamo({
+                  retirado: p.fecha_inicio,
+                  juego: p.juego?.titulo,
+                  nombre: p.nombre,
+                  dni: p.dni,
+                  email: p.email,
+                  telefono: p.telefono,
+                  estado: p.estado,
+                  cierre: p.fecha_cierre,
+                  atraso: diasSinDevolver(p),
+                })
+              ),
+            ])
+          }
+        >
+          Descargar CSV
+        </button>
+      </div>
+
+      <div className="prestamos-filtros">
+        <div className="mensajes-filtros" role="group" aria-label="Filtrar por estado">
+          {FILTROS_ESTADO.map((f) => (
+            <button
+              key={f.valor}
+              type="button"
+              className={`filtro-boton ${filtroEstado === f.valor ? "activo" : ""}`}
+              aria-pressed={filtroEstado === f.valor}
+              onClick={() => setFiltroEstado(f.valor)}
+            >
+              {f.texto} ({cantidadPorEstado[f.valor]})
+            </button>
+          ))}
+        </div>
+
+        <div className="prestamos-busqueda">
+          <label htmlFor="prestamos-buscar" className="solo-lectores">
+            Buscar préstamos por DNI, juego o nombre
+          </label>
+          <input
+            id="prestamos-buscar"
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por DNI, juego o nombre..."
+          />
+        </div>
+
+        <FiltroFechas
+          desde={desde}
+          hasta={hasta}
+          onDesde={setDesde}
+          onHasta={setHasta}
+        />
       </div>
 
       {cargando ? (
@@ -313,23 +469,55 @@ function Prestamos() {
           </button>
         </div>
       ) : prestamosVisibles.length === 0 ? (
-        <p>No hay préstamos {verCerrados ? "registrados" : "activos"}.</p>
+        <p>
+          {rangoInvalido
+            ? "La fecha «Desde» no puede ser posterior a «Hasta»."
+            : `No hay préstamos ${etiquetaEstado}${
+                termino ? ` que coincidan con "${busqueda.trim()}"` : ""
+              }${desde || hasta ? " en ese rango de fechas" : ""}.`}
+        </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table className="tabla">
             <caption className="solo-lectores">Lista de préstamos</caption>
             <thead>
               <tr>
-                {["Juego", "Nombre y apellido", "DNI", "E-mail", "Teléfono", "Sexo", "Estado", "Acciones"].map((t) => (
+                <ThOrdenable
+                  etiqueta="Retirado"
+                  campo="fecha"
+                  orden={orden}
+                  onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
+                />
+                <ThOrdenable
+                  etiqueta="Juego"
+                  campo="juego"
+                  orden={orden}
+                  onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
+                />
+                <ThOrdenable
+                  etiqueta="Nombre y apellido"
+                  campo="cliente"
+                  orden={orden}
+                  onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
+                />
+                {["DNI", "E-mail", "Teléfono", "Sexo"].map((t) => (
                   <th key={t} scope="col">
                     {t}
                   </th>
                 ))}
+                <ThOrdenable
+                  etiqueta="Estado"
+                  campo="estado"
+                  orden={orden}
+                  onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
+                />
+                <th scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {prestamosVisibles.map((p) => (
-                <tr key={p.id}>
+                <tr key={p.id} className={diasSinDevolver(p) > 0 ? "fila-atrasada" : undefined}>
+                  <td>{fechaHoraArgentina(p.fecha_inicio)}</td>
                   <td>{p.juego.titulo}</td>
                   <td>{p.nombre}</td>
                   <td>{p.dni}</td>
@@ -340,6 +528,11 @@ function Prestamos() {
                     {p.estado === "activo"
                       ? "Activo"
                       : `Cerrado (${new Date(p.fecha_cierre).toLocaleDateString("es-AR")})`}
+                    {diasSinDevolver(p) > 0 && (
+                      <span className="badge-atraso" title="Se retiró antes de hoy y sigue sin devolverse">
+                        Sin devolver · {textoDiasSinDevolver(diasSinDevolver(p))}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {p.estado === "activo" ? (

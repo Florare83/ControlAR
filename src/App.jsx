@@ -25,6 +25,7 @@ import Eventos from "./pages/Eventos.jsx";
 import MisCompras from "./pages/MisCompras.jsx";
 import Ventas from "./pages/Ventas.jsx";
 import PanelResumen from "./pages/PanelResumen.jsx";
+import Reportes from "./pages/Reportes.jsx";
 import Mensajes from "./pages/Mensajes.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import CompraResultado from "./pages/CompraResultado.jsx";
@@ -191,6 +192,11 @@ function App() {
                 <Route
                   path="historial"
                   element={<HistorialPrestamos />}
+                />
+
+                <Route
+                  path="reportes"
+                  element={<Reportes />}
                 />
 
                 <Route

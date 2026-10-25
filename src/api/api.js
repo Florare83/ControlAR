@@ -177,13 +177,32 @@ export const reabrirPrestamo = (id) =>
 export const listarHistorialPrestamos = ({
   buscar = "",
   estado = "",
+  atrasados = false, // solo préstamos activos retirados antes de hoy
+  desde = "", // AAAA-MM-DD, fecha de retiro
+  hasta = "", // AAAA-MM-DD, incluida
+  ordenar = "fecha", // "fecha" (fecha y hora de retiro) | "juego" | "cliente" | "estado"
+  direccion = "desc", // "asc" | "desc"
   limite = 20,
   desplazamiento = 0,
 } = {}) => {
   const parametros = new URLSearchParams({ limite, desplazamiento });
   if (buscar.trim()) parametros.set("buscar", buscar.trim());
   if (estado) parametros.set("estado", estado);
+  if (atrasados) parametros.set("atrasados", "true");
+  if (desde) parametros.set("desde", desde);
+  if (hasta) parametros.set("hasta", hasta);
+  parametros.set("ordenar", ordenar);
+  parametros.set("direccion", direccion);
   return pedir(`/prestamos/historial?${parametros}`);
+};
+
+// Estadísticas de préstamos (solo administrador).
+export const obtenerReportePrestamos = ({ desde = "", hasta = "" } = {}) => {
+  const parametros = new URLSearchParams();
+  if (desde) parametros.set("desde", desde);
+  if (hasta) parametros.set("hasta", hasta);
+  const consulta = parametros.toString();
+  return pedir(`/reportes/prestamos${consulta ? `?${consulta}` : ""}`);
 };
 
 export const historialPrestamosDePersona = ({ dni = "", email = "" } = {}) => {

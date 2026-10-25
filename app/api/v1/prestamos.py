@@ -3,7 +3,7 @@
 
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -89,6 +89,9 @@ def _registrar_error_integridad(operacion: str, error: IntegrityError):
         getattr(diagnostico, "message_primary", None),
     )
 
+
+# Argentina no usa horario de verano: las fechas del filtro se leen en UTC-3.
+ZONA_ARGENTINA = timezone(timedelta(hours=-3))
 
 # Tiempo máximo para deshacer una devolución registrada por error.
 VENTANA_REAPERTURA = timedelta(hours=48)
@@ -190,17 +193,41 @@ def _fila_historial(p: Prestamo) -> dict:
 
 
 # Historial para el administrador (las rutas fijas van antes que las de "/{prestamo_id}/...").
+def _inicio_de_hoy_utc() -> datetime:
+    """Comienzo del día de hoy en Argentina, expresado en UTC (como se guarda en la base)."""
+    hoy = datetime.now(ZONA_ARGENTINA).date()
+    return datetime.combine(hoy, time.min, tzinfo=ZONA_ARGENTINA).astimezone(timezone.utc)
+
+
 @router.get("/historial")
 def historial_prestamos(
     buscar: str = Query("", max_length=100),
     estado: Literal["activo", "cerrado"] | None = None,
+    atrasados: bool = False,
+    desde: date | None = None,
+    hasta: date | None = None,
+    ordenar: Literal["fecha", "juego", "cliente", "estado"] = "fecha",
+    direccion: Literal["asc", "desc"] = "desc",
     limite: int = Query(20, ge=1, le=100),
     desplazamiento: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Historial completo de préstamos, con búsqueda por nombre, DNI, email o juego."""
+    """Historial completo de préstamos, con búsqueda por nombre, DNI, email o juego,
+    filtro por fecha de retiro (desde / hasta, ambas inclusive) y orden por fecha y
+    hora de retiro, juego, cliente o estado.
 
-    consulta = db.query(Prestamo).options(joinedload(Prestamo.juego))
+    "atrasados" muestra los préstamos que siguen activos pero se retiraron antes de
+    hoy: como los juegos solo se prestan durante el evento, casi seguro quedó sin
+    registrar la devolución (o el juego no volvió)."""
+
+    if desde and hasta and desde > hasta:
+        raise HTTPException(
+            status_code=422,
+            detail="La fecha «Desde» no puede ser posterior a «Hasta»",
+        )
+
+    # Filtros comunes (búsqueda y fechas): también sirven para los contadores.
+    filtros = []
 
     termino = buscar.strip()
     if termino:
@@ -217,20 +244,79 @@ def historial_prestamos(
         if solo_digitos.isdigit():
             condiciones.append(Prestamo.dni.ilike(f"%{solo_digitos}%"))
 
-        consulta = consulta.filter(or_(*condiciones))
+        filtros.append(or_(*condiciones))
 
-    if estado:
+    # Fecha de retiro, en horario argentino (el "hasta" incluye todo ese día).
+    if desde:
+        inicio = datetime.combine(desde, time.min, tzinfo=ZONA_ARGENTINA)
+        filtros.append(Prestamo.fecha_inicio >= inicio.astimezone(timezone.utc))
+    if hasta:
+        fin = datetime.combine(hasta + timedelta(days=1), time.min, tzinfo=ZONA_ARGENTINA)
+        filtros.append(Prestamo.fecha_inicio < fin.astimezone(timezone.utc))
+
+    # Cantidades por estado para la búsqueda y fechas actuales (sin aplicar el filtro
+    # de estado), así los botones "Activos (n)", "Cerrados (n)" y "Sin devolver (n)"
+    # siempre coinciden con lo que se busca.
+    por_estado = dict(
+        db.query(Prestamo.estado, func.count(Prestamo.id))
+        .filter(*filtros)
+        .group_by(Prestamo.estado)
+        .all()
+    )
+    hoy_utc = _inicio_de_hoy_utc()
+    cantidad_atrasados = (
+        db.query(func.count(Prestamo.id))
+        .filter(*filtros, Prestamo.estado == ACTIVO, Prestamo.fecha_inicio < hoy_utc)
+        .scalar()
+        or 0
+    )
+    resumen = {
+        "activos": por_estado.get(ACTIVO, 0),
+        "cerrados": por_estado.get(CERRADO, 0),
+        "atrasados": cantidad_atrasados,
+    }
+    resumen["total"] = resumen["activos"] + resumen["cerrados"]
+
+    consulta = db.query(Prestamo).options(joinedload(Prestamo.juego)).filter(*filtros)
+
+    if atrasados:
+        consulta = consulta.filter(
+            Prestamo.estado == ACTIVO, Prestamo.fecha_inicio < hoy_utc
+        )
+    elif estado:
         consulta = consulta.filter(Prestamo.estado == estado)
+
+    # Orden. Ante empates, el más reciente primero.
+    def _sentido(columna):
+        return columna.asc() if direccion == "asc" else columna.desc()
+
+    if ordenar == "juego":
+        principal = func.lower(func.coalesce(Prestamo.titulo_juego, ""))
+    elif ordenar == "cliente":
+        principal = func.lower(func.coalesce(Prestamo.nombre, ""))
+    elif ordenar == "estado":
+        principal = Prestamo.estado
+    else:
+        principal = None
+
+    if principal is not None:
+        orden = [_sentido(principal), Prestamo.fecha_inicio.desc(), Prestamo.id.desc()]
+    else:
+        orden = [_sentido(Prestamo.fecha_inicio), _sentido(Prestamo.id)]
 
     total = consulta.count()
     prestamos = (
-        consulta.order_by(Prestamo.fecha_inicio.desc(), Prestamo.id.desc())
+        consulta.order_by(*orden)
         .offset(desplazamiento)
         .limit(limite)
         .all()
     )
 
-    return {"items": [_fila_historial(p) for p in prestamos], "total": total}
+    return {
+        "items": [_fila_historial(p) for p in prestamos],
+        "total": total,
+        "resumen": resumen,
+    }
 
 
 @router.get("/historial/persona")

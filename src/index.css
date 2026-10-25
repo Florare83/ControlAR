@@ -3756,3 +3756,238 @@ body.oscuro .prestamo-estado.cancelado {
 .toast > span:first-child {
   flex: 1;
 }
+
+
+/* Mis compras: acciones de la cabecera y resumen de productos */
+.compra-cabecera-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compra-resumen {
+  margin: 8px 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+
+/* Préstamos: filtro de estado y búsqueda */
+.prestamos-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+
+.prestamos-filtros .mensajes-filtros {
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.prestamos-busqueda {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.prestamos-busqueda input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14.5px;
+}
+
+
+/* Filtro por rango de fechas (Desde / Hasta) */
+.filtro-fechas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.filtro-fechas legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.filtro-fechas-campo {
+  display: grid;
+  gap: 2px;
+}
+
+.filtro-fechas-campo label {
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+.filtro-fechas-campo input {
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14px;
+}
+
+.filtro-fechas-limpiar {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--azul-marino);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+body.oscuro .filtro-fechas-limpiar {
+  color: inherit;
+}
+
+
+/* Encabezados de tabla ordenables */
+.th-ordenable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.th-ordenable:hover,
+.th-ordenable.activo {
+  text-decoration: underline;
+}
+
+.th-ordenable-flecha {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.th-ordenable.activo .th-ordenable-flecha {
+  opacity: 1;
+}
+
+
+/* Préstamos sin devolver de días anteriores */
+.fila-atrasada {
+  background: rgba(179, 38, 30, 0.08);
+}
+
+.badge-atraso {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #b3261e;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.prestamos-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.prestamos-cabecera h2 {
+  margin: 0;
+}
+
+
+/* Reportes */
+.reporte-seccion {
+  margin-top: 20px;
+}
+
+.reporte-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.reporte-lista li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(80px, 2fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.reporte-nombre {
+  overflow-wrap: anywhere;
+}
+
+.reporte-valor {
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.reporte-barra {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--borde);
+  overflow: hidden;
+}
+
+.reporte-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--azul-marino);
+}
+
+body.oscuro .reporte-barra span {
+  background: #8fa3ff;
+}
+
+.reporte-celda-barra {
+  display: grid;
+  grid-template-columns: 2ch minmax(60px, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+}
+
+.prestamos-resumen .reporte-alerta dd {
+  color: #b3261e;
+}
+
+body.oscuro .prestamos-resumen .reporte-alerta dd {
+  color: #ff8a80;
+}
+
+@media (max-width: 640px) {
+  .reporte-lista li {
+    grid-template-columns: 1fr auto;
+  }
+
+  .reporte-lista .reporte-barra {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}

@@ -12,7 +12,8 @@ function PanelResumen() {
         <h2>Próximamente</h2>
         <p>Resumen de préstamos activos, juegos más pedidos y stock de la tienda.</p>
         <p>
-          Mientras tanto: <Link to="/panel/prestamos">gestionar préstamos</Link> o{" "}
+          Mientras tanto: <Link to="/panel/reportes">ver los reportes</Link>,{" "}
+          <Link to="/panel/prestamos">gestionar préstamos</Link> o{" "}
           <Link to="/panel/juegos">administrar el catálogo de juegos</Link>.
         </p>
       </div>

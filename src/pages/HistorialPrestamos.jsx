@@ -4,6 +4,16 @@ import {
   historialPrestamosDePersona,
   listarHistorialPrestamos,
 } from "../api/api.js";
+import FiltroFechas from "../components/FiltroFechas.jsx";
+import ThOrdenable, { siguienteOrden } from "../components/ThOrdenable.jsx";
+import {
+  ENCABEZADO_CSV_PRESTAMOS,
+  descargarCsv,
+  diasSinDevolver,
+  fechaHoraArgentina,
+  filaCsvPrestamo,
+  textoDiasSinDevolver,
+} from "../utils/prestamos.js";
 
 const POR_PAGINA = 20;
 
@@ -27,7 +37,12 @@ function EstadoPrestamo({ prestamo }) {
       </span>
       {!activo && (
         <small className="historial-fecha-cierre">
-          {fechaArgentina(prestamo.fecha_cierre)}
+          {fechaHoraArgentina(prestamo.fecha_cierre)}
+        </small>
+      )}
+      {diasSinDevolver(prestamo) > 0 && (
+        <small className="badge-atraso" title="Se retiró antes de hoy y sigue sin devolverse">
+          Sin devolver · {textoDiasSinDevolver(diasSinDevolver(prestamo))}
         </small>
       )}
     </>
@@ -50,9 +65,16 @@ function HistorialPrestamos() {
 function HistorialGeneral() {
   const [texto, setTexto] = useState("");
   const [buscar, setBuscar] = useState(""); // texto ya "asentado" (con retardo al escribir)
-  const [estado, setEstado] = useState(""); // "" | "activo" | "cerrado"
+  const [estado, setEstado] = useState(""); // "" | "activo" | "atrasado" | "cerrado"
+  const [desde, setDesde] = useState(""); // fecha de retiro, AAAA-MM-DD
+  const [hasta, setHasta] = useState("");
+  const [orden, setOrden] = useState({ campo: "fecha", direccion: "desc" });
+  const [exportando, setExportando] = useState(false);
+  const [errorExportar, setErrorExportar] = useState("");
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
+  // Cantidades por estado para la búsqueda actual: { activos, cerrados, total }.
+  const [resumen, setResumen] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [error, setError] = useState("");
@@ -63,24 +85,41 @@ function HistorialGeneral() {
     return () => clearTimeout(espera);
   }, [texto]);
 
+  // "Sin devolver" es un filtro de la API aparte: préstamos activos de días anteriores.
+  const consultaApi = {
+    buscar,
+    estado: estado === "atrasado" ? "activo" : estado,
+    atrasados: estado === "atrasado",
+    desde,
+    hasta,
+    ordenar: orden.campo,
+    direccion: orden.direccion,
+  };
+
   const cargar = useCallback(async (vigente) => {
     setError("");
     setCargando(true);
     try {
       const datos = await listarHistorialPrestamos({
         buscar,
-        estado,
+        estado: estado === "atrasado" ? "activo" : estado,
+        atrasados: estado === "atrasado",
+        desde,
+        hasta,
+        ordenar: orden.campo,
+        direccion: orden.direccion,
         limite: POR_PAGINA,
       });
       if (!vigente.activo) return;
       setItems(datos.items);
       setTotal(datos.total);
+      setResumen(datos.resumen ?? null);
     } catch (e) {
       if (vigente.activo) setError(e.message);
     } finally {
       if (vigente.activo) setCargando(false);
     }
-  }, [buscar, estado]);
+  }, [buscar, estado, desde, hasta, orden]);
 
   useEffect(() => {
     const vigente = { activo: true };
@@ -90,17 +129,62 @@ function HistorialGeneral() {
     };
   }, [cargar]);
 
+  // Descarga TODO lo que coincide con los filtros (no solo la página en pantalla).
+  async function exportar() {
+    setExportando(true);
+    setErrorExportar("");
+
+    try {
+      const todos = [];
+      let desplazamiento = 0;
+      let totalRemoto = Infinity;
+
+      while (desplazamiento < totalRemoto) {
+        const datos = await listarHistorialPrestamos({
+          ...consultaApi,
+          limite: 100,
+          desplazamiento,
+        });
+        if (datos.items.length === 0) break;
+        todos.push(...datos.items);
+        totalRemoto = datos.total;
+        desplazamiento += datos.items.length;
+      }
+
+      descargarCsv("historial-prestamos", [
+        ENCABEZADO_CSV_PRESTAMOS,
+        ...todos.map((p) =>
+          filaCsvPrestamo({
+            retirado: p.fecha_inicio,
+            juego: p.titulo_juego,
+            nombre: p.nombre,
+            dni: p.dni,
+            email: p.email,
+            telefono: p.telefono,
+            estado: p.estado,
+            cierre: p.fecha_cierre,
+            atraso: diasSinDevolver(p),
+          })
+        ),
+      ]);
+    } catch (e) {
+      setErrorExportar(e.message || "No se pudo descargar el historial.");
+    } finally {
+      setExportando(false);
+    }
+  }
+
   async function verMas() {
     setCargandoMas(true);
     try {
       const datos = await listarHistorialPrestamos({
-        buscar,
-        estado,
+        ...consultaApi,
         limite: POR_PAGINA,
         desplazamiento: items.length,
       });
       setItems((actuales) => [...actuales, ...datos.items]);
       setTotal(datos.total);
+      setResumen(datos.resumen ?? null);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -113,7 +197,7 @@ function HistorialGeneral() {
       <h1>Historial de préstamos</h1>
       <p className="subtitulo">
         Todos los préstamos registrados, del más reciente al más antiguo.
-        Buscá por nombre, DNI, email o juego.
+        Buscá por DNI, juego, nombre o email.
       </p>
 
       <div className="historial-herramientas">
@@ -124,7 +208,7 @@ function HistorialGeneral() {
             type="search"
             value={texto}
             maxLength={100}
-            placeholder="Nombre, DNI, email o juego"
+            placeholder="Buscar por DNI, juego, nombre o email..."
             autoComplete="off"
             onChange={(e) => setTexto(e.target.value)}
           />
@@ -132,10 +216,11 @@ function HistorialGeneral() {
 
         <div className="mensajes-filtros" role="group" aria-label="Filtrar por estado">
           {[
-            ["", "Todos"],
-            ["activo", "En préstamo"],
-            ["cerrado", "Devueltos"],
-          ].map(([valor, etiqueta]) => (
+            ["activo", "Activos", resumen?.activos],
+            ["atrasado", "Sin devolver", resumen?.atrasados],
+            ["cerrado", "Cerrados", resumen?.cerrados],
+            ["", "Todos", resumen?.total],
+          ].map(([valor, etiqueta, cantidad]) => (
             <button
               key={valor || "todos"}
               type="button"
@@ -144,10 +229,34 @@ function HistorialGeneral() {
               onClick={() => setEstado(valor)}
             >
               {etiqueta}
+              {cantidad !== undefined && ` (${cantidad})`}
             </button>
           ))}
         </div>
+
+        <FiltroFechas
+          desde={desde}
+          hasta={hasta}
+          onDesde={setDesde}
+          onHasta={setHasta}
+        />
+
+        <button
+          type="button"
+          className="boton boton-secundario"
+          style={{ width: "auto" }}
+          disabled={exportando || total === 0}
+          onClick={exportar}
+        >
+          {exportando ? "Preparando..." : "Descargar CSV"}
+        </button>
       </div>
+
+      {errorExportar && (
+        <p className="error" role="alert">
+          {errorExportar}
+        </p>
+      )}
 
       {cargando ? (
         <p className="cargando" role="status">
@@ -168,8 +277,18 @@ function HistorialGeneral() {
       ) : items.length === 0 ? (
         <div className="tarjeta">
           <p>
-            {buscar || estado
-              ? "No hay préstamos que coincidan con la búsqueda."
+            {buscar || estado || desde || hasta
+              ? `No hay préstamos${
+                  estado === "activo"
+                    ? " activos"
+                    : estado === "atrasado"
+                      ? " sin devolver"
+                      : estado === "cerrado"
+                        ? " cerrados"
+                        : ""
+                }${buscar ? ` que coincidan con "${buscar}"` : ""}${
+                  desde || hasta ? " en ese rango de fechas" : ""
+                }.`
               : "Todavía no hay préstamos registrados."}
           </p>
         </div>
@@ -180,19 +299,38 @@ function HistorialGeneral() {
               <caption className="solo-lectores">Historial de préstamos</caption>
               <thead>
                 <tr>
-                  {["Retirado", "Juego", "Cliente", "DNI", "Estado", "Historial"].map(
-                    (t) => (
-                      <th key={t} scope="col">
-                        {t}
-                      </th>
-                    )
-                  )}
+                  <ThOrdenable
+                    etiqueta="Retirado"
+                    campo="fecha"
+                    orden={orden}
+                    onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
+                  />
+                  <ThOrdenable
+                    etiqueta="Juego"
+                    campo="juego"
+                    orden={orden}
+                    onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
+                  />
+                  <ThOrdenable
+                    etiqueta="Cliente"
+                    campo="cliente"
+                    orden={orden}
+                    onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
+                  />
+                  <th scope="col">DNI</th>
+                  <ThOrdenable
+                    etiqueta="Estado"
+                    campo="estado"
+                    orden={orden}
+                    onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
+                  />
+                  <th scope="col">Historial</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((p) => (
-                  <tr key={p.id}>
-                    <td>{fechaArgentina(p.fecha_inicio)}</td>
+                  <tr key={p.id} className={diasSinDevolver(p) > 0 ? "fila-atrasada" : undefined}>
+                    <td>{fechaHoraArgentina(p.fecha_inicio)}</td>
                     <td>{p.titulo_juego}</td>
                     <td>
                       {p.nombre}
