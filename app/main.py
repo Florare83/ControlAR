@@ -16,6 +16,8 @@ from app.api.v1.pedidos import (
     router_pagos,
 )
 from app.api.v1.contacto import router as contacto_router
+from app.api.v1.eventos import router as eventos_router
+from app.api.v1.reservas import router as reservas_router
 
 from app.core.asegurar_esquema import asegurar_esquema
 
@@ -89,6 +91,10 @@ app.include_router(favoritos_router)
 # Compras y pagos
 app.include_router(pedidos_router)
 app.include_router(router_pagos)
+
+# Eventos del club y reservas de juegos para los eventos
+app.include_router(eventos_router)
+app.include_router(reservas_router)
 
 # Formulario de contacto y mensajes para administración
 app.include_router(contacto_router)
