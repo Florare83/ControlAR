@@ -4,7 +4,9 @@ import {
   listarMensajes,
   marcarMensaje,
   responderMensaje,
+  responderMensajeEnApp,
 } from "../api/api.js";
+import HiloMensajes from "../components/HiloMensajes.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
 const POR_PAGINA = 20;
@@ -38,6 +40,10 @@ function Mensajes() {
   const [asunto, setAsunto] = useState("");
   const [cuerpo, setCuerpo] = useState("");
   const [enviando, setEnviando] = useState(false);
+
+  // Respuesta dentro de la app (solo para clientes con cuenta): un mensaje a la vez.
+  const [respondiendoAppId, setRespondiendoAppId] = useState(null);
+  const [textoApp, setTextoApp] = useState("");
 
   const cargar = useCallback(async () => {
     setError("");
@@ -95,11 +101,54 @@ function Mensajes() {
     }
   }
 
+  function abrirRespuestaApp(mensaje) {
+    if (respondiendoAppId === mensaje.id) {
+      setRespondiendoAppId(null);
+      return;
+    }
+    setRespondiendoId(null);
+    setRespondiendoAppId(mensaje.id);
+    setTextoApp("");
+  }
+
+  // Aplica un mensaje actualizado a la lista y mantiene coherentes filtro y contadores.
+  function aplicarRespuesta(mensaje, actualizado) {
+    if (!mensaje.leido) {
+      setNoLeidos((n) => n - 1);
+      if (soloNoLeidos) setTotal((t) => t - 1);
+    }
+    setMensajes((actuales) =>
+      soloNoLeidos
+        ? actuales.filter((m) => m.id !== mensaje.id)
+        : actuales.map((m) => (m.id === mensaje.id ? actualizado : m))
+    );
+    avisarCambio();
+  }
+
+  async function enviarRespuestaApp(evento, mensaje) {
+    evento.preventDefault();
+    if (enviando || !textoApp.trim()) return;
+
+    setEnviando(true);
+    try {
+      const actualizado = await responderMensajeEnApp(mensaje.id, textoApp);
+      aplicarRespuesta(mensaje, actualizado);
+      setRespondiendoAppId(null);
+      setTextoApp("");
+      toast.exito(`Respuesta enviada a ${mensaje.nombre}. La verá en "Mis mensajes".`);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   function abrirRespuesta(mensaje) {
     if (respondiendoId === mensaje.id) {
       setRespondiendoId(null);
       return;
     }
+    setRespondiendoAppId(null);
     setRespondiendoId(mensaje.id);
     setAsunto("Re: Tu consulta en ControlAR");
     setCuerpo(`Hola ${mensaje.nombre},\n\n`);
@@ -162,7 +211,9 @@ function Mensajes() {
     <div>
       <h1>Mensajes de contacto</h1>
       <p className="subtitulo">
-        Consultas enviadas desde el formulario de contacto del sitio.
+        Consultas del formulario de contacto y mensajes de clientes con cuenta.
+        A los clientes con cuenta se les responde dentro de la app; a los
+        visitantes, por correo.
       </p>
 
       <div className="mensajes-filtros" role="group" aria-label="Filtrar mensajes">
@@ -212,6 +263,11 @@ function Mensajes() {
                     <h2>
                       {m.nombre} {m.apellido}
                       {!m.leido && <span className="etiqueta disponible">Nuevo</span>}
+                      {m.es_cliente && (
+                        <span className="etiqueta" title="Tiene cuenta: se le responde dentro de la app">
+                          Cliente con cuenta
+                        </span>
+                      )}
                       {m.respondido_en && (
                         <span className="etiqueta mensaje-respondido">Respondido</span>
                       )}
@@ -243,6 +299,53 @@ function Mensajes() {
                 </div>
 
                 <p className="mensaje-texto">{m.mensaje}</p>
+
+                {m.respuestas?.length > 0 && (
+                  <HiloMensajes
+                    mensajes={m.respuestas}
+                    yo="admin"
+                    nombreCliente={m.nombre}
+                  />
+                )}
+
+                {respondiendoAppId === m.id && (
+                  <form
+                    className="mensaje-responder"
+                    onSubmit={(e) => enviarRespuestaApp(e, m)}
+                  >
+                    <div className="campo">
+                      <label htmlFor={`app-${m.id}`}>
+                        Respuesta para {m.nombre} (la ve en "Mis mensajes")
+                      </label>
+                      <textarea
+                        id={`app-${m.id}`}
+                        rows={5}
+                        value={textoApp}
+                        maxLength={5000}
+                        required
+                        autoFocus
+                        onChange={(e) => setTextoApp(e.target.value)}
+                      />
+                    </div>
+                    <div className="mensaje-acciones">
+                      <button
+                        type="submit"
+                        className="boton"
+                        disabled={enviando || !textoApp.trim()}
+                      >
+                        {enviando ? "Enviando..." : "Enviar respuesta"}
+                      </button>
+                      <button
+                        type="button"
+                        className="boton boton-secundario"
+                        disabled={enviando}
+                        onClick={() => setRespondiendoAppId(null)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 {respondiendoId === m.id && (
                   <form
@@ -293,6 +396,16 @@ function Mensajes() {
                 )}
 
                 <div className="mensaje-acciones">
+                  {m.es_cliente && (
+                    <button
+                      type="button"
+                      className="boton"
+                      aria-expanded={respondiendoAppId === m.id}
+                      onClick={() => abrirRespuestaApp(m)}
+                    >
+                      Responder en la app
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="boton"

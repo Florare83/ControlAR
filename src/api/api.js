@@ -309,6 +309,33 @@ export const responderMensaje = (id, { asunto, cuerpo }) =>
 export const eliminarMensaje = (id) =>
   pedir(`/contacto/${id}`, { method: "DELETE" });
 
+// Respuesta interna del administrador: el cliente la ve en "Mis mensajes".
+export const responderMensajeEnApp = (id, cuerpo) =>
+  pedir(`/contacto/${id}/respuestas`, {
+    method: "POST",
+    body: JSON.stringify({ cuerpo }),
+  });
+
+// "Mis mensajes": conversaciones del cliente con el equipo
+export const listarMisMensajes = () => pedir("/contacto/mis-mensajes");
+
+export const contarMisMensajesSinLeer = () =>
+  pedir("/contacto/mis-mensajes/sin-leer");
+
+export const verMiConversacion = (id) => pedir(`/contacto/mis-mensajes/${id}`);
+
+export const iniciarConversacion = (mensaje) =>
+  pedir("/contacto/mis-mensajes", {
+    method: "POST",
+    body: JSON.stringify({ mensaje }),
+  });
+
+export const responderMiConversacion = (id, mensaje) =>
+  pedir(`/contacto/mis-mensajes/${id}/respuestas`, {
+    method: "POST",
+    body: JSON.stringify({ mensaje }),
+  });
+
 
 // ---------------------------------------------------------
 // ADMINISTRACIÓN DE USUARIOS

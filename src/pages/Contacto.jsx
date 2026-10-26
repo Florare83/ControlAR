@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { enviarContacto } from "../api/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import {
   LIMITES,
@@ -45,6 +47,7 @@ const VACIO = { nombre: "", apellido: "", telefono: "", email: "", mensaje: "" }
 
 function Contacto() {
   const toast = useToast();
+  const { rol } = useAuth();
   const [datos, setDatos] = useState(VACIO);
   const [errores, setErrores] = useState({});
   const [enviado, setEnviado] = useState(false);
@@ -121,6 +124,14 @@ function Contacto() {
       <div className="tarjeta tarjeta-central tarjeta-contacto">
       <h1 className="titulo-tarjeta">Contacto</h1>
       <p className="subtitulo">Escribinos y te respondemos a la brevedad.</p>
+
+      {rol === "cliente" && (
+        <p className="ayuda" role="note">
+          Iniciaste sesión: también podés escribirnos desde{" "}
+          <Link to="/mis-mensajes">Mis mensajes</Link> y ver nuestra respuesta
+          ahí mismo, sin esperar un correo.
+        </p>
+      )}
 
       {enviado && (
         <p style={{ color: "var(--exito, green)", fontWeight: 600 }} role="status">

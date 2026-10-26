@@ -27,6 +27,7 @@ import Ventas from "./pages/Ventas.jsx";
 import PanelResumen from "./pages/PanelResumen.jsx";
 import Reportes from "./pages/Reportes.jsx";
 import Mensajes from "./pages/Mensajes.jsx";
+import MisMensajes from "./pages/MisMensajes.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import CompraResultado from "./pages/CompraResultado.jsx";
 import GestionarUsuarios from "./pages/GestionarUsuarios.jsx";
@@ -90,6 +91,15 @@ function App() {
             element={
               <RutaProtegida roles={["cliente", "admin"]}>
                 <CompraResultado />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="/mis-mensajes"
+            element={
+              <RutaProtegida roles={["cliente", "admin"]}>
+                <MisMensajes />
               </RutaProtegida>
             }
           />

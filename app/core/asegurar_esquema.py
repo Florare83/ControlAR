@@ -26,7 +26,7 @@ from app.models.usuario import Usuario  # noqa: F401
 from app.models.prestamo import Prestamo  # noqa: F401
 from app.models.favorito import Favorito  # noqa: F401
 from app.models.pedido import Pedido, PedidoItem  # noqa: F401
-from app.models.mensaje import MensajeContacto  # noqa: F401
+from app.models.mensaje import MensajeContacto, RespuestaMensaje  # noqa: F401
 from app.models.evento import Evento  # noqa: F401
 from app.models.reserva import Reserva  # noqa: F401
 
