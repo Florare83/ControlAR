@@ -370,12 +370,9 @@ def entregar(
     if juego.en_prestamo:
         raise HTTPException(status_code=409, detail="Ese juego ya está en préstamo")
 
-    email = (reserva.usuario.email or "").strip().lower() or None
-
     prestamo = Prestamo(
         dni=datos.dni,
         nombre=datos.nombre or reserva.usuario.nombre,
-        email=email,
         sexo=datos.sexo,
         telefono=datos.telefono,
         juego_id=juego.id,

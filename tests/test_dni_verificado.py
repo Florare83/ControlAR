@@ -17,10 +17,10 @@ def _registrar(client, email, dni=None):
     return r.json(), {"Authorization": f"Bearer {login.json()['access_token']}"}
 
 
-def _prestar(client, headers_admin, juego, dni=DNI_ANA, email=None):
+def _prestar(client, headers_admin, juego, dni=DNI_ANA):
     r = client.post(
         "/prestamos/",
-        json={**DATOS_PRESTAMO, "dni": dni, "juego_id": juego.id, "email": email},
+        json={**DATOS_PRESTAMO, "dni": dni, "juego_id": juego.id},
         headers=headers_admin,
     )
     assert r.status_code == 201, r.text
@@ -64,12 +64,12 @@ def test_el_dni_es_opcional_en_la_api_y_se_valida_si_viene(client):
 
 # ------------------------------------------------------------------ el cruce
 
-def test_sin_verificar_no_se_ven_prestamos_ni_siquiera_con_el_mismo_email(
+def test_sin_verificar_no_se_ven_prestamos_aunque_se_use_el_dni_ajeno(
     client, admin, hacer_juego
 ):
-    """El ataque: alguien se registra con el DNI y el email de otra persona."""
+    """El ataque: alguien se registra escribiendo el DNI de otra persona."""
     _, h_admin = admin
-    _prestar(client, h_admin, hacer_juego("Catan"), email="ana@prueba.com")
+    _prestar(client, h_admin, hacer_juego("Catan"))
 
     _, h_intruso = _registrar(client, "ana@prueba.com", dni=DNI_ANA)
 
@@ -88,9 +88,9 @@ def test_verificado_el_dni_aparecen_solo_sus_prestamos(client, admin, hacer_jueg
     assert [p["titulo_juego"] for p in prestamos] == ["Catan"]
 
 
-def test_los_prestamos_viejos_sin_email_tambien_aparecen(client, admin, hacer_juego):
+def test_el_cruce_no_depende_del_email_del_prestamo(client, admin, hacer_juego):
     _, h_admin = admin
-    _prestar(client, h_admin, hacer_juego("Catan"), email=None)
+    _prestar(client, h_admin, hacer_juego("Catan"))
 
     usuario, h_ana = _registrar(client, "ana@prueba.com", dni=DNI_ANA)
     _verificar(client, h_admin, usuario["id"])

@@ -13,7 +13,7 @@ import { useEventos } from "../hooks/useEventos.js";
 // Imagen opcional del encabezado: se toma de src/img/club.(jpg, jpeg, png, webp o avif).
 // Si el archivo no existe, el encabezado se muestra sin imagen.
 const imagenesClub = import.meta.glob(
-  "../img/club.webp",
+  "../img/club.{jpg,jpeg,png,webp,avif}",
   { eager: true, import: "default" }
 );
 const imagenClub = Object.values(imagenesClub)[0];
@@ -79,6 +79,25 @@ const guia = [
         Sí, pero deben estar acompañados por un adulto responsable durante toda
         la tarde. No pueden quedar solos, sin excepción.
       </p>
+    ),
+  },
+  {
+    icono: "🎉",
+    pregunta: "¿Pueden contratarlos para un evento o festejo?",
+    contenido: (
+      <>
+        <p>
+          Sí. Además de nuestras juntadas, podés contratarnos para que tu propio
+          encuentro tenga una tarde de juegos de mesa: cumpleaños, festejos
+          entre amigos o en familia, after office, reuniones de equipo y mucho
+          más.
+        </p>
+        <p>
+          <Link to="/contacto">Escribinos</Link> contándonos qué querés
+          celebrar, la fecha, el lugar y cuántas personas serían, y coordinamos
+          los detalles juntos.
+        </p>
+      </>
     ),
   },
 ];

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   listarJuegos,
-  listarPrestamos,
+  listarHistorialPrestamos,
   registrarPrestamo,
   buscarPersonaPorDni,
   cambiarJuegoPrestamo,
@@ -17,12 +17,14 @@ import ThOrdenable, { siguienteOrden } from "../components/ThOrdenable.jsx";
 import {
   ENCABEZADO_CSV_PRESTAMOS,
   descargarCsv,
-  diaArgentina,
   diasSinDevolver,
   fechaHoraArgentina,
   filaCsvPrestamo,
   textoDiasSinDevolver,
 } from "../utils/prestamos.js";
+
+// Cuántos préstamos se piden por vez (el resto se trae con "Ver más").
+const POR_PAGINA = 20;
 
 // Una devolución se puede deshacer hasta 48 horas después (lo valida la API).
 const VENTANA_DESHACER_MS = 48 * 60 * 60 * 1000;
@@ -32,15 +34,6 @@ function sePuedeDeshacer(prestamo) {
   return Date.now() - new Date(prestamo.fecha_cierre).getTime() <= VENTANA_DESHACER_MS;
 }
 
-// Sin tildes ni mayúsculas, para que "carcasone" encuentre "Carcassonne" y "Peña" a "pena".
-function normalizar(texto) {
-  return String(texto ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
 const FILTROS_ESTADO = [
   { valor: "activo", texto: "Activos" },
   { valor: "atrasado", texto: "Sin devolver" },
@@ -48,9 +41,33 @@ const FILTROS_ESTADO = [
   { valor: "todos", texto: "Todos" },
 ];
 
-const FORMULARIO_PERSONA = { dni: "", nombre: "", email: "", sexo: "Femenino", telefono: "" };
+const FORMULARIO_PERSONA = { dni: "", nombre: "", sexo: "Femenino", telefono: "" };
 
-const FORMULARIO_VACIO = { juego_id: "", dni: "", nombre: "", email: "", sexo: "Femenino", telefono: "" };
+const FORMULARIO_VACIO = { juego_id: "", dni: "", nombre: "", sexo: "Femenino", telefono: "" };
+
+// En pantalla el sexo se muestra abreviado (F / M); la API sigue guardando "Femenino" / "Masculino".
+function abreviarSexo(sexo) {
+  if (sexo === "Femenino") return "F";
+  if (sexo === "Masculino") return "M";
+  return sexo || "—";
+}
+
+function tituloDe(prestamo) {
+  return prestamo.titulo_juego || prestamo.juego?.titulo || "Juego no disponible";
+}
+
+// Parámetros que se le mandan a la API según los filtros elegidos en pantalla.
+function consultaDe({ buscar, filtroEstado, desde, hasta, orden }) {
+  return {
+    buscar,
+    estado: filtroEstado === "atrasado" ? "activo" : filtroEstado === "todos" ? "" : filtroEstado,
+    atrasados: filtroEstado === "atrasado", // activos retirados antes de hoy
+    desde,
+    hasta,
+    ordenar: orden.campo,
+    direccion: orden.direccion,
+  };
+}
 
 // Gestión de préstamos (administrador). Se muestra dentro del PanelLayout.
 // Reglas (las valida la API): una persona tiene un solo préstamo activo a la vez,
@@ -59,16 +76,22 @@ function Prestamos() {
   const toast = useToast();
   const [juegos, setJuegos] = useState([]);
   const [prestamos, setPrestamos] = useState([]);
+  const [total, setTotal] = useState(0);
+  // Cantidades por estado para la búsqueda y fechas actuales: { activos, atrasados, cerrados, total }.
+  const [resumen, setResumen] = useState(null);
   const [form, setForm] = useState(FORMULARIO_VACIO);
   const [cargando, setCargando] = useState(true);
+  const [cargandoMas, setCargandoMas] = useState(false);
+  const [exportando, setExportando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [formAbierto, setFormAbierto] = useState(false);
   const [errorCarga, setErrorCarga] = useState("");
   const [errorForm, setErrorForm] = useState("");
   const [mensajeBusqueda, setMensajeBusqueda] = useState("");
   const [buscandoPersona, setBuscandoPersona] = useState(false);
-  const [filtroEstado, setFiltroEstado] = useState("activo"); // activo | cerrado | todos
-  const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("activo"); // activo | atrasado | cerrado | todos
+  const [texto, setTexto] = useState(""); // lo que se está escribiendo en el buscador
+  const [buscar, setBuscar] = useState(""); // el texto ya "asentado" (con retardo al escribir)
   const [desde, setDesde] = useState(""); // fecha de retiro, AAAA-MM-DD
   const [hasta, setHasta] = useState("");
   const [orden, setOrden] = useState({ campo: "fecha", direccion: "desc" });
@@ -81,94 +104,149 @@ function Prestamos() {
   const [errorEdicion, setErrorEdicion] = useState("");
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
-  async function cargar() {
-    setErrorCarga("");
+  const rangoInvalido = Boolean(desde && hasta && desde > hasta);
+
+  // Espera un momento después de la última tecla para no consultar en cada letra.
+  useEffect(() => {
+    const espera = setTimeout(() => setBuscar(texto.trim()), 350);
+    return () => clearTimeout(espera);
+  }, [texto]);
+
+  const cargarJuegos = useCallback(async () => {
     try {
-      const [listaJuegos, listaPrestamos] = await Promise.all([listarJuegos(), listarPrestamos()]);
-      setJuegos(listaJuegos);
-      setPrestamos(listaPrestamos);
+      setJuegos(await listarJuegos());
     } catch (e) {
       setErrorCarga(e.message);
-    } finally {
+    }
+  }, []);
+
+  // Trae los préstamos que coinciden con los filtros. Con "cantidad" se vuelve a pedir
+  // todo lo que ya estaba en pantalla (por ejemplo después de devolver un juego).
+  const cargarPrestamos = useCallback(
+    async (vigente, cantidad = POR_PAGINA) => {
+      setErrorCarga("");
+      try {
+        const datos = await listarHistorialPrestamos({
+          ...consultaDe({ buscar, filtroEstado, desde, hasta, orden }),
+          limite: Math.min(100, cantidad),
+        });
+        if (vigente && !vigente.activo) return;
+        setPrestamos(datos.items);
+        setTotal(datos.total);
+        setResumen(datos.resumen ?? null);
+      } catch (e) {
+        if (!vigente || vigente.activo) setErrorCarga(e.message);
+      } finally {
+        if (!vigente || vigente.activo) setCargando(false);
+      }
+    },
+    [buscar, filtroEstado, desde, hasta, orden]
+  );
+
+  useEffect(() => {
+    cargarJuegos();
+  }, [cargarJuegos]);
+
+  useEffect(() => {
+    if (rangoInvalido) {
       setCargando(false);
+      return undefined;
+    }
+    const vigente = { activo: true };
+    setCargando(true);
+    cargarPrestamos(vigente);
+    return () => {
+      vigente.activo = false;
+    };
+  }, [cargarPrestamos, rangoInvalido]);
+
+  // Después de una acción: refresca los juegos libres y los préstamos que se estaban viendo.
+  async function recargar() {
+    await Promise.all([
+      cargarJuegos(),
+      cargarPrestamos(null, Math.max(prestamos.length, POR_PAGINA)),
+    ]);
+  }
+
+  async function verMas() {
+    setCargandoMas(true);
+    try {
+      const datos = await listarHistorialPrestamos({
+        ...consultaDe({ buscar, filtroEstado, desde, hasta, orden }),
+        limite: POR_PAGINA,
+        desplazamiento: prestamos.length,
+      });
+      setPrestamos((actuales) => [...actuales, ...datos.items]);
+      setTotal(datos.total);
+      setResumen(datos.resumen ?? null);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setCargandoMas(false);
     }
   }
 
-  useEffect(() => {
-    cargar();
-  }, []);
+  // Descarga TODO lo que coincide con los filtros (no solo la página en pantalla).
+  async function exportar() {
+    setExportando(true);
+    try {
+      const todos = [];
+      let desplazamiento = 0;
+      let totalRemoto = Infinity;
+
+      while (desplazamiento < totalRemoto) {
+        const datos = await listarHistorialPrestamos({
+          ...consultaDe({ buscar, filtroEstado, desde, hasta, orden }),
+          limite: 100,
+          desplazamiento,
+        });
+        if (datos.items.length === 0) break;
+        todos.push(...datos.items);
+        totalRemoto = datos.total;
+        desplazamiento += datos.items.length;
+      }
+
+      descargarCsv("prestamos", [
+        ENCABEZADO_CSV_PRESTAMOS,
+        ...todos.map((p) =>
+          filaCsvPrestamo({
+            retirado: p.fecha_inicio,
+            juego: tituloDe(p),
+            nombre: p.nombre,
+            dni: p.dni,
+            telefono: p.telefono,
+            estado: p.estado,
+            cierre: p.fecha_cierre,
+            atraso: diasSinDevolver(p),
+          })
+        ),
+      ]);
+    } catch (e) {
+      toast.error(e.message || "No se pudo descargar el CSV.");
+    } finally {
+      setExportando(false);
+    }
+  }
 
   // Solo se puede prestar (o cambiar por) un juego de la ludoteca que no esté ya en préstamo.
   const juegosLibres = juegos.filter((j) => j.se_presta && !j.en_prestamo);
   const hayJuegosDeLudoteca = juegos.some((j) => j.se_presta);
 
-  const termino = normalizar(busqueda);
-  const dniBuscado = busqueda.replace(/[.\s]/g, ""); // permite escribir 12.345.678
-  const rangoInvalido = Boolean(desde && hasta && desde > hasta);
-
-  // Búsqueda y fechas (sin el estado): sobre esto se cuentan los botones.
-  const prestamosBuscados = prestamos.filter((p) => {
-    if (desde || hasta) {
-      const dia = diaArgentina(p.fecha_inicio);
-      if (desde && dia < desde) return false;
-      if (hasta && dia > hasta) return false;
-    }
-
-    if (!termino) return true;
-
-    const buscaDni = /^\d+$/.test(dniBuscado) ? dniBuscado : termino;
-
-    return (
-      String(p.dni ?? "").includes(buscaDni) ||
-      normalizar(p.juego?.titulo ?? p.titulo_juego).includes(termino) ||
-      normalizar(p.nombre).includes(termino)
-    );
-  });
-
   const cantidadPorEstado = {
-    activo: prestamosBuscados.filter((p) => p.estado === "activo").length,
-    atrasado: prestamosBuscados.filter((p) => diasSinDevolver(p) > 0).length,
-    cerrado: prestamosBuscados.filter((p) => p.estado === "cerrado").length,
-    todos: prestamosBuscados.length,
+    activo: resumen?.activos,
+    atrasado: resumen?.atrasados,
+    cerrado: resumen?.cerrados,
+    todos: resumen?.total,
   };
 
-  const prestamosVisibles = rangoInvalido
-    ? []
-    : prestamosBuscados
-        .filter((p) => {
-          if (filtroEstado === "todos") return true;
-          if (filtroEstado === "atrasado") return diasSinDevolver(p) > 0;
-          return p.estado === filtroEstado;
-        })
-        .sort((a, b) => {
-          const sentido = orden.direccion === "asc" ? 1 : -1;
-
-          if (orden.campo === "cliente" || orden.campo === "estado") {
-            const porColumna =
-              orden.campo === "cliente"
-                ? normalizar(a.nombre).localeCompare(normalizar(b.nombre), "es")
-                : a.estado.localeCompare(b.estado);
-            if (porColumna !== 0) return porColumna * sentido;
-            // Empate: el más reciente primero.
-            return new Date(b.fecha_inicio) - new Date(a.fecha_inicio);
-          }
-
-          if (orden.campo === "juego") {
-            const porJuego = normalizar(a.juego?.titulo).localeCompare(
-              normalizar(b.juego?.titulo),
-              "es"
-            );
-            if (porJuego !== 0) return porJuego * sentido;
-            // Mismo juego: el más reciente primero.
-            return new Date(b.fecha_inicio) - new Date(a.fecha_inicio);
-          }
-
-          const porFecha = new Date(a.fecha_inicio) - new Date(b.fecha_inicio);
-          return (porFecha !== 0 ? porFecha : a.id - b.id) * sentido;
-        });
-
   const etiquetaEstado =
-    filtroEstado === "activo" ? "activos" : filtroEstado === "cerrado" ? "cerrados" : "registrados";
+    filtroEstado === "activo"
+      ? "activos"
+      : filtroEstado === "atrasado"
+        ? "sin devolver"
+        : filtroEstado === "cerrado"
+          ? "cerrados"
+          : "registrados";
 
   function cambiar(campo, valor) {
     setForm((anterior) => ({ ...anterior, [campo]: valor }));
@@ -185,7 +263,6 @@ function Prestamos() {
         setForm((anterior) => ({
           ...anterior,
           nombre: persona.nombre || anterior.nombre,
-          email: persona.email || anterior.email,
           sexo: persona.sexo || anterior.sexo,
           telefono: persona.telefono || anterior.telefono,
         }));
@@ -209,7 +286,6 @@ function Prestamos() {
         juego_id: Number(form.juego_id),
         nombre: form.nombre.trim(),
         dni: form.dni.trim(),
-        email: form.email.trim() || null,
         sexo: form.sexo,
         telefono: form.telefono.trim(),
       });
@@ -217,7 +293,7 @@ function Prestamos() {
       setMensajeBusqueda("");
       setFormAbierto(false);
       toast.exito("Préstamo registrado.");
-      await cargar();
+      await recargar();
     } catch (err) {
       setErrorForm(err.message);
     } finally {
@@ -230,7 +306,6 @@ function Prestamos() {
     setFormEdicion({
       dni: prestamo.dni ?? "",
       nombre: prestamo.nombre ?? "",
-      email: prestamo.email ?? "",
       sexo: prestamo.sexo ?? "Femenino",
       telefono: prestamo.telefono ?? "",
     });
@@ -249,13 +324,12 @@ function Prestamos() {
       await editarPrestamo(editando.id, {
         dni: formEdicion.dni.trim(),
         nombre: formEdicion.nombre.trim(),
-        email: formEdicion.email.trim() || null,
         sexo: formEdicion.sexo,
         telefono: formEdicion.telefono.trim(),
       });
       setEditando(null);
       toast.exito("Préstamo actualizado.");
-      await cargar();
+      await recargar();
     } catch (err) {
       setErrorEdicion(err.message);
     } finally {
@@ -271,7 +345,7 @@ function Prestamos() {
       const actualizado = await cambiarJuegoPrestamo(prestamo.id, Number(elegido));
       setNuevoJuego((anterior) => ({ ...anterior, [prestamo.id]: "" }));
       toast.exito(`Juego cambiado a "${actualizado.juego.titulo}".`);
-      await cargar();
+      await recargar();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -283,8 +357,8 @@ function Prestamos() {
     setOcupado(prestamo.id);
     try {
       await reabrirPrestamo(prestamo.id);
-      toast.exito(`Devolución deshecha: "${prestamo.juego.titulo}" vuelve a estar prestado a ${prestamo.nombre}.`);
-      await cargar();
+      toast.exito(`Devolución deshecha: "${tituloDe(prestamo)}" vuelve a estar prestado a ${prestamo.nombre}.`);
+      await recargar();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -295,7 +369,7 @@ function Prestamos() {
   async function devolver(prestamo) {
     if (
       !window.confirm(
-        `¿Registrar la devolución de "${prestamo.juego.titulo}" de ${prestamo.nombre} (DNI ${prestamo.dni})?`
+        `¿Registrar la devolución de "${tituloDe(prestamo)}" de ${prestamo.nombre} (DNI ${prestamo.dni})?`
       )
     ) {
       return;
@@ -310,7 +384,7 @@ function Prestamos() {
           onClick: () => deshacerDevolucion(prestamo),
         },
       });
-      await cargar();
+      await recargar();
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -388,21 +462,10 @@ function Prestamos() {
             />
           </div>
           <div className="campo">
-            <label htmlFor="email">E-mail (opcional)</label>
-            <input
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => cambiar("email", e.target.value)}
-              maxLength={255}
-              autoComplete="email"
-            />
-          </div>
-          <div className="campo">
             <label htmlFor="sexo">Sexo</label>
             <select id="sexo" value={form.sexo} onChange={(e) => cambiar("sexo", e.target.value)} required>
-              <option value="Femenino">Femenino</option>
-              <option value="Masculino">Masculino</option>
+              <option value="Femenino">F</option>
+              <option value="Masculino">M</option>
             </select>
           </div>
           <div className="campo">
@@ -446,7 +509,7 @@ function Prestamos() {
         >
           <form className="formulario" onSubmit={guardarEdicion} aria-busy={guardandoEdicion}>
             <p className="subtitulo" style={{ marginTop: 0 }}>
-              Juego: <strong>{editando.juego?.titulo}</strong>. Para cambiarlo usá "Cambiar por..." en la
+              Juego: <strong>{tituloDe(editando)}</strong>. Para cambiarlo usá "Cambiar juego" en la
               lista.
             </p>
             <div className="campo">
@@ -477,17 +540,6 @@ function Prestamos() {
               />
             </div>
             <div className="campo">
-              <label htmlFor="editar-email">E-mail (opcional)</label>
-              <input
-                id="editar-email"
-                type="email"
-                value={formEdicion.email}
-                onChange={(e) => cambiarEdicion("email", e.target.value)}
-                maxLength={255}
-                autoComplete="off"
-              />
-            </div>
-            <div className="campo">
               <label htmlFor="editar-sexo">Sexo</label>
               <select
                 id="editar-sexo"
@@ -495,8 +547,8 @@ function Prestamos() {
                 onChange={(e) => cambiarEdicion("sexo", e.target.value)}
                 required
               >
-                <option value="Femenino">Femenino</option>
-                <option value="Masculino">Masculino</option>
+                <option value="Femenino">F</option>
+                <option value="Masculino">M</option>
               </select>
             </div>
             <div className="campo">
@@ -541,27 +593,10 @@ function Prestamos() {
           type="button"
           className="boton boton-secundario"
           style={{ width: "auto" }}
-          disabled={prestamosVisibles.length === 0}
-          onClick={() =>
-            descargarCsv("prestamos", [
-              ENCABEZADO_CSV_PRESTAMOS,
-              ...prestamosVisibles.map((p) =>
-                filaCsvPrestamo({
-                  retirado: p.fecha_inicio,
-                  juego: p.juego?.titulo,
-                  nombre: p.nombre,
-                  dni: p.dni,
-                  email: p.email,
-                  telefono: p.telefono,
-                  estado: p.estado,
-                  cierre: p.fecha_cierre,
-                  atraso: diasSinDevolver(p),
-                })
-              ),
-            ])
-          }
+          disabled={exportando || total === 0}
+          onClick={exportar}
         >
-          Descargar CSV
+          {exportando ? "Preparando..." : "Descargar CSV"}
         </button>
       </div>
 
@@ -573,7 +608,10 @@ function Prestamos() {
           onCambio={setFiltroEstado}
           opciones={FILTROS_ESTADO.map((f) => ({
             valor: f.valor,
-            texto: `${f.texto} (${cantidadPorEstado[f.valor]})`,
+            texto:
+              cantidadPorEstado[f.valor] !== undefined
+                ? `${f.texto} (${cantidadPorEstado[f.valor]})`
+                : f.texto,
           }))}
         />
 
@@ -584,8 +622,8 @@ function Prestamos() {
           <input
             id="prestamos-buscar"
             type="search"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
             placeholder="Buscar por DNI, juego o nombre..."
           />
         </div>
@@ -603,22 +641,31 @@ function Prestamos() {
           <span className="spinner" aria-hidden="true" />
           Cargando préstamos...
         </p>
+      ) : rangoInvalido ? (
+        <p>La fecha «Desde» no puede ser posterior a «Hasta».</p>
       ) : errorCarga ? (
         <div role="alert">
           <span className="error">{errorCarga}</span>
-          <button className="boton" style={{ width: "auto", marginTop: 12 }} onClick={cargar}>
+          <button
+            className="boton"
+            style={{ width: "auto", marginTop: 12 }}
+            onClick={() => {
+              setCargando(true);
+              cargarJuegos();
+              cargarPrestamos({ activo: true });
+            }}
+          >
             Reintentar
           </button>
         </div>
-      ) : prestamosVisibles.length === 0 ? (
+      ) : prestamos.length === 0 ? (
         <p>
-          {rangoInvalido
-            ? "La fecha «Desde» no puede ser posterior a «Hasta»."
-            : `No hay préstamos ${etiquetaEstado}${
-                termino ? ` que coincidan con "${busqueda.trim()}"` : ""
-              }${desde || hasta ? " en ese rango de fechas" : ""}.`}
+          {`No hay préstamos ${etiquetaEstado}${
+            buscar ? ` que coincidan con "${buscar}"` : ""
+          }${desde || hasta ? " en ese rango de fechas" : ""}.`}
         </p>
       ) : (
+        <>
         <div style={{ overflowX: "auto" }}>
           <table className="tabla">
             <caption className="solo-lectores">Lista de préstamos</caption>
@@ -642,7 +689,7 @@ function Prestamos() {
                   orden={orden}
                   onOrdenar={(c) => setOrden((o) => siguienteOrden(o, c))}
                 />
-                {["DNI", "E-mail", "Teléfono", "Sexo"].map((t) => (
+                {["DNI", "Teléfono", "Sexo"].map((t) => (
                   <th key={t} scope="col">
                     {t}
                   </th>
@@ -657,15 +704,14 @@ function Prestamos() {
               </tr>
             </thead>
             <tbody>
-              {prestamosVisibles.map((p) => (
+              {prestamos.map((p) => (
                 <tr key={p.id} className={diasSinDevolver(p) > 0 ? "fila-atrasada" : undefined}>
                   <td>{fechaHoraArgentina(p.fecha_inicio)}</td>
-                  <td>{p.juego.titulo}</td>
+                  <td>{tituloDe(p)}</td>
                   <td>{p.nombre}</td>
                   <td>{p.dni}</td>
-                  <td>{p.email || "—"}</td>
                   <td>{p.telefono}</td>
-                  <td>{p.sexo}</td>
+                  <td>{abreviarSexo(p.sexo)}</td>
                   <td>
                     {p.estado === "activo"
                       ? "Activo"
@@ -677,65 +723,71 @@ function Prestamos() {
                     )}
                   </td>
                   <td>
-                    <div className="acciones-fila">
-                      {p.estado === "activo" ? (
-                        <>
-                        <select
-                          aria-label={`Nuevo juego para ${p.nombre}`}
-                          value={nuevoJuego[p.id] ?? ""}
-                          onChange={(e) => setNuevoJuego((a) => ({ ...a, [p.id]: e.target.value }))}
-                        >
-                          <option value="">Cambiar por...</option>
-                          {juegosLibres.map((j) => (
-                            <option key={j.id} value={j.id}>
-                              {j.titulo}
-                            </option>
-                          ))}
-                        </select>
+                    <div className="acciones-prestamo">
+                      {p.estado === "activo" && (
+                        <div className="acciones-prestamo-cambiar">
+                          <select
+                            aria-label={`Nuevo juego para ${p.nombre}`}
+                            value={nuevoJuego[p.id] ?? ""}
+                            onChange={(e) => setNuevoJuego((a) => ({ ...a, [p.id]: e.target.value }))}
+                          >
+                            <option value="">Elegir otro juego...</option>
+                            {juegosLibres.map((j) => (
+                              <option key={j.id} value={j.id}>
+                                {j.titulo}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="boton boton-chico"
+                            disabled={!nuevoJuego[p.id] || ocupado === p.id}
+                            onClick={() => cambiarJuego(p)}
+                          >
+                            Cambiar juego
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="acciones-prestamo-botones">
+                        {p.estado === "activo" && (
+                          <button
+                            type="button"
+                            className="boton boton-chico"
+                            disabled={ocupado === p.id}
+                            onClick={() => devolver(p)}
+                          >
+                            Devolver
+                          </button>
+                        )}
+                        {p.estado !== "activo" && sePuedeDeshacer(p) && (
+                          <button
+                            type="button"
+                            className="boton boton-secundario boton-chico"
+                            disabled={ocupado === p.id}
+                            title="Solo disponible hasta 48 horas después de la devolución"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `¿Deshacer la devolución de "${tituloDe(p)}"? Vuelve a figurar prestado a ${p.nombre}.`
+                                )
+                              ) {
+                                deshacerDevolucion(p);
+                              }
+                            }}
+                          >
+                            Deshacer devolución
+                          </button>
+                        )}
                         <button
-                          className="boton"
-                          style={{ width: "auto" }}
-                          disabled={!nuevoJuego[p.id] || ocupado === p.id}
-                          onClick={() => cambiarJuego(p)}
-                        >
-                          Cambiar
-                        </button>
-                        <button
-                          className="boton"
-                          style={{ width: "auto" }}
+                          type="button"
+                          className="boton boton-secundario boton-chico"
                           disabled={ocupado === p.id}
-                          onClick={() => devolver(p)}
+                          onClick={() => abrirEdicion(p)}
                         >
-                          Devolver
+                          Editar
                         </button>
-                        </>
-                      ) : sePuedeDeshacer(p) ? (
-                        <button
-                        className="boton boton-secundario"
-                        style={{ width: "auto" }}
-                        disabled={ocupado === p.id}
-                        title="Solo disponible hasta 48 horas después de la devolución"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `¿Deshacer la devolución de "${p.juego.titulo}"? Vuelve a figurar prestado a ${p.nombre}.`
-                            )
-                          ) {
-                            deshacerDevolucion(p);
-                          }
-                        }}
-                      >
-                        Deshacer devolución
-                      </button>
-                      ) : null}
-                      <button
-                        className="boton boton-secundario"
-                        style={{ width: "auto" }}
-                        disabled={ocupado === p.id}
-                        onClick={() => abrirEdicion(p)}
-                      >
-                        Editar datos
-                      </button>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -743,6 +795,22 @@ function Prestamos() {
             </tbody>
           </table>
         </div>
+
+        <p className="mensajes-pie">
+          Mostrando {prestamos.length} de {total}
+        </p>
+
+        {prestamos.length < total && (
+          <button
+            type="button"
+            className="boton mensajes-mas"
+            disabled={cargandoMas}
+            onClick={verMas}
+          >
+            {cargandoMas ? "Cargando..." : "Ver más"}
+          </button>
+        )}
+        </>
       )}
     </div>
   );

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.v1.auth.dependencies import require_admin
 from app.api.v1.juegos import repository as juegos_repo
 from app.core.db import get_db
+from app.core.validaciones import escapar_like
 from app.models.prestamo import ACTIVO, CERRADO, Prestamo
 
 
@@ -34,7 +35,6 @@ class PrestamoPersona(BaseModel):
 
     dni: str = Field(pattern=r"^\d{6,9}$")
     nombre: str = Field(min_length=2, max_length=100)
-    email: str | None = Field(default=None, max_length=255)
     sexo: str
     telefono: str = Field(pattern=r"^[0-9+\s()-]{6,30}$")
 
@@ -72,7 +72,6 @@ class PrestamoRespuesta(BaseModel):
     id: int
     dni: str
     nombre: str
-    email: str | None = None
     sexo: str
     telefono: str
     estado: str
@@ -173,23 +172,18 @@ def buscar_persona_por_dni(
         "encontrado": True,
         "dni": prestamo.dni,
         "nombre": prestamo.nombre,
-        "email": prestamo.email,
         "sexo": prestamo.sexo,
         "telefono": prestamo.telefono,
     }
 
 
-def _escapar_like(texto: str) -> str:
-    """Evita que % y _ escritos en la búsqueda funcionen como comodines."""
-    return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-
-
 def _fila_historial(p: Prestamo) -> dict:
     return {
         "id": p.id,
+        "juego_id": p.juego_id,
         "dni": p.dni,
         "nombre": p.nombre,
-        "email": p.email or "",
+        "sexo": p.sexo,
         "telefono": p.telefono,
         "titulo_juego": (
             p.titulo_juego
@@ -221,7 +215,7 @@ def historial_prestamos(
     desplazamiento: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Historial completo de préstamos, con búsqueda por nombre, DNI, email o juego,
+    """Historial completo de préstamos, con búsqueda por nombre, DNI o juego,
     filtro por fecha de retiro (desde / hasta, ambas inclusive) y orden por fecha y
     hora de retiro, juego, cliente o estado.
 
@@ -240,10 +234,9 @@ def historial_prestamos(
 
     termino = buscar.strip()
     if termino:
-        patron = f"%{_escapar_like(termino)}%"
+        patron = f"%{escapar_like(termino)}%"
         condiciones = [
             Prestamo.nombre.ilike(patron, escape="\\"),
-            Prestamo.email.ilike(patron, escape="\\"),
             Prestamo.titulo_juego.ilike(patron, escape="\\"),
             Prestamo.dni.ilike(patron, escape="\\"),
         ]
@@ -331,30 +324,24 @@ def historial_prestamos(
 @router.get("/historial/persona")
 def historial_de_persona(
     dni: str | None = Query(None, max_length=20),
-    email: str | None = Query(None, max_length=255),
     db: Session = Depends(get_db),
 ):
-    """Todos los préstamos de una persona, buscada por DNI o, si no hay DNI, por email.
-
-    Por email se usa el mismo criterio que la pantalla "Mis préstamos" del cliente,
-    así el administrador ve lo mismo que ve el cliente.
-    """
+    """Todos los préstamos de una persona, buscada por DNI (el mismo criterio que usa
+    la pantalla "Mis préstamos" del cliente)."""
 
     dni = (dni or "").strip()
-    email = (email or "").strip().lower()
 
-    if not dni and not email:
+    if not dni:
         raise HTTPException(
             status_code=422,
-            detail="Indicá un DNI o un email para ver el historial",
+            detail="Indicá un DNI para ver el historial",
         )
 
-    consulta = db.query(Prestamo).options(joinedload(Prestamo.juego))
-
-    if dni:
-        consulta = consulta.filter(Prestamo.dni == dni)
-    else:
-        consulta = consulta.filter(func.lower(func.trim(Prestamo.email)) == email)
+    consulta = (
+        db.query(Prestamo)
+        .options(joinedload(Prestamo.juego))
+        .filter(Prestamo.dni == dni)
+    )
 
     # Tope de seguridad: una sola persona no debería acercarse a esta cantidad.
     prestamos = (
@@ -372,7 +359,6 @@ def historial_de_persona(
         persona = {
             "dni": ultimo.dni,
             "nombre": ultimo.nombre,
-            "email": ultimo.email or "",
             "telefono": ultimo.telefono,
         }
 
@@ -425,16 +411,9 @@ def registrar_prestamo(
     # Validar el juego y recuperar su título.
     juego = _juego_libre(db, datos.juego_id)
 
-    datos_limpios = datos.model_dump()
-
-    if datos_limpios.get("email"):
-        datos_limpios["email"] = datos_limpios["email"].strip().lower()
-    else:
-        datos_limpios["email"] = None
-
     # titulo_juego es obligatorio en la base de datos.
     prestamo = Prestamo(
-        **datos_limpios,
+        **datos.model_dump(),
         titulo_juego=juego.titulo,
         estado=ACTIVO,
     )
@@ -538,7 +517,6 @@ def editar_prestamo(
     prestamo.nombre = datos.nombre
     prestamo.sexo = datos.sexo
     prestamo.telefono = datos.telefono
-    prestamo.email = datos.email.strip().lower() if datos.email else None
 
     try:
         db.commit()

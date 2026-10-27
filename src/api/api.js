@@ -219,10 +219,8 @@ export const obtenerReportePrestamos = ({ desde = "", hasta = "" } = {}) => {
   return pedir(`/reportes/prestamos${consulta ? `?${consulta}` : ""}`);
 };
 
-export const historialPrestamosDePersona = ({ dni = "", email = "" } = {}) => {
-  const parametros = new URLSearchParams();
-  if (dni) parametros.set("dni", dni);
-  else if (email) parametros.set("email", email);
+export const historialPrestamosDePersona = ({ dni = "" } = {}) => {
+  const parametros = new URLSearchParams({ dni });
   return pedir(`/prestamos/historial/persona?${parametros}`);
 };
 

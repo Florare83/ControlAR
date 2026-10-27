@@ -86,3 +86,8 @@ def validar_mensaje(valor: str) -> str:
     if len(limpio) > MENSAJE_MAX:
         raise ErrorValidacion(f"El mensaje no puede superar los {MENSAJE_MAX} caracteres.")
     return limpio
+
+
+def escapar_like(texto: str) -> str:
+    """Evita que % y _ escritos en una búsqueda funcionen como comodines de LIKE."""
+    return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

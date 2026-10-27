@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,9 +24,17 @@ from app.api.v1.reportes import router as reportes_router
 from app.core.asegurar_esquema import asegurar_esquema
 
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Preparación del esquema de la base de datos al iniciar el servidor.
+    asegurar_esquema()
+    yield
+
+
 app = FastAPI(
     title="API de Juegos de Mesa",
     description="API REST para gestionar juegos modernos y categorías.",
+    lifespan=lifespan,
 )
 
 
@@ -57,15 +66,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# ---------------------------------------------------------
-# Preparación del esquema de la base de datos
-# ---------------------------------------------------------
-
-@app.on_event("startup")
-def preparar_base_de_datos():
-    asegurar_esquema()
 
 
 # ---------------------------------------------------------

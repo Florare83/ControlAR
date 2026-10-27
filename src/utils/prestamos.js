@@ -61,20 +61,18 @@ export const ENCABEZADO_CSV_PRESTAMOS = [
   "Juego",
   "Nombre y apellido",
   "DNI",
-  "E-mail",
   "Teléfono",
   "Estado",
   "Devuelto",
   "Días sin devolver",
 ];
 
-export function filaCsvPrestamo({ retirado, juego, nombre, dni, email, telefono, estado, cierre, atraso }) {
+export function filaCsvPrestamo({ retirado, juego, nombre, dni, telefono, estado, cierre, atraso }) {
   return [
     fechaHoraArgentina(retirado),
     juego,
     nombre,
     dni,
-    email || "",
     telefono || "",
     estado === "activo" ? "Activo" : "Cerrado",
     cierre ? fechaHoraArgentina(cierre) : "",

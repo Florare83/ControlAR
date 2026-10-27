@@ -15,7 +15,7 @@ def test_se_corrigen_los_datos_de_un_prestamo_activo(client, admin, hacer_juego)
     r = client.patch(
         f"/prestamos/{p['id']}",
         json={**DATOS, "nombre": "Ana María Pérez", "dni": "30123457",
-              "telefono": "3875000111", "email": "ANA@Mail.com", "sexo": "femenino"},
+              "telefono": "3875000111", "sexo": "femenino"},
         headers=h,
     )
 
@@ -24,20 +24,22 @@ def test_se_corrigen_los_datos_de_un_prestamo_activo(client, admin, hacer_juego)
     assert cuerpo["nombre"] == "Ana María Pérez"
     assert cuerpo["dni"] == "30123457"
     assert cuerpo["telefono"] == "3875000111"
-    assert cuerpo["email"] == "ana@mail.com"
+    assert "email" not in cuerpo
     assert cuerpo["sexo"] == "Femenino"
     assert cuerpo["estado"] == "activo"
     assert cuerpo["juego"]["titulo"] == "Catan"
 
 
-def test_se_puede_borrar_el_email(client, admin, hacer_juego):
+def test_el_email_ya_no_se_guarda_ni_se_devuelve(client, admin, hacer_juego):
     _, h = admin
+    # Un cliente viejo que todavía manda "email": se ignora, no rompe.
     p = _prestar(client, h, hacer_juego("Catan").id, email="ana@mail.com")
+    assert "email" not in p
 
-    r = client.patch(f"/prestamos/{p['id']}", json={**DATOS, "email": None}, headers=h)
+    r = client.patch(f"/prestamos/{p['id']}", json={**DATOS, "email": "otra@mail.com"}, headers=h)
 
     assert r.status_code == 200
-    assert r.json()["email"] is None
+    assert "email" not in r.json()
 
 
 def test_tambien_se_edita_un_prestamo_cerrado(client, admin, hacer_juego):
@@ -83,3 +85,30 @@ def test_un_cliente_no_puede_editar_prestamos(client, admin, cliente, hacer_jueg
 
     assert client.patch(f"/prestamos/{p['id']}", json=DATOS, headers=h_cliente).status_code == 403
     assert client.patch(f"/prestamos/{p['id']}", json=DATOS).status_code == 401
+
+
+def test_historial_de_persona_se_busca_por_dni(client, admin, hacer_juego):
+    _, h = admin
+    _prestar(client, h, hacer_juego("Catan").id)
+
+    r = client.get("/prestamos/historial/persona", params={"dni": DATOS["dni"]}, headers=h)
+
+    assert r.status_code == 200
+    assert r.json()["resumen"]["total"] == 1
+    assert "email" not in r.json()["persona"]
+    # Sin DNI ya no hay otra forma de buscar.
+    assert client.get("/prestamos/historial/persona", headers=h).status_code == 422
+    assert client.get("/prestamos/historial/persona", params={"email": "a@b.com"}, headers=h).status_code == 422
+
+
+def test_el_historial_incluye_sexo_y_juego_para_la_pantalla_de_gestion(client, admin, hacer_juego):
+    _, h = admin
+    juego = hacer_juego("Catan")
+    _prestar(client, h, juego.id)
+
+    r = client.get("/prestamos/historial", headers=h)
+
+    item = r.json()["items"][0]
+    assert item["sexo"] == "Femenino"
+    assert item["juego_id"] == juego.id
+    assert item["titulo_juego"] == "Catan"

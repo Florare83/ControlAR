@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import Modal from "../components/Modal.jsx";
 import FiltroSelect from "../components/FiltroSelect.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { nombresCompatibles } from "../utils/nombres.js";
 import {
   actualizarUsuarioAdmin,
   crearUsuarioAdmin,
@@ -299,7 +300,7 @@ export default function GestionarUsuarios() {
             type="search"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Nombre o correo electrónico..."
+            placeholder="Nombre, correo o DNI..."
           />
         </div>
 
@@ -381,7 +382,7 @@ export default function GestionarUsuarios() {
               <caption className="solo-lectores">Lista de usuarios</caption>
               <thead>
                 <tr>
-                  {["Usuario", "DNI", "Rol", "Estado", "Acciones"].map((t) => (
+                  {["Usuario", "DNI", "Rol", "Estado", "Cuenta", "Verificación de DNI", "Préstamos"].map((t) => (
                     <th key={t} scope="col">
                       {t}
                     </th>
@@ -410,6 +411,22 @@ export default function GestionarUsuarios() {
                           >
                             {usuario.dni_verificado ? "Verificado" : "Sin verificar"}
                           </span>
+                          {usuario.prestamos_cantidad > 0 && (
+                            <small
+                              className={`usuarios-prestamos-nombre${
+                                nombresCompatibles(usuario.nombre, usuario.prestamo_nombre)
+                                  ? ""
+                                  : " alerta"
+                              }`}
+                            >
+                              {usuario.prestamos_cantidad === 1
+                                ? "1 préstamo"
+                                : `${usuario.prestamos_cantidad} préstamos`}{" "}
+                              a nombre de «{usuario.prestamo_nombre}»
+                              {!nombresCompatibles(usuario.nombre, usuario.prestamo_nombre) &&
+                                ": no coincide con el nombre de la cuenta"}
+                            </small>
+                          )}
                         </>
                       ) : (
                         "—"
@@ -450,65 +467,88 @@ export default function GestionarUsuarios() {
                     </td>
 
                     <td>
-                      <div className="acciones-fila">
+                      <button
+                        type="button"
+                        className={`boton boton-chico ${
+                          usuario.activo ? "boton-peligro" : ""
+                        }`}
+                        disabled={procesando === usuario.id}
+                        onClick={() => {
+                          const nuevoEstado = !usuario.activo;
+                          const accion = nuevoEstado ? "activar" : "desactivar";
+
+                          if (
+                            window.confirm(
+                              `¿Querés ${accion} la cuenta de ${usuario.nombre}?`
+                            )
+                          ) {
+                            modificarUsuario(usuario, { activo: nuevoEstado });
+                          }
+                        }}
+                      >
+                        {procesando === usuario.id
+                          ? "Guardando..."
+                          : usuario.activo
+                            ? "Desactivar"
+                            : "Activar"}
+                      </button>
+                    </td>
+
+                    <td>
+                      {usuario.dni ? (
                         <button
                           type="button"
-                          className={`boton boton-chico ${
-                            usuario.activo ? "boton-peligro" : ""
-                          }`}
+                          className="boton boton-secundario boton-chico"
                           disabled={procesando === usuario.id}
                           onClick={() => {
-                            const nuevoEstado = !usuario.activo;
-                            const accion = nuevoEstado ? "activar" : "desactivar";
+                            const verificar = !usuario.dni_verificado;
+                            const coincide = nombresCompatibles(
+                              usuario.nombre,
+                              usuario.prestamo_nombre
+                            );
+                            const avisoPrestamos =
+                              verificar && usuario.prestamos_cantidad > 0
+                                ? `\n\nLos préstamos con ese DNI están a nombre de «${usuario.prestamo_nombre}»` +
+                                  (coincide
+                                    ? "."
+                                    : ", que NO coincide con el nombre de la cuenta. Revisá que sea la misma persona.")
+                                : "";
+                            const pregunta = verificar
+                              ? `Mirá el DNI físico de ${usuario.nombre}. ¿El número es ${usuario.dni}?${avisoPrestamos}`
+                              : `¿Querés quitar la verificación del DNI de ${usuario.nombre}?`;
 
-                            if (
-                              window.confirm(
-                                `¿Querés ${accion} la cuenta de ${usuario.nombre}?`
-                              )
-                            ) {
-                              modificarUsuario(usuario, { activo: nuevoEstado });
+                            if (window.confirm(pregunta)) {
+                              modificarUsuario(usuario, { dni_verificado: verificar });
                             }
                           }}
                         >
-                          {procesando === usuario.id
-                            ? "Guardando..."
-                            : usuario.activo
-                              ? "Desactivar"
-                              : "Activar"}
+                          {usuario.dni_verificado ? "Quitar verificación" : "Verificar DNI"}
                         </button>
+                      ) : (
+                        <span className="usuarios-sin-dato">Sin DNI cargado</span>
+                      )}
+                    </td>
 
-                        {usuario.dni && (
-                          <button
-                            type="button"
-                            className="boton boton-secundario boton-chico"
-                            disabled={procesando === usuario.id}
-                            onClick={() => {
-                              const verificar = !usuario.dni_verificado;
-                              const pregunta = verificar
-                                ? `Mirá el DNI físico de ${usuario.nombre}. ¿El número es ${usuario.dni}?`
-                                : `¿Querés quitar la verificación del DNI de ${usuario.nombre}?`;
-
-                              if (window.confirm(pregunta)) {
-                                modificarUsuario(usuario, { dni_verificado: verificar });
-                              }
-                            }}
-                          >
-                            {usuario.dni_verificado ? "Quitar verificación" : "Verificar DNI"}
-                          </button>
-                        )}
-
+                    <td>
+                      {usuario.dni ? (
+                        <>
                         <Link
                           className="usuario-enlace-historial"
-                          to={
-                            usuario.dni_verificado
-                              ? `/panel/historial?dni=${encodeURIComponent(usuario.dni)}`
-                              : `/panel/historial?email=${encodeURIComponent(usuario.email)}`
-                          }
+                          to={`/panel/historial?dni=${encodeURIComponent(usuario.dni)}`}
                           aria-label={`Ver préstamos de ${usuario.nombre}`}
                         >
                           Ver préstamos
+                          {usuario.prestamos_cantidad > 0 ? ` (${usuario.prestamos_cantidad})` : ""}
                         </Link>
-                      </div>
+                        {!usuario.dni_verificado && (
+                          <small className="usuarios-prestamos-nombre">
+                            Según el DNI cargado, sin verificar
+                          </small>
+                        )}
+                        </>
+                      ) : (
+                        <span className="usuarios-sin-dato">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}

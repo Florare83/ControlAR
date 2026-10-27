@@ -18,6 +18,7 @@ from app.core.db import Base, SessionLocal, engine
 from app.core import asegurar_esquema  # noqa: F401  (importa todos los modelos)
 from app.main import app
 from app.api.v1.auth import repository as repo_usuarios
+from app.core.limitador import limite_login
 from app.core.security import crear_token
 from app.models.categoria import Categoria
 from app.models.evento import Evento
@@ -29,6 +30,13 @@ def base_limpia():
     """Cada prueba arranca con las tablas vacías."""
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    yield
+
+
+@pytest.fixture(autouse=True)
+def limite_login_limpio():
+    """Los intentos fallidos de login viven en memoria: cada prueba arranca sin ninguno."""
+    limite_login.reiniciar()
     yield
 
 

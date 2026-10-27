@@ -104,7 +104,7 @@ Al iniciar, el backend ejecuta `asegurar_esquema()` (ver [Esquema de base de dat
 ```
 ControlAR/
 ├── app/                              # Backend (FastAPI)
-│   ├── main.py                       # App, CORS, startup y registro de routers
+│   ├── main.py                       # App, CORS, arranque (lifespan) y registro de routers
 │   ├── api/v1/
 │   │   ├── auth/                     # Registro, login, perfil, cuenta y gestión de usuarios
 │   │   │   ├── router.py  schemas.py  repository.py  dependencies.py
@@ -122,7 +122,8 @@ ControlAR/
 │   ├── core/
 │   │   ├── db.py                     # Motor, sesión y Base de SQLAlchemy
 │   │   ├── security.py               # Hash de contraseñas y JWT
-│   │   ├── validaciones.py           # Validaciones del formulario de contacto
+│   │   ├── validaciones.py           # Validaciones del formulario de contacto y escape de búsquedas LIKE
+│   │   ├── limitador.py              # Límite de intentos fallidos de login (en memoria)
 │   │   ├── reservas_reglas.py        # Zona horaria, cierre y espera de reservas
 │   │   ├── mercadopago.py            # Cliente de Mercado Pago
 │   │   ├── correo.py                 # Envío de correos (Brevo / SMTP)
@@ -274,7 +275,7 @@ erDiagram
 | `categorias` | `nombre` (único) |
 | `juegos` | `titulo`, `editorial`, `cantidad_jugadores` (p. ej. `"2-4"`), `duracion_minutos`, `edad_minima`, `precio`, `stock`, `en_venta`, **`se_presta`** (pertenece a la ludoteca), `imagen_url` (HTTPS), `observaciones` (nota interna, solo visible para admin), `categoria_id` |
 | `favoritos` | `usuario_id`, `juego_id`; único por par |
-| `prestamos` | `dni`, `nombre`, `email`, `sexo`, `telefono`, `estado` (`activo`/`cerrado`), `fecha_inicio`, `fecha_cierre`, `juego_id`, `titulo_juego` (copia del título al prestar) |
+| `prestamos` | `dni`, `nombre`, `sexo`, `telefono`, `estado` (`activo`/`cerrado`), `fecha_inicio`, `fecha_cierre`, `juego_id`, `titulo_juego` (copia del título al prestar). La columna `email` quedó solo por datos viejos: ya no se pide ni se muestra |
 | `eventos` | `tipo`, `titulo`, `descripcion`, `fecha` (exacta) o `fecha_texto`/`mes_corto`, `hora_inicio`, `hora_texto`, `lugar`, `direccion`, `inscripcion`, `aporte`, `imagen_url`, `permite_reservas` |
 | `reservas` | `usuario_id`, `evento_id`, `juego_id`, `estado` (`activa`/`cancelada`/`entregada`/`vencida`), `creada_en`, `cerrada_en`, `prestamo_id` |
 | `pedidos` | `usuario_id`, `total`, `estado` (`pendiente`/`aprobado`/`rechazado`/`cancelado`), `forma_pago` (`mercadopago`/`efectivo_transferencia`), `preferencia_id`, `pago_id`, `creado_en`, `pagado_en` |
@@ -299,14 +300,15 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 ## 8. Reglas de negocio
 
 ### Préstamos (ludoteca)
-- Los juegos se prestan **solo durante el evento y en el lugar**. Un administrador registra el préstamo con DNI, nombre, sexo y teléfono (el email es opcional).
+- Los juegos se prestan **solo durante el evento y en el lugar**. Un administrador registra el préstamo con DNI, nombre, sexo (F/M) y teléfono. Ya no se pide el email.
 - Solo se pueden prestar juegos marcados como `se_presta` y que no estén ya prestados. «Prestado ahora» (`en_prestamo`) se calcula a partir de los préstamos activos.
 - Al cargar un DNI, el formulario completa los datos de préstamos anteriores de esa persona.
+- La pantalla de gestión carga de a 20 préstamos («Ver más») y filtra, busca y ordena en el servidor (usa `GET /prestamos/historial`); el CSV descarga todo lo que coincide con los filtros. En pantalla el sexo se muestra como F o M.
 - **Cambiar juego**: se puede cambiar el juego de un préstamo activo por otro disponible.
 - **Devolver** cierra el préstamo. Si fue un error, se puede **deshacer dentro de las 48 horas**, siempre que el juego siga libre y la persona no tenga otro préstamo activo.
 - Un préstamo **«sin devolver»** es uno activo retirado antes de hoy (hora de Argentina): como los juegos no salen del evento, casi seguro faltó registrar la devolución.
 - No se puede eliminar un juego que tenga préstamos o reservas registrados (responde 409).
-- El cliente ve «Mis préstamos» filtrando por **el email de su cuenta**; los préstamos cargados sin email no le aparecen.
+- El cliente ve «Mis préstamos» cruzando por **el DNI de su cuenta**, y solo si un administrador **verificó** ese DNI mirando el documento físico. Un mismo DNI solo puede estar verificado en una cuenta.
 
 ### Reservas
 - Se reserva para **el próximo evento que permita reservas** (con fecha exacta y hora de inicio).
@@ -366,11 +368,11 @@ Leyenda de acceso: **Público**, **Usuario** (cualquier sesión), **Admin**. Có
 | Método | Ruta | Acceso | Descripción |
 |--------|------|--------|-------------|
 | POST | `/auth/register` | Público | Crea un cliente (`nombre`, `email`, `contrasena` de 8 o más). `409` si el correo existe |
-| POST | `/auth/login` | Público | Formulario `username` (el correo) y `password`. Devuelve `access_token` |
+| POST | `/auth/login` | Público | Formulario `username` (el correo) y `password`. Devuelve `access_token`. `429` tras 8 contraseñas incorrectas seguidas (misma cuenta y misma conexión): espera 10 minutos |
 | GET | `/auth/me` | Usuario | Perfil (`id`, `nombre`, `email`, `es_admin`, `rol`) |
 | POST | `/auth/cambiar-contrasena` | Usuario | Requiere la actual; la nueva, de 8 o más y distinta |
 | DELETE | `/auth/me` | Usuario | Desactiva la cuenta (pide la contraseña) |
-| GET | `/auth/admin/usuarios` | Admin | Lista usuarios (`?buscar=` por nombre o email) |
+| GET | `/auth/admin/usuarios` | Admin | Lista usuarios (`?buscar=` por nombre, email o DNI, también con puntos). Incluye `prestamos_cantidad` y `prestamo_nombre` (a nombre de quién están los préstamos con el DNI de la cuenta) para compararlos antes de verificar |
 | PATCH | `/auth/admin/usuarios/{id}` | Admin | Cambia `es_admin` y/o `activo` (no sobre uno mismo) |
 
 ### Juegos y categorías
@@ -403,7 +405,7 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 | POST | `/prestamos/` | Registra un préstamo. `409` si la persona ya tiene uno activo o el juego está prestado; `400` si el juego no existe o no se presta |
 | GET | `/prestamos/buscar-persona/{dni}` | Datos de la persona en préstamos anteriores (`encontrado: true/false`) |
 | GET | `/prestamos/historial` | Historial paginado. Filtros: `buscar`, `estado`, `atrasados`, `desde`, `hasta`; orden: `ordenar` (`fecha`/`juego`/`cliente`/`estado`) y `direccion`; paginación: `limite` (1–100) y `desplazamiento`. Devuelve `items`, `total` y `resumen` |
-| GET | `/prestamos/historial/persona` | Todos los préstamos de una persona (`?dni=` o, si no hay, `?email=`) |
+| GET | `/prestamos/historial/persona` | Todos los préstamos de una persona (`?dni=`, obligatorio) |
 | PUT | `/prestamos/{id}/juego` | Cambia el juego de un préstamo activo |
 | POST | `/prestamos/{id}/devolver` | Cierra el préstamo |
 | POST | `/prestamos/{id}/reabrir` | Deshace una devolución (hasta 48 h) |
@@ -412,7 +414,7 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 
 | Método | Ruta | Acceso | Descripción |
 |--------|------|--------|-------------|
-| GET | `/mi-cuenta/prestamos` | Usuario | Préstamos asociados al email de la sesión |
+| GET | `/mi-cuenta/prestamos` | Usuario | Préstamos del DNI verificado de la cuenta (vacío si no está verificado) |
 
 ### Eventos (`/eventos`)
 
@@ -496,7 +498,7 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 | `/panel` | Operador / Admin | Redirige a `/panel/prestamos` |
 | `/panel/prestamos`, `/panel/reservas` | Operador / Admin | Gestión de préstamos y de reservas |
 | `/panel/resumen` | Admin | Pantalla base del panel (todavía sin contenido) |
-| `/panel/historial` | Admin | Historial; con `?dni=` o `?email=` muestra una sola persona |
+| `/panel/historial` | Admin | Historial; con `?dni=` muestra una sola persona |
 | `/panel/reportes`, `/panel/eventos`, `/panel/mensajes`, `/panel/ventas`, `/panel/juegos`, `/panel/usuarios` | Admin | Secciones administrativas |
 
 `/prestamos` y `/panel/agregar-juego` son redirecciones heredadas hacia `/panel/prestamos` y `/panel/juegos`.
@@ -610,23 +612,6 @@ El plan gratuito de Render duerme el servicio sin uso: la primera carga puede ta
 - Correos: se eliminan saltos de línea en asunto y destinatario (evita inyección de cabeceras).
 - Búsquedas con `LIKE` escapan `%` y `_` en el historial de préstamos.
 - CORS limitado a los orígenes configurados.
-
----
-
-## 15. Puntos a revisar
-
-Cosas detectadas al documentar el código que conviene resolver o aclarar:
-
-1. **Rol operador sin soporte en el backend.** El frontend (`AuthContext`, `RutaProtegida`, `PanelLayout`, `Login`) trata el rol `operador`, pero `Usuario` solo tiene `es_admin` y todo `/prestamos` exige administrador. Hay que decidir si se implementa (campo `es_operador`, rol en `/auth/me`, permisos en préstamos y reservas) o se elimina del frontend.
-4. **Código sin uso.** `src/hooks/eventos.js` es una copia idéntica de `src/data/eventos.js` y nadie la importa; `src/data/juegos.js` son datos de ejemplo que no se usan; `cors` figura en las dependencias de `package.json` (es un paquete de Node que no se usa); `requirements.txt` incluye paquetes que el código no importa (por ejemplo `sentry-sdk`).
-5. **SQL en logs.** `app/core/db.py` crea el motor con `echo=True`, que imprime cada consulta SQL. Es útil para aprender, pero en producción conviene desactivarlo.
-6. **Sin pruebas automatizadas.** No hay tests en el repositorio; las validaciones críticas (reservas, pagos, préstamos) se verifican solo a mano.
-7. **Límites anti-spam en memoria.** Se reinician con cada despliegue y no se comparten si hay más de una instancia.
-8. **Vencimiento de reservas «perezoso».** Se aplica cuando alguien consulta reservas; si nadie consulta, el estado en base puede quedar desfasado (no afecta a la lógica, que siempre recalcula primero).
-9. **Datos fijos en el código.** El número de WhatsApp (`Checkout.jsx`), el origen CORS de producción anterior (`main.py`, que no incluye el Static Site nuevo: se cubre con `CORS_ORIGINS`), el aviso del aporte mínimo y su fecha límite (`src/data/eventos.js`) y los eventos iniciales (`cargar_eventos.py`) están escritos a mano.
-10. **`/panel/resumen`** es una pantalla base sin funcionalidad.
-11. **Los préstamos sin email no aparecen** en «Mis préstamos» del cliente, porque el cruce se hace por email. Conviene pedir el email al registrar préstamos.
-12. **Tema oscuro** no se guarda entre visitas.
 
 ---
 

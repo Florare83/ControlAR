@@ -282,8 +282,8 @@ function Reservas() {
                 <div className="campo">
                   <label htmlFor="entrega-sexo">Sexo</label>
                   <select id="entrega-sexo" value={form.sexo} onChange={(e) => cambiar("sexo", e.target.value)} required>
-                    <option value="Femenino">Femenino</option>
-                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">F</option>
+                    <option value="Masculino">M</option>
                   </select>
                 </div>
                 <div className="campo">

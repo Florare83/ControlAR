@@ -51,14 +51,13 @@ function EstadoPrestamo({ prestamo }) {
 }
 
 // Historial completo de préstamos de todos los clientes (solo administrador).
-// Con ?dni=... o ?email=... muestra el historial de una sola persona.
+// Con ?dni=... muestra el historial de una sola persona.
 function HistorialPrestamos() {
   const [params] = useSearchParams();
   const dni = (params.get("dni") || "").trim();
-  const email = (params.get("email") || "").trim();
 
-  if (dni || email) {
-    return <HistorialPersona dni={dni} email={email} />;
+  if (dni) {
+    return <HistorialPersona dni={dni} />;
   }
   return <HistorialGeneral />;
 }
@@ -160,7 +159,6 @@ function HistorialGeneral() {
             juego: p.titulo_juego,
             nombre: p.nombre,
             dni: p.dni,
-            email: p.email,
             telefono: p.telefono,
             estado: p.estado,
             cierre: p.fecha_cierre,
@@ -198,7 +196,7 @@ function HistorialGeneral() {
       <h1>Historial de préstamos</h1>
       <p className="subtitulo">
         Todos los préstamos registrados, del más reciente al más antiguo.
-        Buscá por DNI, juego, nombre o email.
+        Buscá por DNI, juego o nombre.
       </p>
 
       <div className="historial-herramientas">
@@ -209,7 +207,7 @@ function HistorialGeneral() {
             type="search"
             value={texto}
             maxLength={100}
-            placeholder="Buscar por DNI, juego, nombre o email..."
+            placeholder="Buscar por DNI, juego o nombre..."
             autoComplete="off"
             onChange={(e) => setTexto(e.target.value)}
           />
@@ -329,10 +327,7 @@ function HistorialGeneral() {
                   <tr key={p.id} className={diasSinDevolver(p) > 0 ? "fila-atrasada" : undefined}>
                     <td>{fechaHoraArgentina(p.fecha_inicio)}</td>
                     <td>{p.titulo_juego}</td>
-                    <td>
-                      {p.nombre}
-                      {p.email && <small className="historial-email">{p.email}</small>}
-                    </td>
+                    <td>{p.nombre}</td>
                     <td>{p.dni}</td>
                     <td>
                       <EstadoPrestamo prestamo={p} />
@@ -372,7 +367,7 @@ function HistorialGeneral() {
   );
 }
 
-function HistorialPersona({ dni, email }) {
+function HistorialPersona({ dni }) {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -383,7 +378,7 @@ function HistorialPersona({ dni, email }) {
     setError("");
     setDatos(null);
 
-    historialPrestamosDePersona({ dni, email })
+    historialPrestamosDePersona({ dni })
       .then((respuesta) => {
         if (vigente) setDatos(respuesta);
       })
@@ -397,10 +392,10 @@ function HistorialPersona({ dni, email }) {
     return () => {
       vigente = false;
     };
-  }, [dni, email]);
+  }, [dni]);
 
   const persona = datos?.persona;
-  const titulo = persona?.nombre || (dni ? `DNI ${dni}` : email);
+  const titulo = persona?.nombre || `DNI ${dni}`;
 
   return (
     <div>
@@ -428,22 +423,13 @@ function HistorialPersona({ dni, email }) {
           {persona && (
             <p className="subtitulo historial-persona-datos">
               DNI {persona.dni}
-              {persona.email && <> · {persona.email}</>}
               {persona.telefono && <> · {persona.telefono}</>}
             </p>
           )}
 
           {datos.items.length === 0 ? (
             <div className="tarjeta">
-              <p>
-                {dni ? `No hay préstamos con el DNI ${dni}.` : `No hay préstamos registrados con el email ${email}.`}
-              </p>
-              {!dni && (
-                <p className="ayuda">
-                  Solo aparecen los préstamos que se registraron con ese email.
-                  Si se cargaron sin email, buscalos por nombre o DNI en el historial general.
-                </p>
-              )}
+              <p>No hay préstamos con el DNI {dni}.</p>
             </div>
           ) : (
             <>
@@ -465,7 +451,7 @@ function HistorialPersona({ dni, email }) {
               <div style={{ overflowX: "auto" }}>
                 <table className="tabla">
                   <caption className="solo-lectores">
-                    Préstamos de {persona?.nombre || email}
+                    Préstamos de {persona?.nombre || `DNI ${dni}`}
                   </caption>
                   <thead>
                     <tr>
