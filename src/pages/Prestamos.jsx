@@ -11,6 +11,7 @@ import {
 import { useToast } from "../context/ToastContext.jsx";
 import Modal from "../components/Modal.jsx";
 import FiltroFechas from "../components/FiltroFechas.jsx";
+import FiltroSelect from "../components/FiltroSelect.jsx";
 import ThOrdenable, { siguienteOrden } from "../components/ThOrdenable.jsx";
 import {
   ENCABEZADO_CSV_PRESTAMOS,
@@ -421,19 +422,16 @@ function Prestamos() {
       </div>
 
       <div className="prestamos-filtros">
-        <div className="mensajes-filtros" role="group" aria-label="Filtrar por estado">
-          {FILTROS_ESTADO.map((f) => (
-            <button
-              key={f.valor}
-              type="button"
-              className={`filtro-boton ${filtroEstado === f.valor ? "activo" : ""}`}
-              aria-pressed={filtroEstado === f.valor}
-              onClick={() => setFiltroEstado(f.valor)}
-            >
-              {f.texto} ({cantidadPorEstado[f.valor]})
-            </button>
-          ))}
-        </div>
+        <FiltroSelect
+          id="prestamos-estado"
+          etiqueta="Estado"
+          valor={filtroEstado}
+          onCambio={setFiltroEstado}
+          opciones={FILTROS_ESTADO.map((f) => ({
+            valor: f.valor,
+            texto: `${f.texto} (${cantidadPorEstado[f.valor]})`,
+          }))}
+        />
 
         <div className="prestamos-busqueda">
           <label htmlFor="prestamos-buscar" className="solo-lectores">

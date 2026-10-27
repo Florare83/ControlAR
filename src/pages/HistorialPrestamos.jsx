@@ -5,6 +5,7 @@ import {
   listarHistorialPrestamos,
 } from "../api/api.js";
 import FiltroFechas from "../components/FiltroFechas.jsx";
+import FiltroSelect from "../components/FiltroSelect.jsx";
 import ThOrdenable, { siguienteOrden } from "../components/ThOrdenable.jsx";
 import {
   ENCABEZADO_CSV_PRESTAMOS,
@@ -214,25 +215,21 @@ function HistorialGeneral() {
           />
         </div>
 
-        <div className="mensajes-filtros" role="group" aria-label="Filtrar por estado">
-          {[
+        <FiltroSelect
+          id="historial-estado"
+          etiqueta="Estado"
+          valor={estado}
+          onCambio={setEstado}
+          opciones={[
             ["activo", "Activos", resumen?.activos],
             ["atrasado", "Sin devolver", resumen?.atrasados],
             ["cerrado", "Cerrados", resumen?.cerrados],
             ["", "Todos", resumen?.total],
-          ].map(([valor, etiqueta, cantidad]) => (
-            <button
-              key={valor || "todos"}
-              type="button"
-              className={`filtro-boton ${estado === valor ? "activo" : ""}`}
-              aria-pressed={estado === valor}
-              onClick={() => setEstado(valor)}
-            >
-              {etiqueta}
-              {cantidad !== undefined && ` (${cantidad})`}
-            </button>
-          ))}
-        </div>
+          ].map(([valor, etiqueta, cantidad]) => ({
+            valor,
+            texto: cantidad !== undefined ? `${etiqueta} (${cantidad})` : etiqueta,
+          }))}
+        />
 
         <FiltroFechas
           desde={desde}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import FiltroSelect from "../components/FiltroSelect.jsx";
 import {
   buscarPersonaPorDni,
   entregarReserva,
@@ -147,10 +148,18 @@ function Reservas() {
             vencen a las {horaArgentina(datos.espera_hasta)} h.
           </p>
 
-          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14, margin: "12px 0" }}>
-            <input type="checkbox" checked={verCerradas} onChange={(e) => setVerCerradas(e.target.checked)} />
-            Mostrar también las entregadas, canceladas y vencidas
-          </label>
+          <div style={{ margin: "12px 0" }}>
+            <FiltroSelect
+              id="reservas-estado"
+              etiqueta="Estado"
+              valor={verCerradas ? "todas" : "activas"}
+              onCambio={(v) => setVerCerradas(v === "todas")}
+              opciones={[
+                { valor: "activas", texto: "Activas" },
+                { valor: "todas", texto: "Todas (incluye entregadas, canceladas y vencidas)" },
+              ]}
+            />
+          </div>
 
           {visibles.length === 0 ? (
             <p>No hay reservas {verCerradas ? "para este evento" : "activas"}.</p>

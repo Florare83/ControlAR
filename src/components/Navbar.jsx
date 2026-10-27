@@ -217,21 +217,12 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   )}
 
                   <NavLink
-                    to="/cambiar-contrasena"
+                    to="/cuenta"
                     className={clase}
                     onClick={cerrarMenuCuenta}
                     style={{ padding: 10 }}
                   >
-                    🔑 Cambiar contraseña
-                  </NavLink>
-
-                  <NavLink
-                    to="/eliminar-cuenta"
-                    className={clase}
-                    onClick={cerrarMenuCuenta}
-                    style={{ padding: 10 }}
-                  >
-                    🗑️ Eliminar cuenta
+                    👤 Mi cuenta
                   </NavLink>
 
                   <button

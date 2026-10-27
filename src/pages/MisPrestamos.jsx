@@ -106,7 +106,7 @@ function MisPrestamos() {
               ? "Mostrale tu DNI a un administrador en el próximo evento. Cuando lo verifique, vas a ver acá tus préstamos."
               : "Agregalo en Mi cuenta. Después, un administrador lo verifica con tu documento en el próximo evento."}
           </p>
-          <Link to="/cuenta">Ir a Mi cuenta</Link>
+          <Link to="/cuenta/dni">Ir a Mi cuenta</Link>
         </div>
       )}
 

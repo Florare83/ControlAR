@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { eliminarCuenta } from "../api/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
@@ -44,7 +44,7 @@ function EliminarCuenta() {
   }
 
   return (
-    <section className="pagina">
+    <section>
       <h1>🗑️ Eliminar cuenta</h1>
 
       <p className="subtitulo">
@@ -95,10 +95,6 @@ function EliminarCuenta() {
           {cargando ? "Eliminando cuenta..." : "Eliminar mi cuenta"}
         </button>
       </form>
-
-      <p>
-        <Link to="/cuenta">Cancelar y volver a Mi cuenta</Link>
-      </p>
     </section>
   );
 }

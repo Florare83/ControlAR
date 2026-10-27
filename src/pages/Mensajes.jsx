@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import FiltroSelect from "../components/FiltroSelect.jsx";
 import {
   eliminarMensaje,
   listarMensajes,
@@ -216,23 +217,20 @@ function Mensajes() {
         visitantes, por correo.
       </p>
 
-      <div className="mensajes-filtros" role="group" aria-label="Filtrar mensajes">
-        <button
-          type="button"
-          className={`filtro-boton ${!soloNoLeidos ? "activo" : ""}`}
-          aria-pressed={!soloNoLeidos}
-          onClick={() => setSoloNoLeidos(false)}
-        >
-          Todos
-        </button>
-        <button
-          type="button"
-          className={`filtro-boton ${soloNoLeidos ? "activo" : ""}`}
-          aria-pressed={soloNoLeidos}
-          onClick={() => setSoloNoLeidos(true)}
-        >
-          Sin leer{noLeidos > 0 ? ` (${noLeidos})` : ""}
-        </button>
+      <div className="mensajes-filtros">
+        <FiltroSelect
+          id="mensajes-filtro"
+          etiqueta="Mostrar"
+          valor={soloNoLeidos ? "sin_leer" : "todos"}
+          onCambio={(v) => setSoloNoLeidos(v === "sin_leer")}
+          opciones={[
+            { valor: "todos", texto: "Todos" },
+            {
+              valor: "sin_leer",
+              texto: `Sin leer${noLeidos > 0 ? ` (${noLeidos})` : ""}`,
+            },
+          ]}
+        />
       </div>
 
       {cargando ? (

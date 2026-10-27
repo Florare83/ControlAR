@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
+import { useAuth } from "./context/AuthContext.jsx";
 import Navbar from "./components/Navbar.jsx";
 import RutaProtegida from "./components/RutaProtegida.jsx";
 import PanelLayout from "./components/PanelLayout.jsx";
@@ -10,7 +11,8 @@ import Nosotros from "./pages/Nosotros.jsx";
 import Club from "./pages/Club.jsx";
 import Juegos from "./pages/Juegos.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
-import Cuenta from "./pages/Cuenta.jsx";
+import CuentaLayout from "./components/CuentaLayout.jsx";
+import EditarDni from "./pages/EditarDni.jsx";
 import CambiarContrasena from "./pages/CambiarContrasena.jsx";
 import EliminarCuenta from "./pages/EliminarCuenta.jsx";
 import Contacto from "./pages/Contacto.jsx";
@@ -30,6 +32,14 @@ import MisMensajes from "./pages/MisMensajes.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import CompraResultado from "./pages/CompraResultado.jsx";
 import GestionarUsuarios from "./pages/GestionarUsuarios.jsx";
+
+// /cuenta sin subsección: el cliente empieza por el DNI, el admin por la contraseña.
+function CuentaInicio() {
+  const { rol } = useAuth();
+  return (
+    <Navigate to={rol === "cliente" ? "dni" : "contrasena"} replace />
+  );
+}
 
 function App() {
   const [modoOscuro, setModoOscuro] = useState(false);
@@ -112,31 +122,34 @@ function App() {
             }
           />
 
+          {/* Mi cuenta: menú lateral con DNI, contraseña y eliminar cuenta */}
           <Route
             path="/cuenta"
-            element={
-              <RutaProtegida roles={["cliente", "admin"]}>
-                <Cuenta />
-              </RutaProtegida>
-            }
-          />
+            element={<RutaProtegida roles={["cliente", "admin"]} />}
+          >
+            <Route element={<CuentaLayout />}>
+              <Route index element={<CuentaInicio />} />
+              <Route
+                path="dni"
+                element={
+                  <RutaProtegida roles={["cliente"]}>
+                    <EditarDni />
+                  </RutaProtegida>
+                }
+              />
+              <Route path="contrasena" element={<CambiarContrasena />} />
+              <Route path="eliminar" element={<EliminarCuenta />} />
+            </Route>
+          </Route>
 
+          {/* Rutas anteriores: se conservan por si hay enlaces guardados */}
           <Route
             path="/cambiar-contrasena"
-            element={
-              <RutaProtegida roles={["cliente", "admin"]}>
-                <CambiarContrasena />
-              </RutaProtegida>
-            }
+            element={<Navigate to="/cuenta/contrasena" replace />}
           />
-
           <Route
             path="/eliminar-cuenta"
-            element={
-              <RutaProtegida roles={["cliente", "admin"]}>
-                <EliminarCuenta />
-              </RutaProtegida>
-            }
+            element={<Navigate to="/cuenta/eliminar" replace />}
           />
 
           {/* Historial de préstamos del cliente */}
