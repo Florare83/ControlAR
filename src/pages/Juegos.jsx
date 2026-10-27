@@ -96,6 +96,7 @@ function Juegos({ enPanel = false }) {
   const [edadMax, setEdadMax] = useState("");
 
   const [pagina, setPagina] = useState(1);
+  const [juegoEditadoId, setJuegoEditadoId] = useState(null); // para volver a su página tras editar
   const [orden, setOrden] = useState("titulo-asc");
   const [verAvanzados, setVerAvanzados] = useState(false);
 
@@ -292,10 +293,18 @@ function Juegos({ enPanel = false }) {
       await actualizarJuego(formulario.id, datos);
     }
 
+    const idEditado = esNuevo ? null : formulario.id;
+
     setGuardandoJuego(false);
     setFormulario(null);
-    setPagina(1);
+
+    // Un juego nuevo se ve desde la primera página; uno editado conserva su lugar.
+    if (esNuevo) setPagina(1);
+
     await cargarDatos();
+
+    // Si el cambio lo movió de lugar (por ejemplo al renombrarlo), se sigue su nueva página.
+    if (idEditado) setJuegoEditadoId(idEditado);
 
     toast.exito(esNuevo ? "Juego creado." : "Juego editado.");
   }
@@ -424,6 +433,17 @@ function Juegos({ enPanel = false }) {
     inicio,
     inicio + porPagina
   );
+
+  // Tras editar, ir a la página donde quedó el juego editado (si sigue entre los resultados).
+  useEffect(() => {
+    if (juegoEditadoId === null) return;
+
+    const posicion = juegosFiltrados.findIndex((j) => j.id === juegoEditadoId);
+
+    if (posicion !== -1) setPagina(Math.floor(posicion / porPagina) + 1);
+
+    setJuegoEditadoId(null);
+  }, [juegoEditadoId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function limpiarFiltros() {
     setBusqueda("");

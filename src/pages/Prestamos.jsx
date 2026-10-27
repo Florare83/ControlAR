@@ -6,6 +6,7 @@ import {
   buscarPersonaPorDni,
   cambiarJuegoPrestamo,
   devolverPrestamo,
+  editarPrestamo,
   reabrirPrestamo,
 } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
@@ -47,6 +48,8 @@ const FILTROS_ESTADO = [
   { valor: "todos", texto: "Todos" },
 ];
 
+const FORMULARIO_PERSONA = { dni: "", nombre: "", email: "", sexo: "Femenino", telefono: "" };
+
 const FORMULARIO_VACIO = { juego_id: "", dni: "", nombre: "", email: "", sexo: "Femenino", telefono: "" };
 
 // Gestión de préstamos (administrador). Se muestra dentro del PanelLayout.
@@ -71,6 +74,12 @@ function Prestamos() {
   const [orden, setOrden] = useState({ campo: "fecha", direccion: "desc" });
   const [nuevoJuego, setNuevoJuego] = useState({}); // { [id del préstamo]: id del juego elegido }
   const [ocupado, setOcupado] = useState(null); // id del préstamo que se está procesando
+
+  // Edición de los datos de la persona de un préstamo.
+  const [editando, setEditando] = useState(null); // préstamo que se está editando
+  const [formEdicion, setFormEdicion] = useState(FORMULARIO_PERSONA);
+  const [errorEdicion, setErrorEdicion] = useState("");
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   async function cargar() {
     setErrorCarga("");
@@ -213,6 +222,44 @@ function Prestamos() {
       setErrorForm(err.message);
     } finally {
       setGuardando(false);
+    }
+  }
+
+  function abrirEdicion(prestamo) {
+    setErrorEdicion("");
+    setFormEdicion({
+      dni: prestamo.dni ?? "",
+      nombre: prestamo.nombre ?? "",
+      email: prestamo.email ?? "",
+      sexo: prestamo.sexo ?? "Femenino",
+      telefono: prestamo.telefono ?? "",
+    });
+    setEditando(prestamo);
+  }
+
+  function cambiarEdicion(campo, valor) {
+    setFormEdicion((anterior) => ({ ...anterior, [campo]: valor }));
+  }
+
+  async function guardarEdicion(e) {
+    e.preventDefault();
+    setErrorEdicion("");
+    setGuardandoEdicion(true);
+    try {
+      await editarPrestamo(editando.id, {
+        dni: formEdicion.dni.trim(),
+        nombre: formEdicion.nombre.trim(),
+        email: formEdicion.email.trim() || null,
+        sexo: formEdicion.sexo,
+        telefono: formEdicion.telefono.trim(),
+      });
+      setEditando(null);
+      toast.exito("Préstamo actualizado.");
+      await cargar();
+    } catch (err) {
+      setErrorEdicion(err.message);
+    } finally {
+      setGuardandoEdicion(false);
     }
   }
 
@@ -391,6 +438,103 @@ function Prestamos() {
         </Modal>
       )}
 
+      {editando && (
+        <Modal
+          titulo={`Editar préstamo de ${editando.nombre}`}
+          ocupado={guardandoEdicion}
+          onCerrar={() => setEditando(null)}
+        >
+          <form className="formulario" onSubmit={guardarEdicion} aria-busy={guardandoEdicion}>
+            <p className="subtitulo" style={{ marginTop: 0 }}>
+              Juego: <strong>{editando.juego?.titulo}</strong>. Para cambiarlo usá "Cambiar por..." en la
+              lista.
+            </p>
+            <div className="campo">
+              <label htmlFor="editar-dni">DNI (solo números)</label>
+              <input
+                id="editar-dni"
+                value={formEdicion.dni}
+                onChange={(e) => cambiarEdicion("dni", e.target.value.replace(/\D/g, "").slice(0, 9))}
+                inputMode="numeric"
+                pattern="[0-9]{6,9}"
+                title="Entre 6 y 9 números, sin puntos"
+                maxLength={9}
+                autoComplete="off"
+                required
+              />
+              <small>Si corregís el DNI, el cambio vale solo para este préstamo.</small>
+            </div>
+            <div className="campo">
+              <label htmlFor="editar-nombre">Nombre y apellido</label>
+              <input
+                id="editar-nombre"
+                value={formEdicion.nombre}
+                onChange={(e) => cambiarEdicion("nombre", e.target.value)}
+                minLength={2}
+                maxLength={100}
+                autoComplete="off"
+                required
+              />
+            </div>
+            <div className="campo">
+              <label htmlFor="editar-email">E-mail (opcional)</label>
+              <input
+                id="editar-email"
+                type="email"
+                value={formEdicion.email}
+                onChange={(e) => cambiarEdicion("email", e.target.value)}
+                maxLength={255}
+                autoComplete="off"
+              />
+            </div>
+            <div className="campo">
+              <label htmlFor="editar-sexo">Sexo</label>
+              <select
+                id="editar-sexo"
+                value={formEdicion.sexo}
+                onChange={(e) => cambiarEdicion("sexo", e.target.value)}
+                required
+              >
+                <option value="Femenino">Femenino</option>
+                <option value="Masculino">Masculino</option>
+              </select>
+            </div>
+            <div className="campo">
+              <label htmlFor="editar-telefono">Teléfono</label>
+              <input
+                id="editar-telefono"
+                type="tel"
+                value={formEdicion.telefono}
+                onChange={(e) => cambiarEdicion("telefono", e.target.value)}
+                maxLength={30}
+                autoComplete="off"
+                required
+              />
+            </div>
+
+            {errorEdicion && (
+              <span className="error" role="alert">
+                {errorEdicion}
+              </span>
+            )}
+
+            <div className="modal-acciones">
+              <button className="boton" type="submit" disabled={guardandoEdicion}>
+                {guardandoEdicion ? "Guardando..." : "Guardar cambios"}
+              </button>
+              <button
+                className="boton boton-secundario"
+                type="button"
+                disabled={guardandoEdicion}
+                onClick={() => setEditando(null)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
       <div className="prestamos-cabecera">
         <h2>Préstamos</h2>
         <button
@@ -533,8 +677,9 @@ function Prestamos() {
                     )}
                   </td>
                   <td>
-                    {p.estado === "activo" ? (
-                      <div className="acciones-fila">
+                    <div className="acciones-fila">
+                      {p.estado === "activo" ? (
+                        <>
                         <select
                           aria-label={`Nuevo juego para ${p.nombre}`}
                           value={nuevoJuego[p.id] ?? ""}
@@ -563,9 +708,9 @@ function Prestamos() {
                         >
                           Devolver
                         </button>
-                      </div>
-                    ) : sePuedeDeshacer(p) ? (
-                      <button
+                        </>
+                      ) : sePuedeDeshacer(p) ? (
+                        <button
                         className="boton boton-secundario"
                         style={{ width: "auto" }}
                         disabled={ocupado === p.id}
@@ -582,9 +727,16 @@ function Prestamos() {
                       >
                         Deshacer devolución
                       </button>
-                    ) : (
-                      "—"
-                    )}
+                      ) : null}
+                      <button
+                        className="boton boton-secundario"
+                        style={{ width: "auto" }}
+                        disabled={ocupado === p.id}
+                        onClick={() => abrirEdicion(p)}
+                      >
+                        Editar datos
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

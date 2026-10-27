@@ -8,9 +8,14 @@ import {
 } from "../api/api.js";
 import { partesFecha } from "../data/eventos.js";
 import Modal from "../components/Modal.jsx";
+import FiltroSelect from "../components/FiltroSelect.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
 const TIPOS = ["Tarde de juegos", "Torneo", "Encuentro"];
+
+// Fecha de hoy (AAAA-MM-DD) en Argentina, para separar próximos de anteriores.
+const hoyArgentina = () =>
+  new Date().toLocaleDateString("sv-SE", { timeZone: "America/Argentina/Salta" });
 
 const VACIO = {
   tipo: "Tarde de juegos",
@@ -74,6 +79,11 @@ function Eventos() {
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState("");
 
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroCuando, setFiltroCuando] = useState("todos");
+  const [filtroReservas, setFiltroReservas] = useState("todos");
+
   const [editando, setEditando] = useState(null); // null | "nuevo" | evento
   const [form, setForm] = useState(VACIO);
   const [errorForm, setErrorForm] = useState("");
@@ -95,6 +105,21 @@ function Eventos() {
   useEffect(() => {
     cargar();
   }, []);
+
+  const hoy = hoyArgentina();
+  const texto = busqueda.trim().toLowerCase();
+  const visibles = eventos.filter((ev) => {
+    // Sin fecha exacta el evento se considera "próximo" (fecha a confirmar).
+    const pasado = Boolean(ev.fecha) && ev.fecha < hoy;
+    return (
+      (!texto || `${ev.titulo} ${ev.lugar}`.toLowerCase().includes(texto)) &&
+      (filtroTipo === "todos" || ev.tipo === filtroTipo) &&
+      (filtroCuando === "todos" || (filtroCuando === "anteriores") === pasado) &&
+      (filtroReservas === "todos" || (filtroReservas === "si") === ev.permite_reservas)
+    );
+  });
+  const hayFiltros =
+    texto !== "" || filtroTipo !== "todos" || filtroCuando !== "todos" || filtroReservas !== "todos";
 
   function abrir(evento) {
     setEditando(evento);
@@ -319,6 +344,69 @@ function Eventos() {
       ) : eventos.length === 0 ? (
         <p>Todavía no hay eventos cargados.</p>
       ) : (
+        <>
+        <div className="barra-filtros">
+          <div className="filtro-busqueda">
+            <label htmlFor="eventos-buscar">Buscar</label>
+            <input
+              id="eventos-buscar"
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Título o lugar..."
+            />
+          </div>
+          <FiltroSelect
+            id="eventos-cuando"
+            etiqueta="Cuándo"
+            valor={filtroCuando}
+            onCambio={setFiltroCuando}
+            opciones={[
+              { valor: "todos", texto: "Todos" },
+              { valor: "proximos", texto: "Próximos" },
+              { valor: "anteriores", texto: "Anteriores" },
+            ]}
+          />
+          <FiltroSelect
+            id="eventos-tipo"
+            etiqueta="Tipo"
+            valor={filtroTipo}
+            onCambio={setFiltroTipo}
+            opciones={[
+              { valor: "todos", texto: "Todos" },
+              ...TIPOS.map((t) => ({ valor: t, texto: t })),
+            ]}
+          />
+          <FiltroSelect
+            id="eventos-reservas"
+            etiqueta="Reservas"
+            valor={filtroReservas}
+            onCambio={setFiltroReservas}
+            opciones={[
+              { valor: "todos", texto: "Todos" },
+              { valor: "si", texto: "Permiten reservas" },
+              { valor: "no", texto: "Sin reservas" },
+            ]}
+          />
+          {hayFiltros && (
+            <button
+              type="button"
+              className="boton boton-secundario boton-chico"
+              onClick={() => {
+                setBusqueda("");
+                setFiltroTipo("todos");
+                setFiltroCuando("todos");
+                setFiltroReservas("todos");
+              }}
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+
+        {visibles.length === 0 ? (
+          <p>No hay eventos que coincidan con los filtros.</p>
+        ) : (
         <div style={{ overflowX: "auto" }}>
           <table className="tabla">
             <caption className="solo-lectores">Lista de eventos</caption>
@@ -332,7 +420,7 @@ function Eventos() {
               </tr>
             </thead>
             <tbody>
-              {eventos.map((ev) => (
+              {visibles.map((ev) => (
                 <tr key={ev.id}>
                   <td>
                     {ev.titulo}
@@ -361,6 +449,8 @@ function Eventos() {
             </tbody>
           </table>
         </div>
+        )}
+        </>
       )}
     </div>
   );

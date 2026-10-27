@@ -30,7 +30,12 @@ function Mensajes() {
   const [mensajes, setMensajes] = useState([]);
   const [total, setTotal] = useState(0);
   const [noLeidos, setNoLeidos] = useState(0);
-  const [soloNoLeidos, setSoloNoLeidos] = useState(false);
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroOrigen, setFiltroOrigen] = useState("todos");
+  const [busqueda, setBusqueda] = useState("");
+  const [buscar, setBuscar] = useState(""); // la búsqueda se envía con una pequeña demora
+  const soloNoLeidos = filtroEstado === "sin_leer";
+  const hayFiltros = filtroEstado !== "todos" || filtroOrigen !== "todos" || buscar !== "";
   const [cargando, setCargando] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [error, setError] = useState("");
@@ -46,30 +51,50 @@ function Mensajes() {
   const [respondiendoAppId, setRespondiendoAppId] = useState(null);
   const [textoApp, setTextoApp] = useState("");
 
-  const cargar = useCallback(async () => {
-    setError("");
-    setCargando(true);
-    try {
-      const datos = await listarMensajes({ soloNoLeidos, limite: POR_PAGINA });
-      setMensajes(datos.items);
-      setTotal(datos.total);
-      setNoLeidos(datos.no_leidos);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setCargando(false);
-    }
-  }, [soloNoLeidos]);
+  useEffect(() => {
+    const t = setTimeout(() => setBuscar(busqueda.trim()), 350);
+    return () => clearTimeout(t);
+  }, [busqueda]);
+
+  const cargar = useCallback(
+    async (silencioso = false) => {
+      setError("");
+      if (!silencioso) setCargando(true);
+      try {
+        const datos = await listarMensajes({
+          estado: filtroEstado,
+          origen: filtroOrigen,
+          buscar,
+          limite: POR_PAGINA,
+        });
+        setMensajes(datos.items);
+        setTotal(datos.total);
+        setNoLeidos(datos.no_leidos);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setCargando(false);
+      }
+    },
+    [filtroEstado, filtroOrigen, buscar]
+  );
 
   useEffect(() => {
     cargar();
   }, [cargar]);
 
+  // Con filtros que dependen de leído/respondido, un cambio puede sacar el mensaje de la lista.
+  const recargarSiHaceFalta = () => {
+    if (["leidos", "sin_responder", "respondidos"].includes(filtroEstado)) cargar(true);
+  };
+
   async function verMas() {
     setCargandoMas(true);
     try {
       const datos = await listarMensajes({
-        soloNoLeidos,
+        estado: filtroEstado,
+        origen: filtroOrigen,
+        buscar,
         limite: POR_PAGINA,
         desplazamiento: mensajes.length,
       });
@@ -95,6 +120,7 @@ function Mensajes() {
       setNoLeidos((n) => n + (actualizado.leido ? -1 : 1));
       if (soloNoLeidos && actualizado.leido) setTotal((t) => t - 1);
       avisarCambio();
+      recargarSiHaceFalta();
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -124,6 +150,7 @@ function Mensajes() {
         : actuales.map((m) => (m.id === mensaje.id ? actualizado : m))
     );
     avisarCambio();
+    recargarSiHaceFalta();
   }
 
   async function enviarRespuestaApp(evento, mensaje) {
@@ -176,6 +203,7 @@ function Mensajes() {
 
       setRespondiendoId(null);
       avisarCambio();
+      recargarSiHaceFalta();
       toast.exito(`Respuesta enviada a ${mensaje.email}.`);
     } catch (e) {
       toast.error(e.message);
@@ -217,20 +245,54 @@ function Mensajes() {
         visitantes, por correo.
       </p>
 
-      <div className="mensajes-filtros">
+      <div className="barra-filtros">
+        <div className="filtro-busqueda">
+          <label htmlFor="mensajes-buscar">Buscar</label>
+          <input
+            id="mensajes-buscar"
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Nombre, correo o texto del mensaje..."
+          />
+        </div>
         <FiltroSelect
-          id="mensajes-filtro"
-          etiqueta="Mostrar"
-          valor={soloNoLeidos ? "sin_leer" : "todos"}
-          onCambio={(v) => setSoloNoLeidos(v === "sin_leer")}
+          id="mensajes-estado"
+          etiqueta="Estado"
+          valor={filtroEstado}
+          onCambio={setFiltroEstado}
           opciones={[
             { valor: "todos", texto: "Todos" },
-            {
-              valor: "sin_leer",
-              texto: `Sin leer${noLeidos > 0 ? ` (${noLeidos})` : ""}`,
-            },
+            { valor: "sin_leer", texto: `Sin leer${noLeidos > 0 ? ` (${noLeidos})` : ""}` },
+            { valor: "leidos", texto: "Leídos" },
+            { valor: "sin_responder", texto: "Sin responder" },
+            { valor: "respondidos", texto: "Respondidos" },
           ]}
         />
+        <FiltroSelect
+          id="mensajes-origen"
+          etiqueta="Origen"
+          valor={filtroOrigen}
+          onCambio={setFiltroOrigen}
+          opciones={[
+            { valor: "todos", texto: "Todos" },
+            { valor: "cliente", texto: "Clientes con cuenta" },
+            { valor: "visitante", texto: "Visitantes" },
+          ]}
+        />
+        {hayFiltros && (
+          <button
+            type="button"
+            className="boton boton-secundario boton-chico"
+            onClick={() => {
+              setFiltroEstado("todos");
+              setFiltroOrigen("todos");
+              setBusqueda("");
+            }}
+          >
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
       {cargando ? (
@@ -243,8 +305,8 @@ function Mensajes() {
       ) : mensajes.length === 0 ? (
         <div className="tarjeta">
           <p>
-            {soloNoLeidos
-              ? "No tenés mensajes sin leer."
+            {hayFiltros
+              ? "No hay mensajes que coincidan con los filtros."
               : "Todavía no recibiste mensajes."}
           </p>
         </div>

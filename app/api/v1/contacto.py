@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth.dependencies import (
@@ -399,14 +399,42 @@ def responder_conversacion(
 @router.get("/")
 def listar_mensajes(
     solo_no_leidos: bool = False,
+    # Filtros del panel: estado (todos | sin_leer | leidos | sin_responder | respondidos),
+    # origen (todos | cliente | visitante) y texto libre.
+    estado: str = Query("todos", pattern="^(todos|sin_leer|leidos|sin_responder|respondidos)$"),
+    origen: str = Query("todos", pattern="^(todos|cliente|visitante)$"),
+    buscar: str = Query("", max_length=100),
     limite: int = Query(20, ge=1, le=100),
     desplazamiento: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     _: Usuario = Depends(require_admin),
 ):
     consulta = db.query(MensajeContacto)
-    if solo_no_leidos:
+    if solo_no_leidos or estado == "sin_leer":
         consulta = consulta.filter(MensajeContacto.leido.is_(False))
+    elif estado == "leidos":
+        consulta = consulta.filter(MensajeContacto.leido.is_(True))
+    elif estado == "sin_responder":
+        consulta = consulta.filter(MensajeContacto.respondido_en.is_(None))
+    elif estado == "respondidos":
+        consulta = consulta.filter(MensajeContacto.respondido_en.isnot(None))
+
+    if origen == "cliente":
+        consulta = consulta.filter(MensajeContacto.usuario_id.isnot(None))
+    elif origen == "visitante":
+        consulta = consulta.filter(MensajeContacto.usuario_id.is_(None))
+
+    termino = buscar.strip()
+    if termino:
+        patron = f"%{termino}%"
+        consulta = consulta.filter(
+            or_(
+                MensajeContacto.nombre.ilike(patron),
+                MensajeContacto.apellido.ilike(patron),
+                MensajeContacto.email.ilike(patron),
+                MensajeContacto.mensaje.ilike(patron),
+            )
+        )
 
     total = consulta.count()
     items = (

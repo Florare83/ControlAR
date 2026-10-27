@@ -34,7 +34,8 @@ function Reservas() {
   const [datos, setDatos] = useState({ evento: null, reservas: [] });
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState("");
-  const [verCerradas, setVerCerradas] = useState(false);
+  const [filtroEstado, setFiltroEstado] = useState("activa");
+  const [busqueda, setBusqueda] = useState("");
 
   const [entregando, setEntregando] = useState(null); // reserva en la que se está cargando la entrega
   const [form, setForm] = useState(ENTREGA_VACIA);
@@ -115,7 +116,18 @@ function Reservas() {
   }
 
   const { evento, reservas } = datos;
-  const visibles = reservas.filter((r) => verCerradas || r.estado === "activa");
+  const texto = busqueda.trim().toLowerCase();
+  const visibles = reservas.filter(
+    (r) =>
+      (filtroEstado === "todas" || r.estado === filtroEstado) &&
+      (!texto ||
+        [r.juego.titulo, r.usuario.nombre, r.usuario.email]
+          .join(" ")
+          .toLowerCase()
+          .includes(texto))
+  );
+  const cantidad = (estado) => reservas.filter((r) => r.estado === estado).length;
+  const hayFiltros = filtroEstado !== "activa" || texto !== "";
   const partes = evento ? partesFecha(evento.fecha) : null;
 
   return (
@@ -148,21 +160,50 @@ function Reservas() {
             vencen a las {horaArgentina(datos.espera_hasta)} h.
           </p>
 
-          <div style={{ margin: "12px 0" }}>
+          <div className="barra-filtros">
+            <div className="filtro-busqueda">
+              <label htmlFor="reservas-buscar">Buscar</label>
+              <input
+                id="reservas-buscar"
+                type="search"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Juego, cliente o correo..."
+              />
+            </div>
             <FiltroSelect
               id="reservas-estado"
               etiqueta="Estado"
-              valor={verCerradas ? "todas" : "activas"}
-              onCambio={(v) => setVerCerradas(v === "todas")}
+              valor={filtroEstado}
+              onCambio={setFiltroEstado}
               opciones={[
-                { valor: "activas", texto: "Activas" },
-                { valor: "todas", texto: "Todas (incluye entregadas, canceladas y vencidas)" },
+                { valor: "activa", texto: `Reservadas (${cantidad("activa")})` },
+                { valor: "entregada", texto: `Entregadas (${cantidad("entregada")})` },
+                { valor: "cancelada", texto: `Canceladas (${cantidad("cancelada")})` },
+                { valor: "vencida", texto: `Vencidas (${cantidad("vencida")})` },
+                { valor: "todas", texto: `Todas (${reservas.length})` },
               ]}
             />
+            {hayFiltros && (
+              <button
+                type="button"
+                className="boton boton-secundario boton-chico"
+                onClick={() => {
+                  setFiltroEstado("activa");
+                  setBusqueda("");
+                }}
+              >
+                Limpiar filtros
+              </button>
+            )}
           </div>
 
           {visibles.length === 0 ? (
-            <p>No hay reservas {verCerradas ? "para este evento" : "activas"}.</p>
+            <p>
+              {hayFiltros
+                ? "No hay reservas que coincidan con los filtros."
+                : "No hay reservas activas para este evento."}
+            </p>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table className="tabla">

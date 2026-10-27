@@ -27,7 +27,9 @@ router = APIRouter(
 )
 
 
-class PrestamoCrear(BaseModel):
+class PrestamoPersona(BaseModel):
+    """Datos de la persona que se lleva el juego (los mismos al crear y al editar)."""
+
     model_config = ConfigDict(str_strip_whitespace=True)
 
     dni: str = Field(pattern=r"^\d{6,9}$")
@@ -35,7 +37,6 @@ class PrestamoCrear(BaseModel):
     email: str | None = Field(default=None, max_length=255)
     sexo: str
     telefono: str = Field(pattern=r"^[0-9+\s()-]{6,30}$")
-    juego_id: int = Field(ge=1)
 
     @field_validator("sexo")
     @classmethod
@@ -46,6 +47,14 @@ class PrestamoCrear(BaseModel):
             raise ValueError("El sexo debe ser Femenino o Masculino")
 
         return normalizado.capitalize()
+
+
+class PrestamoCrear(PrestamoPersona):
+    juego_id: int = Field(ge=1)
+
+
+class PrestamoEditar(PrestamoPersona):
+    """Corrección de los datos de la persona (el juego se cambia con /juego)."""
 
 
 class PrestamoCambiarJuego(BaseModel):
@@ -487,6 +496,61 @@ def cambiar_juego(
             status_code=409,
             detail=(
                 "No se pudo cambiar el juego por un conflicto "
+                "con los datos o las restricciones de la base de datos. "
+                "Revisá los logs del backend."
+            ),
+        ) from e
+
+    db.refresh(prestamo)
+    return prestamo
+
+
+@router.patch("/{prestamo_id}", response_model=PrestamoRespuesta)
+def editar_prestamo(
+    prestamo_id: int,
+    datos: PrestamoEditar,
+    db: Session = Depends(get_db),
+):
+    """Corrige los datos de la persona de un préstamo (activo o cerrado)."""
+
+    prestamo = _buscar(db, prestamo_id)
+
+    # Un DNI solo puede tener un préstamo activo: si se corrige el DNI de un
+    # préstamo activo, no debe chocar con otro activo de esa misma persona.
+    if prestamo.estado == ACTIVO and datos.dni != prestamo.dni:
+        otro_activo = (
+            db.query(Prestamo)
+            .filter(
+                Prestamo.dni == datos.dni,
+                Prestamo.estado == ACTIVO,
+                Prestamo.id != prestamo.id,
+            )
+            .first()
+        )
+
+        if otro_activo is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Esa persona ya tiene un préstamo activo",
+            )
+
+    prestamo.dni = datos.dni
+    prestamo.nombre = datos.nombre
+    prestamo.sexo = datos.sexo
+    prestamo.telefono = datos.telefono
+    prestamo.email = datos.email.strip().lower() if datos.email else None
+
+    try:
+        db.commit()
+
+    except IntegrityError as e:
+        db.rollback()
+        _registrar_error_integridad("editar préstamo", e)
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "No se pudo guardar el cambio por un conflicto "
                 "con los datos o las restricciones de la base de datos. "
                 "Revisá los logs del backend."
             ),

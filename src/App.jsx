@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "./context/AuthContext.jsx";
@@ -41,8 +41,19 @@ function CuentaInicio() {
   );
 }
 
+// El tema elegido se recuerda en este navegador entre visitas.
+const CLAVE_TEMA = "controlar-tema";
+
+function leerTemaGuardado() {
+  try {
+    return window.localStorage.getItem(CLAVE_TEMA) === "oscuro";
+  } catch {
+    return false; // almacenamiento bloqueado: se usa el tema claro
+  }
+}
+
 function App() {
-  const [modoOscuro, setModoOscuro] = useState(false);
+  const [modoOscuro, setModoOscuro] = useState(leerTemaGuardado);
   const { pathname } = useLocation();
 
   // Checkout y resultado de compra ocupan toda la pantalla.
@@ -50,10 +61,19 @@ function App() {
     pathname === "/checkout" ||
     pathname === "/compra/resultado";
 
+  // Aplica el tema a la página y lo guarda cada vez que cambia.
+  useEffect(() => {
+    document.body.classList.toggle("oscuro", modoOscuro);
+
+    try {
+      window.localStorage.setItem(CLAVE_TEMA, modoOscuro ? "oscuro" : "claro");
+    } catch {
+      // Sin almacenamiento disponible: el tema solo dura esta visita.
+    }
+  }, [modoOscuro]);
+
   function cambiarTema() {
-    const nuevoValor = !modoOscuro;
-    setModoOscuro(nuevoValor);
-    document.body.classList.toggle("oscuro", nuevoValor);
+    setModoOscuro((actual) => !actual);
   }
 
   return (

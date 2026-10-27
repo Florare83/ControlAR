@@ -78,11 +78,14 @@ function Navbar({ modoOscuro, onCambiarTema }) {
           </NavLink>
         </li>
 
-        <li>
-          <NavLink to="/juegos" className={clase}>
-            JUEGOS
-          </NavLink>
-        </li>
+        {/* El administrador gestiona los juegos desde el panel */}
+        {!esAdmin && (
+          <li>
+            <NavLink to="/juegos" className={clase}>
+              JUEGOS
+            </NavLink>
+          </li>
+        )}
 
         {esAdmin && (
           <li>

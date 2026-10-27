@@ -168,6 +168,13 @@ export const cambiarJuegoPrestamo = (id, juegoId) =>
     body: JSON.stringify({ juego_id: juegoId }),
   });
 
+// Corrige los datos de la persona de un préstamo (activo o cerrado).
+export const editarPrestamo = (id, datos) =>
+  pedir(`/prestamos/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(datos),
+  });
+
 export const devolverPrestamo = (id) =>
   pedir(`/prestamos/${id}/devolver`, {
     method: "POST",
@@ -294,12 +301,24 @@ export const enviarContacto = (datos) =>
 // Mensajes de contacto: administración
 export const listarMensajes = ({
   soloNoLeidos = false,
+  estado = "todos",
+  origen = "todos",
+  buscar = "",
   limite = 20,
   desplazamiento = 0,
-} = {}) =>
-  pedir(
-    `/contacto/?solo_no_leidos=${soloNoLeidos}&limite=${limite}&desplazamiento=${desplazamiento}`
-  );
+} = {}) => {
+  const parametros = new URLSearchParams({
+    solo_no_leidos: String(soloNoLeidos),
+    estado,
+    origen,
+    limite: String(limite),
+    desplazamiento: String(desplazamiento),
+  });
+
+  if (buscar.trim()) parametros.set("buscar", buscar.trim());
+
+  return pedir(`/contacto/?${parametros.toString()}`);
+};
 
 export const marcarMensaje = (id, leido) =>
   pedir(`/contacto/${id}`, {
