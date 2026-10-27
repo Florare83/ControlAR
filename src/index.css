@@ -427,34 +427,6 @@ a {
 }
 
 /* ============================================
-   Acordeón de preguntas frecuentes
-   ============================================ */
-.acordeon-item {
-  border-bottom: 1px solid var(--borde);
-}
-
-.acordeon-pregunta {
-  width: 100%;
-  background: none;
-  border: none;
-  text-align: left;
-  padding: 14px 0;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--texto);
-}
-
-.acordeon-respuesta {
-  padding: 0 0 14px;
-  color: var(--texto-suave);
-  font-size: 15px;
-}
-
-/* ============================================
    Modo oscuro / claro
    ============================================ */
 body.oscuro {
@@ -2445,75 +2417,109 @@ body.oscuro .prestamo-estado.rechazado {
   line-height: 1.6;
 }
 
-/* ---------- Portada ---------- */
+/* ---------- Portada (compartida) ---------- */
 .pg-hero {
-  position: relative;
-  overflow: hidden;
-  padding: 48px 40px;
-  border-radius: 16px;
+  padding: 56px 48px;
+  border-radius: 20px;
   color: #ffffff;
   background:
-    radial-gradient(circle at 88% 15%, rgba(240, 180, 41, 0.28), transparent 45%),
+    radial-gradient(circle at 92% 8%, rgba(240, 180, 41, 0.26), transparent 42%),
     linear-gradient(135deg, #161c3f 0%, #232a5c 100%);
 }
 
-.pg-hero::after {
-  content: "🎲";
-  position: absolute;
-  right: 32px;
-  bottom: -24px;
-  font-size: 150px;
-  line-height: 1;
-  opacity: 0.12;
-  pointer-events: none;
-}
-
 .pagina .pg-hero h1 {
-  margin: 4px 0 12px;
-  font-size: clamp(30px, 5vw, 44px);
-  line-height: 1.1;
-}
-
-.pg-hero .pg-hero-etiqueta {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: rgba(240, 180, 41, 0.18);
-  color: var(--acento);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  margin: 0 0 16px;
+  font-size: clamp(34px, 6vw, 56px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
 .pg-hero .pg-hero-texto {
-  max-width: 620px;
-  font-size: 17px;
+  max-width: 54ch;
+  font-size: 18px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .pg-hero-acciones {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-top: 28px;
+}
+
+/* Nosotros: el texto a la izquierda y la foto del grupo a la derecha */
+.nos .pg-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 48px;
+  align-items: center;
+}
+
+.nos-portada-foto {
+  margin: 0;
+}
+
+.nos-portada-foto img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 6 / 5;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.nos-portada-foto figcaption {
+  margin-top: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Aviso del próximo evento dentro de la portada */
+.pg-proximo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
   margin-top: 24px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 15px;
+  transition: background 0.15s;
+}
+
+.pg-proximo:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.pg-proximo-etiqueta {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--acento);
+  color: #161c3f;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.pg-proximo-texto {
+  font-weight: 600;
 }
 
 /* ---------- Botones en forma de enlace ---------- */
 .pg-boton {
   display: inline-block;
-  padding: 11px 20px;
-  border-radius: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
   border: 2px solid transparent;
   font-size: 15px;
   font-weight: 700;
   text-align: center;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
-}
-
-.pg-boton:hover {
-  transform: translateY(-1px);
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .pg-boton-claro {
@@ -2570,23 +2576,27 @@ body.oscuro .pg-boton-contorno:hover {
 }
 
 .pg-boton:focus-visible,
-.acordeon-pregunta:focus-visible,
+.pg-proximo:focus-visible,
+.club-guia a:focus-visible,
+.club-vacio a:focus-visible,
 .club-anteriores summary:focus-visible {
   outline: 3px solid #3b82f6;
   outline-offset: 2px;
 }
 
-/* ---------- Secciones ---------- */
+/* ---------- Secciones (también las usa "Los más populares") ---------- */
 .pg-seccion {
-  margin-top: 48px;
+  margin-top: 56px;
   scroll-margin-top: calc(var(--navbar-alto) + 12px);
 }
 
 .pagina .pg-titulo {
   position: relative;
-  margin: 0 0 20px;
-  padding-bottom: 10px;
-  font-size: 24px;
+  margin: 0 0 24px;
+  padding-bottom: 12px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .pg-titulo::after {
@@ -2626,236 +2636,27 @@ body.oscuro .pg-boton-contorno:hover {
 /* ============================================
    Nosotros
    ============================================ */
-.nos-datos {
+.nos-historia-cuerpo {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 16px 56px;
+  align-items: start;
 }
 
-.nos-datos li {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 16px 18px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 12px;
-}
-
-.nos-datos strong {
-  font-size: 26px;
-  line-height: 1.1;
-}
-
-.nos-datos span {
-  font-size: 13px;
-  color: var(--texto-suave);
-}
-
-.nos-historia {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 40px;
-  align-items: center;
-}
-
-.nos-historia-texto p + p {
-  margin-top: 14px;
-}
-
-.nos-historia-texto p {
+.nos-historia-cuerpo p {
   font-size: 17px;
 }
 
-.nos-historia-imagen {
-  margin: 0;
-}
-
-.nos-historia-imagen img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.nos-historia-imagen figcaption {
-  margin-top: 8px;
-  font-size: 13px;
-  text-align: center;
-  color: var(--texto-suave);
-}
-
-.nos-ventajas {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nos-ventaja {
-  padding: 22px 20px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 14px;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.nos-ventaja:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-.nos-ventaja-icono {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
-  border-radius: 12px;
-  background: rgba(240, 180, 41, 0.2);
-  font-size: 24px;
-}
-
-.nos-ventaja h3,
-.nos-paso h3 {
-  margin: 0 0 6px;
-  font-size: 17px;
-}
-
-.nos-ventaja p,
-.nos-paso p {
-  color: var(--texto-suave);
-  font-size: 15px;
-}
-
-.nos-pasos {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nos-paso {
-  display: flex;
-  gap: 14px;
-  padding: 20px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 14px;
-}
-
-.nos-paso-numero {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--azul-marino);
-  color: #ffffff;
-  font-weight: 700;
-}
-
-body.oscuro .nos-paso-numero {
-  background: #3a4380;
-}
-
-.nos-faq {
-  padding: 4px 22px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 14px;
-}
-
-.nos-faq .acordeon-item:last-child {
-  border-bottom: none;
-}
-
-.nos-faq-pregunta {
-  margin: 0;
-  font-size: inherit;
-}
-
-.nos-faq .acordeon-pregunta {
-  gap: 16px;
-  padding: 18px 0;
-  font-size: 16px;
-}
-
-.nos-faq-icono {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(240, 180, 41, 0.25);
-  font-size: 18px;
-  line-height: 1;
-}
-
-.nos-faq .acordeon-respuesta {
-  padding: 0 0 18px;
-  font-size: 15px;
-  line-height: 1.6;
+.nos-historia-cuerpo .nos-historia-destacado {
+  font-size: clamp(21px, 2.6vw, 27px);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
 /* ============================================
    Club
    ============================================ */
-.club-info {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.club-info li {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding: 16px 18px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 12px;
-}
-
-.club-info-icono {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: rgba(240, 180, 41, 0.2);
-  font-size: 22px;
-}
-
-.club-info strong {
-  display: block;
-  margin-bottom: 2px;
-}
-
-.club-info li span:not(.club-info-icono) {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--texto-suave);
-}
-
 .club-lista {
   display: grid;
   gap: 16px;
@@ -2870,16 +2671,15 @@ body.oscuro .nos-paso-numero {
   background: var(--blanco);
   border: 1px solid var(--borde);
   border-radius: 14px;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.club-evento:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .club-evento.pasado {
   opacity: 0.75;
+}
+
+.club-evento.destacado {
+  border: 2px solid var(--acento);
+  box-shadow: 0 8px 24px rgba(240, 180, 41, 0.22);
 }
 
 .club-fecha {
@@ -2930,6 +2730,12 @@ body.oscuro .club-fecha {
   color: var(--azul-marino);
   font-size: 12.5px;
   font-weight: 700;
+}
+
+.club-tag-destacado,
+body.oscuro .club-tag-destacado {
+  background: var(--acento);
+  color: #161c3f;
 }
 
 .club-tag-aviso {
@@ -3000,21 +2806,7 @@ body.oscuro .club-tag-aviso {
   border: 1px solid var(--borde);
 }
 
-.club-evento.destacado {
-  border: 2px solid var(--acento);
-  box-shadow: 0 8px 24px rgba(240, 180, 41, 0.22);
-}
-
-.club-tag-destacado {
-  background: var(--acento);
-  color: #161c3f;
-}
-
-body.oscuro .club-tag-destacado {
-  background: var(--acento);
-  color: #161c3f;
-}
-
+/* Aviso destacado (también lo usa el catálogo de juegos) */
 .club-aviso {
   display: flex;
   gap: 12px;
@@ -3027,57 +2819,69 @@ body.oscuro .club-tag-destacado {
   background: rgba(240, 180, 41, 0.14);
 }
 
-.club-info-alerta {
-  border-color: rgba(59, 130, 246, 0.55) !important;
-  background: rgba(59, 130, 246, 0.08) !important;
-}
-
-/* Aviso del próximo evento dentro de la portada */
-.pg-proximo {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 18px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  font-size: 15px;
-  transition: background 0.15s;
-}
-
-.pg-proximo:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.pg-proximo:focus-visible {
-  outline: 3px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-.pg-proximo-etiqueta {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--acento);
-  color: #161c3f;
-  font-size: 12.5px;
-  font-weight: 800;
-}
-
-.pg-proximo-texto {
-  font-weight: 600;
-}
-
+/* Cuando no hay eventos o torneos */
 .club-vacio {
   display: grid;
   justify-items: start;
-  gap: 10px;
-  padding: 28px;
+  gap: 8px;
+  padding: 24px 28px;
   background: var(--blanco);
   border: 1px dashed var(--borde);
   border-radius: 14px;
+}
+
+.club-vacio a,
+.club-guia a {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--azul-marino);
+}
+
+body.oscuro .club-vacio a,
+body.oscuro .club-guia a {
+  color: #c7ceff;
+}
+
+/* ---------- Antes de venir: una lista de preguntas, sin tarjetas ---------- */
+.club-guia {
+  margin: 0;
+  border-top: 1px solid var(--borde);
+}
+
+.club-guia-fila {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+  gap: 8px 40px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.club-guia dt {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.club-guia dd {
+  max-width: 64ch;
+  margin: 0;
+}
+
+.club-guia dd p {
+  font-size: 16px;
+}
+
+.club-guia dd p + p {
+  margin-top: 10px;
+}
+
+.club-guia-alerta {
+  grid-template-columns: minmax(156px, 256px) minmax(0, 1fr);
+  padding-left: 20px;
+  padding-right: 20px;
+  border-left: 4px solid var(--acento);
+  background: rgba(240, 180, 41, 0.1);
 }
 
 .club-anteriores {
@@ -3087,7 +2891,7 @@ body.oscuro .club-tag-destacado {
 .club-anteriores summary {
   display: inline-block;
   margin-bottom: 16px;
-  padding: 8px 4px;
+  padding: 8px 0;
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
@@ -3095,11 +2899,6 @@ body.oscuro .club-tag-destacado {
 
 /* ---------- Pantallas medianas ---------- */
 @media (max-width: 1000px) {
-  .nos-datos,
-  .nos-ventajas {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .club-evento {
     grid-template-columns: 76px minmax(0, 1fr);
   }
@@ -3110,25 +2909,26 @@ body.oscuro .club-tag-destacado {
   }
 }
 
+@media (max-width: 860px) {
+  .nos .pg-hero,
+  .nos-historia-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .nos-historia-cuerpo {
+    gap: 16px;
+  }
+
+  .club-guia-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ---------- Celulares ---------- */
 @media (max-width: 760px) {
   .pg-hero {
     padding: 32px 22px;
-  }
-
-  .pg-hero::after {
-    font-size: 100px;
-    right: 12px;
-  }
-
-  .nos-historia,
-  .nos-pasos,
-  .club-info {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .nos-historia {
-    gap: 24px;
   }
 
   .pg-cierre {
@@ -3137,10 +2937,6 @@ body.oscuro .club-tag-destacado {
 }
 
 @media (max-width: 520px) {
-  .nos-ventajas {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .club-evento {
     grid-template-columns: 60px minmax(0, 1fr);
     gap: 14px;
@@ -3159,55 +2955,8 @@ body.oscuro .club-tag-destacado {
 
 @media (prefers-reduced-motion: reduce) {
   .pg-boton,
-  .nos-ventaja,
-  .club-evento {
+  .pg-proximo {
     transition: none;
-  }
-
-  .pg-boton:hover,
-  .nos-ventaja:hover,
-  .club-evento:hover {
-    transform: none;
-  }
-}
-
-
-/* ---------- Club: sección de torneos ---------- */
-.club-torneos-vacio {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  padding: 24px;
-  background: var(--blanco);
-  border: 1px dashed var(--borde);
-  border-radius: 14px;
-}
-
-.club-torneos-icono {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: rgba(240, 180, 41, 0.22);
-  font-size: 28px;
-}
-
-.club-torneos-vacio p + p {
-  margin-top: 6px;
-}
-
-.club-torneos-vacio .club-torneos-nota {
-  font-size: 14px;
-  color: var(--texto-suave);
-}
-
-@media (max-width: 520px) {
-  .club-torneos-vacio {
-    flex-direction: column;
-    padding: 18px;
   }
 }
 
@@ -4119,26 +3868,4 @@ body.oscuro .hilo-burbuja.propia {
   font-size: 12px;
   font-weight: 700;
   text-align: center;
-}
-
-/* Filtro desplegable (reemplaza los grupos de botones de estado) */
-.filtro-select {
-  display: grid;
-  gap: 6px;
-  min-width: 180px;
-}
-
-.filtro-select label {
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-.filtro-select select {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--borde);
-  border-radius: 8px;
-  background: var(--blanco);
-  color: var(--texto);
-  font-size: 14.5px;
 }
