@@ -19,8 +19,8 @@ function Nosotros() {
   return (
     <div className="pagina nos">
       {/* Portada: quiénes somos + la foto del grupo */}
-      <header className="pg-hero">
-        <div className="nos-portada-texto">
+      <header className="pg-hero pg-hero-con-imagen">
+        <div className="pg-hero-contenido">
           <h1>Quiénes somos</h1>
           <p className="pg-hero-texto">
             El Rincón de Hermes es un club de juegos de mesa modernos de Salta,
@@ -53,7 +53,7 @@ function Nosotros() {
           </div>
         </div>
 
-        <figure className="nos-portada-foto">
+        <figure className="pg-hero-imagen">
           <img src={grupo} alt="Equipo del Rincón de Hermes" />
           <figcaption>El equipo del Rincón de Hermes</figcaption>
         </figure>
