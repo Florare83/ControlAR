@@ -8,7 +8,7 @@ import { useToast } from "../context/ToastContext.jsx";
 import logo from "../img/logo.png";
 
 function Navbar({ modoOscuro, onCambiarTema }) {
-  const { usuario, rol, puedeOperar, logout } = useAuth();
+  const { usuario, rol, esAdmin, logout } = useAuth();
   const { cantidadTotal } = useCarrito();
   const toast = useToast();
   const navegar = useNavigate();
@@ -84,7 +84,7 @@ function Navbar({ modoOscuro, onCambiarTema }) {
           </NavLink>
         </li>
 
-        {puedeOperar && (
+        {esAdmin && (
           <li>
             <NavLink to="/panel" className={clase}>
               PANEL

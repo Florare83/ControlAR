@@ -1,6 +1,5 @@
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth.dependencies import get_current_user
@@ -19,18 +18,18 @@ def listar_mis_prestamos(
     usuario: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Devuelve exclusivamente los préstamos asociados al correo de la sesión."""
+    """Devuelve los préstamos de la persona, cruzando por su DNI.
 
-    email = (usuario.email or "").strip().lower()
+    Solo si un administrador verificó el DNI (mirando el documento físico). Si no,
+    cualquiera podría escribir el DNI de otra persona al registrarse y ver sus préstamos.
+    """
 
-    if not email:
+    if not usuario.dni_verificado or not usuario.dni:
         return []
 
     prestamos = (
         db.query(Prestamo)
-        .filter(
-            func.lower(func.trim(Prestamo.email)) == email
-        )
+        .filter(Prestamo.dni == usuario.dni)
         .order_by(Prestamo.fecha_inicio.desc(), Prestamo.id.desc())
         .all()
     )

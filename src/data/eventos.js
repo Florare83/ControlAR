@@ -7,12 +7,20 @@ import tardes from "../img/eventos.jpeg";
 // Este archivo solo tiene las funciones para mostrarlos.
 // ---------------------------------------------------------------
 
-export const APORTE_MINIMO = "$2.000";
+// El monto del aporte NO se escribe acá: lo carga el administrador en cada evento
+// (campo "Aporte o inscripción" del panel). Esta función lo extrae del texto del
+// evento para mostrarlo en otras pantallas. Ej: "Aporte mínimo: $2.000 por persona" -> "$2.000".
+// Devuelve null si el texto no tiene un monto.
+export function montoDelAporte(texto) {
+  const coincidencia = /\$\s?\d[\d.,]*/.exec(texto || "");
+  return coincidencia ? coincidencia[0].replace(/\s/g, "").replace(/[.,]+$/, "") : null;
+}
 
 // Aviso destacado arriba de los eventos. Se oculta solo después de "hasta".
+// (Sin montos: el valor figura en cada evento.)
 export const aviso = {
   texto:
-    "Desde el domingo 25 de octubre, el ingreso a las tardes de juego tiene un aporte mínimo de $2.000 por persona.",
+    "Desde el domingo 25 de octubre, el ingreso a las tardes de juego tiene un aporte mínimo por persona. El monto figura en cada evento.",
   hasta: "2026-11-30",
 };
 

@@ -13,9 +13,9 @@ import { useEventos } from "../hooks/useEventos.js";
 const reglas = [
   {
     icono: "💲",
-    titulo: "Tardes de juegos: aporte mínimo $2.000",
+    titulo: "Tardes de juegos: aporte mínimo",
     texto:
-      "Por persona y sin reserva previa. Tu aporte nos ayuda a sostener el espacio, cuidar los juegos y mantener estas actividades.",
+      "Por persona y sin reserva previa. El monto figura en cada evento. Tu aporte nos ayuda a sostener el espacio, cuidar los juegos y mantener estas actividades.",
   },
   {
     icono: "💳",

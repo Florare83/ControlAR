@@ -11,7 +11,7 @@ import {
 // así Navbar, Juegos, etc. pueden preguntar "¿hay sesión? ¿qué rol tiene?".
 const AuthContext = createContext(null);
 
-// Rol del usuario: "admin", "operador" o "cliente" (null si no hay sesión).
+// Rol del usuario: "admin" o "cliente" (null si no hay sesión).
 // La API lo manda en "rol"; si todavía no lo manda, lo deducimos de es_admin.
 export function rolDe(usuario) {
   if (!usuario) return null;
@@ -46,16 +46,22 @@ export function AuthProvider({ children }) {
     setUsuario(null);
   }
 
+  // Vuelve a pedir el perfil (por ejemplo, después de guardar el DNI).
+  async function recargarPerfil() {
+    const perfil = await obtenerPerfil();
+    setUsuario(perfil);
+    return perfil;
+  }
+
   const rol = rolDe(usuario);
   const valor = {
     usuario,
     rol,
     esAdmin: rol === "admin",
-    // El admin también puede hacer todo lo del operador.
-    puedeOperar: rol === "admin" || rol === "operador",
     cargando,
     login,
     logout,
+    recargarPerfil,
   };
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

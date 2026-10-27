@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import secrets
 
@@ -15,7 +16,7 @@ from app.models.usuario import Usuario
 from app.models.favorito import Favorito
 from . import repository as repo
 from .dependencies import get_current_user, require_admin
-from .schemas import Token, UsuarioCreate, UsuarioOut
+from .schemas import DniActualizar, Token, UsuarioCreate, UsuarioOut
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
@@ -35,6 +36,8 @@ class UsuarioAdminOut(BaseModel):
     email: EmailStr
     es_admin: bool
     activo: bool
+    dni: str | None = None
+    dni_verificado: bool = False
 
     class Config:
         from_attributes = True
@@ -43,6 +46,8 @@ class UsuarioAdminOut(BaseModel):
 class ActualizarUsuarioAdmin(BaseModel):
     es_admin: bool | None = None
     activo: bool | None = None
+    # El administrador lo marca después de mirar el DNI físico de la persona.
+    dni_verificado: bool | None = None
 
 
 @router.post("/register", response_model=UsuarioOut, status_code=201)
@@ -58,6 +63,7 @@ def registrar(datos: UsuarioCreate, db: Session = Depends(get_db)):
         datos.nombre,
         datos.email,
         datos.contrasena,
+        dni=datos.dni,
     )
 
 
@@ -80,6 +86,22 @@ def login(
 
 @router.get("/me", response_model=UsuarioOut)
 def perfil(usuario: Usuario = Depends(get_current_user)):
+    return usuario
+
+
+@router.put("/me/dni", response_model=UsuarioOut)
+def actualizar_mi_dni(
+    datos: DniActualizar,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    """La persona carga o corrige su DNI. Si cambia, hay que volver a verificarlo."""
+    if usuario.dni != datos.dni:
+        usuario.dni = datos.dni
+        usuario.dni_verificado = False
+        db.commit()
+        db.refresh(usuario)
+
     return usuario
 
 
@@ -143,6 +165,9 @@ def eliminar_cuenta(
         secrets.token_urlsafe(32)
     )
     usuario.activo = False
+    # Se libera el DNI para que pueda verificarse en otra cuenta.
+    usuario.dni = None
+    usuario.dni_verificado = False
 
     db.commit()
 
@@ -215,13 +240,51 @@ def actualizar_usuario_admin(
                 detail="No podés quitarte tu propio rol de administrador",
             )
 
+    if cambios.get("dni_verificado") is True:
+        if not usuario.dni:
+            raise HTTPException(
+                status_code=400,
+                detail="La cuenta todavía no tiene un DNI cargado",
+            )
+
+        otra = (
+            db.query(Usuario)
+            .filter(
+                Usuario.dni == usuario.dni,
+                Usuario.dni_verificado.is_(True),
+                Usuario.id != usuario.id,
+            )
+            .first()
+        )
+
+        if otra is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Ese DNI ya está verificado en otra cuenta ({otra.email}). "
+                    "Quitale la verificación a esa cuenta primero."
+                ),
+            )
+
     if cambios.get("activo") is not None:
         usuario.activo = cambios["activo"]
 
     if cambios.get("es_admin") is not None:
         usuario.es_admin = cambios["es_admin"]
 
-    db.commit()
+    if cambios.get("dni_verificado") is not None:
+        usuario.dni_verificado = cambios["dni_verificado"]
+
+    try:
+        db.commit()
+    except IntegrityError:
+        # Dos administradores verificando el mismo DNI a la vez.
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Ese DNI ya está verificado en otra cuenta",
+        )
+
     db.refresh(usuario)
 
     return usuario

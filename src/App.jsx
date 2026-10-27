@@ -24,7 +24,6 @@ import Reservas from "./pages/Reservas.jsx";
 import Eventos from "./pages/Eventos.jsx";
 import MisCompras from "./pages/MisCompras.jsx";
 import Ventas from "./pages/Ventas.jsx";
-import PanelResumen from "./pages/PanelResumen.jsx";
 import Reportes from "./pages/Reportes.jsx";
 import Mensajes from "./pages/Mensajes.jsx";
 import MisMensajes from "./pages/MisMensajes.jsx";
@@ -174,7 +173,7 @@ function App() {
           <Route
             path="/panel"
             element={
-              <RutaProtegida roles={["operador", "admin"]} />
+              <RutaProtegida roles={["admin"]} />
             }
           >
             <Route element={<PanelLayout />}>
@@ -193,52 +192,45 @@ function App() {
                 element={<Reservas />}
               />
 
-              <Route element={<RutaProtegida roles={["admin"]} />}>
-                <Route
-                  path="resumen"
-                  element={<PanelResumen />}
-                />
+              <Route
+                path="historial"
+                element={<HistorialPrestamos />}
+              />
 
-                <Route
-                  path="historial"
-                  element={<HistorialPrestamos />}
-                />
+              <Route
+                path="reportes"
+                element={<Reportes />}
+              />
 
-                <Route
-                  path="reportes"
-                  element={<Reportes />}
-                />
+              <Route
+                path="eventos"
+                element={<Eventos />}
+              />
 
-                <Route
-                  path="eventos"
-                  element={<Eventos />}
-                />
+              <Route
+                path="mensajes"
+                element={<Mensajes />}
+              />
 
-                <Route
-                  path="mensajes"
-                  element={<Mensajes />}
-                />
+              <Route
+                path="ventas"
+                element={<Ventas />}
+              />
 
-                <Route
-                  path="ventas"
-                  element={<Ventas />}
-                />
+              <Route
+                path="juegos"
+                element={<Juegos enPanel />}
+              />
 
-                <Route
-                  path="juegos"
-                  element={<Juegos enPanel />}
-                />
+              <Route
+                path="agregar-juego"
+                element={<Navigate to="/panel/juegos" replace />}
+              />
 
-                <Route
-                  path="agregar-juego"
-                  element={<Navigate to="/panel/juegos" replace />}
-                />
-
-                <Route
-                  path="usuarios"
-                  element={<GestionarUsuarios />}
-                />
-              </Route>
+              <Route
+                path="usuarios"
+                element={<GestionarUsuarios />}
+              />
             </Route>
           </Route>
 

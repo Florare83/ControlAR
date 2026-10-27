@@ -7,7 +7,7 @@ import LineaCarrito, { formatearPrecio } from "../components/LineaCarrito.jsx";
 import logo from "../img/logo.png";
 
 // Número de WhatsApp de la tienda (formato internacional, sin "+" ni espacios).
-const WHATSAPP_TIENDA = "543874491907";
+const WHATSAPP_TIENDA = import.meta.env.VITE_WHATSAPP_TIENDA;
 
 // Pantalla completa de confirmación de compra. El cliente elige cómo pagar:
 //  - Efectivo / transferencia: se registra el pedido (pendiente de pago) y se

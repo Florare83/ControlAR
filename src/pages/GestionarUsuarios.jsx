@@ -328,6 +328,7 @@ export default function GestionarUsuarios() {
                 <tr>
                   <th>Nombre</th>
                   <th>Correo electrónico</th>
+                  <th>DNI</th>
                   <th>Rol</th>
                   <th>Estado</th>
                   <th>Acciones</th>
@@ -339,6 +340,27 @@ export default function GestionarUsuarios() {
                   <tr key={usuario.id}>
                     <td>{usuario.nombre}</td>
                     <td>{usuario.email}</td>
+
+                    <td>
+                      {usuario.dni ? (
+                        <>
+                          {usuario.dni}{" "}
+                          <span
+                            className={
+                              usuario.dni_verificado
+                                ? "usuario-estado usuario-estado--activo"
+                                : "usuario-estado usuario-estado--inactivo"
+                            }
+                          >
+                            {usuario.dni_verificado
+                              ? "Verificado"
+                              : "Sin verificar"}
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
 
                     <td>
                       <select
@@ -408,9 +430,36 @@ export default function GestionarUsuarios() {
                             : "Activar"}
                       </button>
 
+                      {usuario.dni && (
+                        <button
+                          type="button"
+                          disabled={procesando === usuario.id}
+                          onClick={() => {
+                            const verificar = !usuario.dni_verificado;
+                            const pregunta = verificar
+                              ? `Mirá el DNI físico de ${usuario.nombre}. ¿El número es ${usuario.dni}?`
+                              : `¿Querés quitar la verificación del DNI de ${usuario.nombre}?`;
+
+                            if (window.confirm(pregunta)) {
+                              modificarUsuario(usuario, {
+                                dni_verificado: verificar,
+                              });
+                            }
+                          }}
+                        >
+                          {usuario.dni_verificado
+                            ? "Quitar verificación"
+                            : "Verificar DNI"}
+                        </button>
+                      )}
+
                       <Link
                         className="usuario-enlace-historial"
-                        to={`/panel/historial?email=${encodeURIComponent(usuario.email)}`}
+                        to={
+                          usuario.dni_verificado
+                            ? `/panel/historial?dni=${encodeURIComponent(usuario.dni)}`
+                            : `/panel/historial?email=${encodeURIComponent(usuario.email)}`
+                        }
                         aria-label={`Ver préstamos de ${usuario.nombre}`}
                       >
                         Ver préstamos

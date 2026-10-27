@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import grupo from "../img/grupo.jpeg";
-import { partesFecha, proximoEvento } from "../data/eventos.js";
+import {
+  clasificarEventos,
+  montoDelAporte,
+  partesFecha,
+  proximoEvento,
+} from "../data/eventos.js";
 import { useEventos } from "../hooks/useEventos.js";
 import JuegosPopulares from "../components/JuegosPopulares.jsx";
 
@@ -10,7 +15,6 @@ const estadisticas = [
   { valor: "2017", texto: "El año en que empezamos" },
   { valor: "9 años", texto: "de juntadas y comunidad" },
   { valor: "1 por mes", texto: "Juntada mensual, sábado o domingo" },
-  { valor: "$2.000", texto: "Aporte mínimo en las tardes de juegos" },
 ];
 
 // Qué se puede esperar del club.
@@ -59,7 +63,8 @@ const pasos = [
 ];
 
 // Preguntas frecuentes. Cada una tiene su pregunta y su respuesta.
-const preguntas = [
+// "monto" es el aporte de la próxima tarde de juegos (viene de los eventos) o null.
+const armarPreguntas = (monto) => [
   {
     pregunta: "¿Cuándo se juntan a jugar juegos de mesa?",
     respuesta:
@@ -68,7 +73,11 @@ const preguntas = [
   {
     pregunta: "¿Para asistir a los eventos debo pagar algo?",
     respuesta:
-      "En las tardes de juegos el ingreso tiene un aporte mínimo de $2.000 por persona. Ese aporte nos ayuda a sostener el espacio, cuidar los juegos y mantener estas actividades. Se abona al ingresar, solo si hay lugar para jugar, por transferencia o en efectivo.",
+      `En las tardes de juegos el ingreso tiene un aporte mínimo ${
+        monto ? `de ${monto} ` : ""
+      }por persona${
+        monto ? "" : " (el monto figura en cada evento)"
+      }. Ese aporte nos ayuda a sostener el espacio, cuidar los juegos y mantener estas actividades. Se abona al ingresar, solo si hay lugar para jugar, por transferencia o en efectivo.`,
   },
   {
     pregunta: "¿Hacen torneos?",
@@ -104,6 +113,17 @@ function Nosotros() {
   const { eventos } = useEventos();
   const proximo = proximoEvento(eventos);
   const partesProximo = proximo ? partesFecha(proximo.fechaISO) : null;
+
+  // Aporte de la próxima tarde de juegos, tomado del evento cargado en el panel.
+  const proximaTarde = clasificarEventos(eventos).proximos.find(
+    (e) => e.tipo !== "Torneo" && montoDelAporte(e.aporte)
+  );
+  const monto = proximaTarde ? montoDelAporte(proximaTarde.aporte) : null;
+
+  const datos = monto
+    ? [...estadisticas, { valor: monto, texto: "Aporte mínimo en las tardes de juegos" }]
+    : estadisticas;
+  const preguntas = armarPreguntas(monto);
 
   function alternar(indice) {
     // Si tocan la que ya está abierta, la cerramos (null).
@@ -147,7 +167,7 @@ function Nosotros() {
 
       {/* Datos destacados */}
       <ul className="nos-datos" aria-label="El club en números">
-        {estadisticas.map((dato) => (
+        {datos.map((dato) => (
           <li key={dato.valor}>
             <strong>{dato.valor}</strong>
             <span>{dato.texto}</span>

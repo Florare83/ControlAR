@@ -23,12 +23,15 @@ def create(
     email: str,
     contrasena: str,
     es_admin: bool = False,
+    dni: str | None = None,
 ) -> Usuario:
     nuevo = Usuario(
         nombre=nombre.strip(),
         email=email.strip().lower(),
         contrasena_hash=hashear_contrasena(contrasena),
         es_admin=es_admin,
+        dni=dni,
+        dni_verificado=False,  # siempre lo verifica un administrador
     )
 
     db.add(nuevo)

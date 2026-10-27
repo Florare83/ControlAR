@@ -48,7 +48,7 @@ const FILTROS_ESTADO = [
 
 const FORMULARIO_VACIO = { juego_id: "", dni: "", nombre: "", email: "", sexo: "Femenino", telefono: "" };
 
-// Gestión de préstamos (operador y administrador). Se muestra dentro del PanelLayout.
+// Gestión de préstamos (administrador). Se muestra dentro del PanelLayout.
 // Reglas (las valida la API): una persona tiene un solo préstamo activo a la vez,
 // y un juego solo puede estar en un préstamo activo.
 function Prestamos() {

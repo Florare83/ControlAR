@@ -140,6 +140,13 @@ export const registrarUsuario = (datos) =>
 
 export const obtenerPerfil = () => pedir("/auth/me");
 
+// La persona carga o corrige su DNI (un administrador lo verifica después).
+export const guardarMiDni = (dni) =>
+  pedir("/auth/me/dni", {
+    method: "PUT",
+    body: JSON.stringify({ dni }),
+  });
+
 // Préstamos: administración
 export const listarPrestamos = (estado) =>
   pedir(
