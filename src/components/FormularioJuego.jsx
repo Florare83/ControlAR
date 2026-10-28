@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 // Formulario para crear un juego nuevo o editar uno existente.
 // La imagen es opcional y se guarda como una URL pública.
 
+const OBSERVACIONES_MAX = 300;
+
 const VACIO = {
   titulo: "",
   editorial: "",
@@ -13,8 +15,10 @@ const VACIO = {
   precio: "",
   stock: "0",
   en_venta: false,
+  se_presta: false,
   categoria_id: "",
   imagen_url: "",
+  observaciones: "",
 };
 
 function desdeJuego(juego) {
@@ -29,12 +33,21 @@ function desdeJuego(juego) {
     precio: String(juego.precio),
     stock: String(juego.stock),
     en_venta: juego.en_venta,
+    se_presta: Boolean(juego.se_presta),
     categoria_id: String(juego.categoria.id),
     imagen_url: juego.imagen_url ?? "",
+    observaciones: juego.observaciones ?? "",
   };
 }
 
-function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
+function FormularioJuego({
+  juego,
+  categorias,
+  onGuardar,
+  onCancelar,
+  enModal = false, // dentro de una ventana modal: sin tarjeta ni título propios
+  onOcupado, // avisa al modal cuando está guardando
+}) {
   const [form, setForm] = useState(() => desdeJuego(juego));
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -44,6 +57,10 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
   useEffect(() => {
     campoTitulo.current?.focus();
   }, []);
+
+  useEffect(() => {
+    onOcupado?.(guardando);
+  }, [guardando]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function cambiar(campo, valor) {
     setForm((actual) => ({ ...actual, [campo]: valor }));
@@ -84,8 +101,10 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
       precio: Number(form.precio),
       stock: Number(form.stock),
       en_venta: form.en_venta,
+      se_presta: form.se_presta,
       categoria_id: Number(form.categoria_id),
       imagen_url: urlImagen || null,
+      observaciones: form.observaciones.trim() || null,
     };
 
     try {
@@ -97,8 +116,11 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
   }
 
   return (
-    <div className="tarjeta tarjeta-columna" style={{ marginBottom: 24 }}>
-      <h2>{juego ? `Editar "${juego.titulo}"` : "Agregar juego"}</h2>
+    <div
+      className={enModal ? undefined : "tarjeta tarjeta-columna"}
+      style={enModal ? undefined : { marginBottom: 24 }}
+    >
+      {!enModal && <h2>{juego ? `Editar "${juego.titulo}"` : "Agregar juego"}</h2>}
 
       <form className="formulario" onSubmit={enviar} aria-busy={guardando}>
         <div className="campo">
@@ -266,13 +288,48 @@ function FormularioJuego({ juego, categorias, onGuardar, onCancelar }) {
           </small>
         </div>
 
+        <div className="campo">
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="checkbox"
+              checked={form.se_presta}
+              onChange={(e) => cambiar("se_presta", e.target.checked)}
+              style={{ width: "auto" }}
+              aria-describedby="ayuda-se-presta"
+            />
+            Disponible para préstamo
+          </label>
+          <small id="ayuda-se-presta" className="ayuda">
+            Tildalo si el juego es de la ludoteca. Solo estos juegos se pueden
+            prestar en los eventos y reservar desde el catálogo.
+          </small>
+        </div>
+
+        <div className="campo">
+          <label htmlFor="observaciones">Observaciones (opcional)</label>
+          <textarea
+            id="observaciones"
+            rows={3}
+            maxLength={OBSERVACIONES_MAX}
+            value={form.observaciones}
+            onChange={(e) => cambiar("observaciones", e.target.value)}
+            placeholder="Ej.: Faltan piezas, caja dañada, en reparación..."
+            aria-describedby="ayuda-observaciones"
+          />
+          <small id="ayuda-observaciones" className="ayuda">
+            Nota interna para explicar por qué el juego no está disponible para
+            préstamo. Solo la ven los administradores.{" "}
+            {form.observaciones.length}/{OBSERVACIONES_MAX}
+          </small>
+        </div>
+
         {error && (
           <span className="error" role="alert">
             {error}
           </span>
         )}
 
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <div className={enModal ? "modal-acciones" : undefined} style={enModal ? undefined : { display: "flex", gap: 8, marginTop: 12 }}>
           <button className="boton" type="submit" disabled={guardando}>
             {guardando ? "Guardando..." : "Guardar"}
           </button>

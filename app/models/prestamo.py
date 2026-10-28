@@ -19,6 +19,8 @@ class Prestamo(Base):
     id = Column(Integer, primary_key=True, index=True)
     dni = Column(String(20), nullable=False, index=True)
     nombre = Column(String(100), nullable=False)
+    # Ya no se pide ni se muestra. Se conserva la columna solo por los préstamos viejos que
+    # ya la tenían cargada (en producción existe); los nuevos quedan en NULL.
     email = Column(String(255), nullable=True, index=True)
     sexo = Column(String(10), nullable=False)  # "Femenino" o "Masculino"
     telefono = Column(String(30), nullable=False)

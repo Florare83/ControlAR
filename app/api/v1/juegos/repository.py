@@ -4,6 +4,7 @@ from app.models.juego import Juego
 from app.models.categoria import Categoria
 from app.models.favorito import Favorito
 from app.models.prestamo import ACTIVO, Prestamo
+from app.models.reserva import Reserva
 
 
 def _find_categoria(db: Session, categoria_id: int) -> Categoria | None:
@@ -46,6 +47,24 @@ def list_juegos(db: Session) -> list[Juego]:
     return marcar_en_prestamo(db, db.query(Juego).all())
 
 
+def list_populares(db: Session, limite: int = 2) -> list[Juego]:
+    """Los juegos de la tienda con más "me gusta" (favoritos).
+
+    Es la misma definición de popularidad del catálogo. Si hay empate, desempata por título
+    para que el resultado no cambie de un pedido a otro.
+    """
+    juegos = (
+        db.query(Juego)
+        .outerjoin(Favorito, Favorito.juego_id == Juego.id)
+        .filter(Juego.en_venta.is_(True))
+        .group_by(Juego.id)
+        .order_by(func.count(Favorito.id).desc(), Juego.titulo.asc())
+        .limit(limite)
+        .all()
+    )
+    return marcar_en_prestamo(db, juegos)
+
+
 def search_by_titulo(db: Session, query: str) -> list[Juego]:
     juegos = db.query(Juego).filter(Juego.titulo.ilike(f"%{query}%")).all()
     return marcar_en_prestamo(db, juegos)
@@ -61,6 +80,11 @@ def get_by_id(db: Session, juego_id: int) -> Juego | None:
 def tiene_prestamos(db: Session, juego_id: int) -> bool:
     """True si el juego tiene préstamos, activos o ya cerrados (historial)."""
     return db.query(Prestamo.id).filter(Prestamo.juego_id == juego_id).first() is not None
+
+
+def tiene_reservas(db: Session, juego_id: int) -> bool:
+    """True si el juego tiene reservas, activas o ya cerradas."""
+    return db.query(Reserva.id).filter(Reserva.juego_id == juego_id).first() is not None
 
 
 def create(db: Session, datos) -> Juego:

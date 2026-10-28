@@ -7,6 +7,7 @@ import { useToast } from "../context/ToastContext.jsx";
 function Registro() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
+  const [dni, setDni] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -19,7 +20,7 @@ function Registro() {
     setError("");
     setEnviando(true);
     try {
-      await registrarUsuario({ nombre, email, contrasena });
+      await registrarUsuario({ nombre, email, contrasena, dni });
       await login(email, contrasena, false); // entra directo después de registrarse
       toast.exito("¡Cuenta creada! Ya iniciaste sesión.");
       navegar("/juegos");
@@ -59,6 +60,27 @@ function Registro() {
               aria-describedby={error ? "error-registro" : undefined}
               required
             />
+          </div>
+
+          <div className="campo" style={{ textAlign: "left" }}>
+            <label htmlFor="dni">DNI</label>
+            <input
+              id="dni"
+              inputMode="numeric"
+              autoComplete="off"
+              value={dni}
+              onChange={(e) => setDni(e.target.value)}
+              aria-describedby="ayuda-dni"
+              required
+              minLength={6}
+              maxLength={12}
+              pattern="[0-9. ]{6,12}"
+              title="Entre 6 y 9 números"
+            />
+            <small id="ayuda-dni" className="ayuda">
+              Sirve para mostrarte tus préstamos. Un administrador lo verifica
+              con tu documento en el próximo evento.
+            </small>
           </div>
 
           <div className="campo" style={{ textAlign: "left" }}>

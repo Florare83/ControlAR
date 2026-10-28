@@ -2,7 +2,7 @@ import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 // Protege una ruta según el rol del usuario.
-//   <RutaProtegida roles={["operador", "admin"]} />   -> como "ruta padre": muestra las rutas de adentro
+//   <RutaProtegida roles={["admin"]} />               -> como "ruta padre": muestra las rutas de adentro
 //   <RutaProtegida roles={["admin"]}>...</RutaProtegida> -> envolviendo un elemento
 // - Sin sesión: lo manda a /login (y recuerda a dónde quería ir).
 // - Con sesión pero sin el rol: muestra "Sin permiso".

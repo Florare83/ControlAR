@@ -11,12 +11,18 @@ import {
   listarFavoritos,
   agregarFavorito,
   quitarFavorito,
+  obtenerEstadoReservas,
+  listarMisReservas,
+  reservarJuego,
+  cancelarReserva,
 } from "../api/api.js";
 
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import TarjetaJuego from "../components/TarjetaJuego.jsx";
 import FormularioJuego from "../components/FormularioJuego.jsx";
+import Modal from "../components/Modal.jsx";
+import { partesFecha } from "../data/eventos.js";
 
 // Visitantes y clientes: 4 columnas x 3 filas. Administrador: lista de 1 columna.
 const JUEGOS_POR_PAGINA_CLIENTES = 12;
@@ -56,7 +62,8 @@ function ordenarJuegos(lista, orden) {
   });
 }
 
-function Juegos() {
+// enPanel: se muestra dentro del panel de administración (sección "Juegos").
+function Juegos({ enPanel = false }) {
   const { esAdmin, usuario } = useAuth();
   const navegar = useNavigate();
   const toast = useToast();
@@ -69,6 +76,12 @@ function Juegos() {
   const [cargandoFavoritos, setCargandoFavoritos] = useState(false);
 
   const [formulario, setFormulario] = useState(null);
+  const [guardandoJuego, setGuardandoJuego] = useState(false);
+
+  // Reservas para el próximo evento.
+  const [estadoReservas, setEstadoReservas] = useState(null);
+  const [misReservas, setMisReservas] = useState([]);
+  const [reservando, setReservando] = useState(false);
 
   // Filtros del catálogo.
   const [busqueda, setBusqueda] = useState("");
@@ -83,6 +96,7 @@ function Juegos() {
   const [edadMax, setEdadMax] = useState("");
 
   const [pagina, setPagina] = useState(1);
+  const [juegoEditadoId, setJuegoEditadoId] = useState(null); // para volver a su página tras editar
   const [orden, setOrden] = useState("titulo-asc");
   const [verAvanzados, setVerAvanzados] = useState(false);
 
@@ -152,6 +166,98 @@ function Juegos() {
     };
   }, [usuario]);
 
+  // Estado de las reservas: público (evento y juegos reservados) + las mías si hay sesión.
+  async function cargarReservas() {
+    try {
+      setEstadoReservas(await obtenerEstadoReservas());
+    } catch {
+      setEstadoReservas(null);
+    }
+
+    if (!usuario) {
+      setMisReservas([]);
+      return;
+    }
+
+    try {
+      const lista = await listarMisReservas();
+      setMisReservas(Array.isArray(lista) ? lista : []);
+    } catch {
+      setMisReservas([]);
+    }
+  }
+
+  useEffect(() => {
+    cargarReservas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario]);
+
+  const eventoReservas = estadoReservas?.evento ?? null;
+
+  // Mi reserva activa para el evento que se puede reservar ahora.
+  const miReservaActiva = eventoReservas
+    ? misReservas.find(
+        (r) => r.estado === "activa" && r.evento?.id === eventoReservas.id
+      ) ?? null
+    : null;
+
+  function datosReservaDe(juego) {
+    if (!eventoReservas) return null;
+
+    return {
+      evento: eventoReservas,
+      abiertas: Boolean(estadoReservas?.reservas_abiertas),
+      reservada: estadoReservas.juegos_reservados.includes(juego.id),
+      miReserva:
+        miReservaActiva && miReservaActiva.juego.id === juego.id
+          ? miReservaActiva
+          : null,
+      tieneOtra:
+        Boolean(miReservaActiva) && miReservaActiva.juego.id !== juego.id,
+      ocupado: reservando,
+    };
+  }
+
+  async function reservar(juego) {
+    if (!usuario) {
+      toast.info("Iniciá sesión para reservar un juego.");
+      navegar("/login");
+      return;
+    }
+
+    setReservando(true);
+
+    try {
+      await reservarJuego(juego.id);
+      toast.exito(
+        `Reservaste "${juego.titulo}". Retiralo en el evento: te lo guardamos hasta 30 minutos después del inicio.`
+      );
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      await cargarReservas();
+      setReservando(false);
+    }
+  }
+
+  async function cancelarMiReserva(reserva) {
+    if (!window.confirm(`¿Cancelar la reserva de "${reserva.juego.titulo}"?`)) {
+      return;
+    }
+
+    setReservando(true);
+
+    try {
+      await cancelarReserva(reserva.id);
+      toast.exito("Reserva cancelada.");
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      await cargarReservas();
+      setReservando(false);
+    }
+  }
+
   async function alternarFavorito(juego) {
     if (!usuario) {
       toast.info("Iniciá sesión para guardar tus juegos favoritos.");
@@ -187,9 +293,18 @@ function Juegos() {
       await actualizarJuego(formulario.id, datos);
     }
 
+    const idEditado = esNuevo ? null : formulario.id;
+
+    setGuardandoJuego(false);
     setFormulario(null);
-    setPagina(1);
+
+    // Un juego nuevo se ve desde la primera página; uno editado conserva su lugar.
+    if (esNuevo) setPagina(1);
+
     await cargarDatos();
+
+    // Si el cambio lo movió de lugar (por ejemplo al renombrarlo), se sigue su nueva página.
+    if (idEditado) setJuegoEditadoId(idEditado);
 
     toast.exito(esNuevo ? "Juego creado." : "Juego editado.");
   }
@@ -249,7 +364,7 @@ function Juegos() {
       prestamoElegido === "Todos" ||
       (prestamoElegido === "Si"
         ? Boolean(juego.en_prestamo)
-        : !juego.en_prestamo);
+        : Boolean(juego.se_presta) && !juego.en_prestamo);
 
     const coincideEditorial =
       editorialElegida === "Todas" ||
@@ -319,6 +434,17 @@ function Juegos() {
     inicio + porPagina
   );
 
+  // Tras editar, ir a la página donde quedó el juego editado (si sigue entre los resultados).
+  useEffect(() => {
+    if (juegoEditadoId === null) return;
+
+    const posicion = juegosFiltrados.findIndex((j) => j.id === juegoEditadoId);
+
+    if (posicion !== -1) setPagina(Math.floor(posicion / porPagina) + 1);
+
+    setJuegoEditadoId(null);
+  }, [juegoEditadoId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function limpiarFiltros() {
     setBusqueda("");
     setCategoriaElegida("Todas");
@@ -334,12 +460,41 @@ function Juegos() {
   }
 
   return (
-    <div className="pagina">
-      <h1>Catálogo de juegos</h1>
+    <div className={enPanel ? undefined : "pagina"}>
+      <h1>{enPanel ? "Juegos" : "Catálogo de juegos"}</h1>
 
       <p className="subtitle">
-        Explorá los juegos que forman parte de nuestra ludoteca y/o de nuestra tienda.
+        {enPanel
+          ? "Administrá el catálogo: agregá juegos nuevos, editalos o eliminalos."
+          : "Explorá los juegos que forman parte de nuestra ludoteca y/o de nuestra tienda."}
       </p>
+
+      {/* Reservas para el próximo evento */}
+      {!esAdmin && eventoReservas && (
+        <div className="club-aviso" role="note">
+          <span aria-hidden="true">🎲</span>
+          <p>
+            <strong>Reservá tu juego para el próximo evento: </strong>
+            {eventoReservas.titulo}
+            {partesFecha(eventoReservas.fecha)
+              ? `, ${partesFecha(eventoReservas.fecha).larga}`
+              : ""}
+            {eventoReservas.hora_texto ? ` · ${eventoReservas.hora_texto}` : ""}.{" "}
+            {estadoReservas.reservas_abiertas
+              ? `Podés reservar un juego hasta ${new Date(
+                  estadoReservas.cierre_reservas
+                ).toLocaleString("es-AR", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone: "America/Argentina/Salta",
+                })} h. Lo retirás en el evento y te lo guardamos hasta 30 minutos después de que empiece.`
+              : "Las reservas ya cerraron: podés pedir el juego directamente en el evento, si está disponible."}
+          </p>
+        </div>
+      )}
 
       {/* Filtros del catálogo */}
       <div className="filtros" role="search">
@@ -539,25 +694,39 @@ function Juegos() {
         )}
       </div>
 
-      {/* Solo los administradores pueden crear o editar juegos. */}
-      {esAdmin &&
-        (formulario === null ? (
-          <button
-            className="boton"
-            style={{ width: "auto", marginBottom: 22 }}
-            onClick={() => setFormulario("nuevo")}
-          >
-            Agregar juego
-          </button>
-        ) : (
+      {/* Solo los administradores pueden crear o editar juegos (en una ventana modal). */}
+      {esAdmin && (
+        <button
+          type="button"
+          className="boton"
+          style={{ width: "auto", marginBottom: 22 }}
+          onClick={() => setFormulario("nuevo")}
+        >
+          Agregar juego
+        </button>
+      )}
+
+      {esAdmin && formulario !== null && (
+        <Modal
+          titulo={
+            formulario === "nuevo"
+              ? "Agregar juego"
+              : `Editar "${formulario.titulo}"`
+          }
+          ocupado={guardandoJuego}
+          onCerrar={() => setFormulario(null)}
+        >
           <FormularioJuego
             key={formulario === "nuevo" ? "nuevo" : formulario.id}
             juego={formulario === "nuevo" ? null : formulario}
             categorias={categorias}
             onGuardar={guardarJuego}
             onCancelar={() => setFormulario(null)}
+            onOcupado={setGuardandoJuego}
+            enModal
           />
-        ))}
+        </Modal>
+      )}
 
       {cargando ? (
         <p className="cargando" role="status">
@@ -592,6 +761,9 @@ function Juegos() {
               onToggleFavorito={() => alternarFavorito(juego)}
               onEditar={setFormulario}
               onEliminar={borrarJuego}
+              reservas={datosReservaDe(juego)}
+              onReservar={reservar}
+              onCancelarReserva={cancelarMiReserva}
             />
           ))}
         </div>

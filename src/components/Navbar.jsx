@@ -1,18 +1,49 @@
 
-import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { contarMisMensajesSinLeer } from "../api/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCarrito } from "../context/CarritoContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import logo from "../img/logo.png";
 
 function Navbar({ modoOscuro, onCambiarTema }) {
-  const { usuario, rol, puedeOperar, logout } = useAuth();
+  const { usuario, rol, esAdmin, logout } = useAuth();
   const { cantidadTotal } = useCarrito();
   const toast = useToast();
   const navegar = useNavigate();
+  const ubicacion = useLocation();
 
   const [menuCuentaAbierto, setMenuCuentaAbierto] = useState(false);
+  // Respuestas del equipo que el cliente todavía no leyó.
+  const [mensajesSinLeer, setMensajesSinLeer] = useState(0);
+
+  useEffect(() => {
+    if (rol !== "cliente") {
+      setMensajesSinLeer(0);
+      return undefined;
+    }
+
+    let vigente = true;
+    const consultar = () =>
+      contarMisMensajesSinLeer()
+        .then((datos) => {
+          if (vigente) setMensajesSinLeer(datos.sin_leer);
+        })
+        .catch(() => {
+          // Si falla la consulta, simplemente no se muestra el aviso.
+        });
+
+    consultar();
+    window.addEventListener("mis-mensajes-actualizados", consultar);
+    const intervalo = window.setInterval(consultar, 60000);
+
+    return () => {
+      vigente = false;
+      window.removeEventListener("mis-mensajes-actualizados", consultar);
+      window.clearInterval(intervalo);
+    };
+  }, [rol, usuario?.id, ubicacion.pathname]);
 
   const clase = ({ isActive }) => (isActive ? "activo" : "");
 
@@ -47,13 +78,16 @@ function Navbar({ modoOscuro, onCambiarTema }) {
           </NavLink>
         </li>
 
-        <li>
-          <NavLink to="/juegos" className={clase}>
-            JUEGOS
-          </NavLink>
-        </li>
+        {/* El administrador gestiona los juegos desde el panel */}
+        {!esAdmin && (
+          <li>
+            <NavLink to="/juegos" className={clase}>
+              JUEGOS
+            </NavLink>
+          </li>
+        )}
 
-        {puedeOperar && (
+        {esAdmin && (
           <li>
             <NavLink to="/panel" className={clase}>
               PANEL
@@ -102,6 +136,13 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                 }
               >
                 {usuario.nombre} {menuCuentaAbierto ? "▲" : "▼"}
+                {mensajesSinLeer > 0 && (
+                  <span className="punto-aviso" role="status">
+                    <span className="solo-lectores">
+                      {mensajesSinLeer} {mensajesSinLeer === 1 ? "respuesta nueva" : "respuestas nuevas"}
+                    </span>
+                  </span>
+                )}
               </button>
 
               {menuCuentaAbierto && (
@@ -136,12 +177,35 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                       </NavLink>
 
                       <NavLink
+                        to="/mis-reservas"
+                        className={clase}
+                        onClick={cerrarMenuCuenta}
+                        style={{ padding: 10 }}
+                      >
+                        📌 Mis reservas
+                      </NavLink>
+
+                      <NavLink
                         to="/mis-compras"
                         className={clase}
                         onClick={cerrarMenuCuenta}
                         style={{ padding: 10 }}
                       >
                         🛍️ Mis compras
+                      </NavLink>
+
+                      <NavLink
+                        to="/mis-mensajes"
+                        className={clase}
+                        onClick={cerrarMenuCuenta}
+                        style={{ padding: 10 }}
+                      >
+                        ✉️ Mis mensajes
+                        {mensajesSinLeer > 0 && (
+                          <span className="badge-menu" aria-hidden="true">
+                            {mensajesSinLeer}
+                          </span>
+                        )}
                       </NavLink>
 
                       <NavLink
@@ -156,21 +220,12 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   )}
 
                   <NavLink
-                    to="/cambiar-contrasena"
+                    to="/cuenta"
                     className={clase}
                     onClick={cerrarMenuCuenta}
                     style={{ padding: 10 }}
                   >
-                    🔑 Cambiar contraseña
-                  </NavLink>
-
-                  <NavLink
-                    to="/eliminar-cuenta"
-                    className={clase}
-                    onClick={cerrarMenuCuenta}
-                    style={{ padding: 10 }}
-                  >
-                    🗑️ Eliminar cuenta
+                    👤 Mi cuenta
                   </NavLink>
 
                   <button

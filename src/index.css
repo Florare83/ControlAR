@@ -495,7 +495,7 @@ body.oscuro {
   position: fixed;
   right: 16px;
   bottom: 16px;
-  z-index: 1000;
+  z-index: 4000;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -570,7 +570,7 @@ body.oscuro {
 }
 
 /* ============================================
-   Paneles de operador y administrador
+   Paneles de administración
    ============================================ */
 
 .pagina.panel {
@@ -705,6 +705,42 @@ body.oscuro {
   border: 1px solid var(--borde);
   border-radius: 6px;
   max-width: 180px;
+}
+
+/* Acciones de cada préstamo: arriba "cambiar juego", abajo los demás botones */
+.acciones-prestamo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 230px;
+}
+
+.acciones-prestamo-cambiar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.acciones-prestamo-cambiar select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.acciones-prestamo-cambiar .boton {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.acciones-prestamo-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* ============================================
@@ -1126,6 +1162,28 @@ html {
   background: #0086c3;
 }
 
+.pc-opciones {
+  display: grid;
+  gap: 8px;
+}
+
+.pc-opcion-ayuda {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.boton-wa {
+  background: #25d366;
+  color: #fff;
+  padding: 14px;
+  font-size: 15px;
+}
+
+.boton-wa:hover:not(:disabled) {
+  background: #1ebe5a;
+}
+
 .pc-cancelar {
   text-align: center;
   font-size: 14px;
@@ -1260,6 +1318,15 @@ html {
 
 .tarjeta-juego .boton-carrito-tarjeta {
   flex: 1;
+}
+
+.tarjeta-juego .boton-reservar-tarjeta {
+  flex: 1;
+}
+
+.tarjeta-juego .boton-reservar-tarjeta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 
@@ -1397,6 +1464,48 @@ html {
 
 .mensaje-acciones .boton-peligro {
   background: #e63946;
+}
+
+.mensaje-email {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--azul-marino);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mensaje-email:hover,
+.mensaje-email[aria-expanded="true"] {
+  color: var(--azul-marino-hover);
+  font-weight: 600;
+}
+
+.etiqueta.mensaje-respondido {
+  background: #e8f5ee;
+  color: var(--exito);
+}
+
+.mensaje-responder {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 14px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--fondo);
+}
+
+.mensaje-responder .campo input[readonly] {
+  background: #ececea;
+  color: var(--texto-suave);
+}
+
+.mensaje-acciones .boton-secundario {
+  background: var(--blanco);
+  color: var(--texto);
+  border: 1px solid var(--borde);
 }
 
 .mensajes-pie {
@@ -2372,75 +2481,82 @@ body.oscuro .prestamo-estado.rechazado {
   line-height: 1.6;
 }
 
-/* ---------- Portada ---------- */
+/* ---------- Portada (compartida) ---------- */
 .pg-hero {
-  position: relative;
-  overflow: hidden;
-  padding: 48px 40px;
-  border-radius: 16px;
+  padding: 56px 48px;
+  border-radius: 20px;
   color: #ffffff;
   background:
-    radial-gradient(circle at 88% 15%, rgba(240, 180, 41, 0.28), transparent 45%),
+    radial-gradient(circle at 92% 8%, rgba(240, 180, 41, 0.26), transparent 42%),
     linear-gradient(135deg, #161c3f 0%, #232a5c 100%);
 }
 
-.pg-hero::after {
-  content: "🎲";
-  position: absolute;
-  right: 32px;
-  bottom: -24px;
-  font-size: 150px;
-  line-height: 1;
-  opacity: 0.12;
-  pointer-events: none;
-}
-
 .pagina .pg-hero h1 {
-  margin: 4px 0 12px;
-  font-size: clamp(30px, 5vw, 44px);
-  line-height: 1.1;
-}
-
-.pg-hero .pg-hero-etiqueta {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: rgba(240, 180, 41, 0.18);
-  color: var(--acento);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  margin: 0 0 16px;
+  font-size: clamp(34px, 6vw, 56px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
 .pg-hero .pg-hero-texto {
-  max-width: 620px;
-  font-size: 17px;
+  max-width: 54ch;
+  font-size: 18px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .pg-hero-acciones {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-top: 28px;
+}
+
+/* Aviso del próximo evento dentro de la portada */
+.pg-proximo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
   margin-top: 24px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 15px;
+  transition: background 0.15s;
+}
+
+.pg-proximo:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.pg-proximo-etiqueta {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--acento);
+  color: #161c3f;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.pg-proximo-texto {
+  font-weight: 600;
 }
 
 /* ---------- Botones en forma de enlace ---------- */
 .pg-boton {
   display: inline-block;
-  padding: 11px 20px;
-  border-radius: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
   border: 2px solid transparent;
   font-size: 15px;
   font-weight: 700;
   text-align: center;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
-}
-
-.pg-boton:hover {
-  transform: translateY(-1px);
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .pg-boton-claro {
@@ -2497,23 +2613,28 @@ body.oscuro .pg-boton-contorno:hover {
 }
 
 .pg-boton:focus-visible,
+.pg-proximo:focus-visible,
 .acordeon-pregunta:focus-visible,
+.club-acordeon a:focus-visible,
+.club-vacio a:focus-visible,
 .club-anteriores summary:focus-visible {
   outline: 3px solid #3b82f6;
   outline-offset: 2px;
 }
 
-/* ---------- Secciones ---------- */
+/* ---------- Secciones (también las usa "Los más populares") ---------- */
 .pg-seccion {
-  margin-top: 48px;
+  margin-top: 56px;
   scroll-margin-top: calc(var(--navbar-alto) + 12px);
 }
 
 .pagina .pg-titulo {
   position: relative;
-  margin: 0 0 20px;
-  padding-bottom: 10px;
-  font-size: 24px;
+  margin: 0 0 24px;
+  padding-bottom: 12px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .pg-titulo::after {
@@ -2553,236 +2674,27 @@ body.oscuro .pg-boton-contorno:hover {
 /* ============================================
    Nosotros
    ============================================ */
-.nos-datos {
+.nos-historia-cuerpo {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 16px 56px;
+  align-items: start;
 }
 
-.nos-datos li {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 16px 18px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 12px;
-}
-
-.nos-datos strong {
-  font-size: 26px;
-  line-height: 1.1;
-}
-
-.nos-datos span {
-  font-size: 13px;
-  color: var(--texto-suave);
-}
-
-.nos-historia {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 40px;
-  align-items: center;
-}
-
-.nos-historia-texto p + p {
-  margin-top: 14px;
-}
-
-.nos-historia-texto p {
+.nos-historia-cuerpo p {
   font-size: 17px;
 }
 
-.nos-historia-imagen {
-  margin: 0;
-}
-
-.nos-historia-imagen img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.nos-historia-imagen figcaption {
-  margin-top: 8px;
-  font-size: 13px;
-  text-align: center;
-  color: var(--texto-suave);
-}
-
-.nos-ventajas {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nos-ventaja {
-  padding: 22px 20px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 14px;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.nos-ventaja:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-.nos-ventaja-icono {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
-  border-radius: 12px;
-  background: rgba(240, 180, 41, 0.2);
-  font-size: 24px;
-}
-
-.nos-ventaja h3,
-.nos-paso h3 {
-  margin: 0 0 6px;
-  font-size: 17px;
-}
-
-.nos-ventaja p,
-.nos-paso p {
-  color: var(--texto-suave);
-  font-size: 15px;
-}
-
-.nos-pasos {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nos-paso {
-  display: flex;
-  gap: 14px;
-  padding: 20px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 14px;
-}
-
-.nos-paso-numero {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--azul-marino);
-  color: #ffffff;
-  font-weight: 700;
-}
-
-body.oscuro .nos-paso-numero {
-  background: #3a4380;
-}
-
-.nos-faq {
-  padding: 4px 22px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 14px;
-}
-
-.nos-faq .acordeon-item:last-child {
-  border-bottom: none;
-}
-
-.nos-faq-pregunta {
-  margin: 0;
-  font-size: inherit;
-}
-
-.nos-faq .acordeon-pregunta {
-  gap: 16px;
-  padding: 18px 0;
-  font-size: 16px;
-}
-
-.nos-faq-icono {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(240, 180, 41, 0.25);
-  font-size: 18px;
-  line-height: 1;
-}
-
-.nos-faq .acordeon-respuesta {
-  padding: 0 0 18px;
-  font-size: 15px;
-  line-height: 1.6;
+.nos-historia-cuerpo .nos-historia-destacado {
+  font-size: clamp(21px, 2.6vw, 27px);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
 /* ============================================
    Club
    ============================================ */
-.club-info {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.club-info li {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding: 16px 18px;
-  background: var(--blanco);
-  border: 1px solid var(--borde);
-  border-radius: 12px;
-}
-
-.club-info-icono {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: rgba(240, 180, 41, 0.2);
-  font-size: 22px;
-}
-
-.club-info strong {
-  display: block;
-  margin-bottom: 2px;
-}
-
-.club-info li span:not(.club-info-icono) {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--texto-suave);
-}
-
 .club-lista {
   display: grid;
   gap: 16px;
@@ -2797,16 +2709,15 @@ body.oscuro .nos-paso-numero {
   background: var(--blanco);
   border: 1px solid var(--borde);
   border-radius: 14px;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.club-evento:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .club-evento.pasado {
   opacity: 0.75;
+}
+
+.club-evento.destacado {
+  border: 2px solid var(--acento);
+  box-shadow: 0 8px 24px rgba(240, 180, 41, 0.22);
 }
 
 .club-fecha {
@@ -2857,6 +2768,12 @@ body.oscuro .club-fecha {
   color: var(--azul-marino);
   font-size: 12.5px;
   font-weight: 700;
+}
+
+.club-tag-destacado,
+body.oscuro .club-tag-destacado {
+  background: var(--acento);
+  color: #161c3f;
 }
 
 .club-tag-aviso {
@@ -2927,21 +2844,7 @@ body.oscuro .club-tag-aviso {
   border: 1px solid var(--borde);
 }
 
-.club-evento.destacado {
-  border: 2px solid var(--acento);
-  box-shadow: 0 8px 24px rgba(240, 180, 41, 0.22);
-}
-
-.club-tag-destacado {
-  background: var(--acento);
-  color: #161c3f;
-}
-
-body.oscuro .club-tag-destacado {
-  background: var(--acento);
-  color: #161c3f;
-}
-
+/* Aviso destacado (también lo usa el catálogo de juegos) */
 .club-aviso {
   display: flex;
   gap: 12px;
@@ -2954,57 +2857,74 @@ body.oscuro .club-tag-destacado {
   background: rgba(240, 180, 41, 0.14);
 }
 
-.club-info-alerta {
-  border-color: rgba(59, 130, 246, 0.55) !important;
-  background: rgba(59, 130, 246, 0.08) !important;
-}
-
-/* Aviso del próximo evento dentro de la portada */
-.pg-proximo {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 18px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  font-size: 15px;
-  transition: background 0.15s;
-}
-
-.pg-proximo:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.pg-proximo:focus-visible {
-  outline: 3px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-.pg-proximo-etiqueta {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--acento);
-  color: #161c3f;
-  font-size: 12.5px;
-  font-weight: 800;
-}
-
-.pg-proximo-texto {
-  font-weight: 600;
-}
-
+/* Cuando no hay eventos o torneos */
 .club-vacio {
   display: grid;
   justify-items: start;
-  gap: 10px;
-  padding: 28px;
+  gap: 8px;
+  padding: 24px 28px;
   background: var(--blanco);
   border: 1px dashed var(--borde);
   border-radius: 14px;
+}
+
+.club-vacio a,
+.club-acordeon a {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--azul-marino);
+}
+
+body.oscuro .club-vacio a,
+body.oscuro .club-acordeon a {
+  color: #c7ceff;
+}
+
+/* ---------- Antes de venir: acordeón ---------- */
+.nos-faq {
+  padding: 4px 22px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+}
+
+.nos-faq .acordeon-item:last-child {
+  border-bottom: none;
+}
+
+.nos-faq-pregunta {
+  margin: 0;
+  font-size: inherit;
+}
+
+.nos-faq .acordeon-pregunta {
+  gap: 16px;
+  padding: 18px 0;
+  font-size: 16px;
+}
+
+.nos-faq-icono {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(240, 180, 41, 0.25);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.nos-faq .acordeon-respuesta {
+  padding: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.acordeon-respuesta p + p {
+  margin-top: 10px;
 }
 
 .club-anteriores {
@@ -3014,7 +2934,7 @@ body.oscuro .club-tag-destacado {
 .club-anteriores summary {
   display: inline-block;
   margin-bottom: 16px;
-  padding: 8px 4px;
+  padding: 8px 0;
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
@@ -3022,11 +2942,6 @@ body.oscuro .club-tag-destacado {
 
 /* ---------- Pantallas medianas ---------- */
 @media (max-width: 1000px) {
-  .nos-datos,
-  .nos-ventajas {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .club-evento {
     grid-template-columns: 76px minmax(0, 1fr);
   }
@@ -3037,25 +2952,22 @@ body.oscuro .club-tag-destacado {
   }
 }
 
+@media (max-width: 860px) {
+  .nos-historia-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .nos-historia-cuerpo {
+    gap: 16px;
+  }
+
+}
+
 /* ---------- Celulares ---------- */
 @media (max-width: 760px) {
   .pg-hero {
     padding: 32px 22px;
-  }
-
-  .pg-hero::after {
-    font-size: 100px;
-    right: 12px;
-  }
-
-  .nos-historia,
-  .nos-pasos,
-  .club-info {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .nos-historia {
-    gap: 24px;
   }
 
   .pg-cierre {
@@ -3064,10 +2976,6 @@ body.oscuro .club-tag-destacado {
 }
 
 @media (max-width: 520px) {
-  .nos-ventajas {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .club-evento {
     grid-template-columns: 60px minmax(0, 1fr);
     gap: 14px;
@@ -3086,55 +2994,8 @@ body.oscuro .club-tag-destacado {
 
 @media (prefers-reduced-motion: reduce) {
   .pg-boton,
-  .nos-ventaja,
-  .club-evento {
+  .pg-proximo {
     transition: none;
-  }
-
-  .pg-boton:hover,
-  .nos-ventaja:hover,
-  .club-evento:hover {
-    transform: none;
-  }
-}
-
-
-/* ---------- Club: sección de torneos ---------- */
-.club-torneos-vacio {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  padding: 24px;
-  background: var(--blanco);
-  border: 1px dashed var(--borde);
-  border-radius: 14px;
-}
-
-.club-torneos-icono {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: rgba(240, 180, 41, 0.22);
-  font-size: 28px;
-}
-
-.club-torneos-vacio p + p {
-  margin-top: 6px;
-}
-
-.club-torneos-vacio .club-torneos-nota {
-  font-size: 14px;
-  color: var(--texto-suave);
-}
-
-@media (max-width: 520px) {
-  .club-torneos-vacio {
-    flex-direction: column;
-    padding: 18px;
   }
 }
 
@@ -3325,5 +3186,935 @@ body.oscuro .club-tag-destacado {
 
   .boton.ventas-exportar {
     width: 100%;
+  }
+}
+
+
+/* ============================================
+   Historial de préstamos (administración)
+   ============================================ */
+.historial-herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 24px;
+  margin-bottom: 16px;
+}
+
+.historial-buscador {
+  flex: 1 1 260px;
+  max-width: 420px;
+  margin-bottom: 0;
+}
+
+.historial-herramientas .mensajes-filtros {
+  margin-bottom: 0;
+}
+
+.historial-fecha-cierre {
+  display: block;
+  margin-top: 2px;
+  color: var(--texto-suave);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.historial-volver {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--azul-marino);
+}
+
+.historial-persona-datos {
+  overflow-wrap: anywhere;
+}
+
+.usuario-enlace-historial {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 13px;
+  color: var(--azul-marino);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.usuario-enlace-historial:hover {
+  color: var(--azul-marino-hover);
+}
+
+
+/* ============================================
+   Portada: juegos más populares
+   ============================================ */
+.populares-subtitulo {
+  margin: 0 0 16px;
+  color: var(--texto-suave);
+}
+
+.grilla-juegos.grilla-populares {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(2, minmax(0, 340px));
+  justify-content: center;
+  gap: 20px;
+}
+
+.popular-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.popular-item > .tarjeta.tarjeta-juego {
+  flex: 1;
+}
+
+.popular-insignia {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--azul-marino);
+}
+
+.popular-insignia span:last-child:not([aria-hidden]) {
+  font-weight: 500;
+  color: var(--texto-suave);
+}
+
+.populares-enlace {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .grilla-juegos.grilla-populares {
+    grid-template-columns: minmax(0, 340px);
+  }
+}
+
+
+/* ============================================
+   Observaciones internas de un juego (solo administración)
+   ============================================ */
+.juego-observaciones {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid #e0a800;
+  border-radius: 4px;
+  background: #fff8e1;
+  color: var(--texto);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+body.oscuro .juego-observaciones {
+  background: #3a3115;
+  color: #f3e7b5;
+}
+
+
+/* ============================================
+   Ventana superpuesta (modal)
+   ============================================ */
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 32px 16px;
+  background: rgba(15, 18, 40, 0.55);
+}
+
+.modal-caja {
+  width: 100%;
+  margin: auto;
+  background: var(--blanco);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  outline: none;
+}
+
+.modal-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.modal-cabecera h2 {
+  margin: 0;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+
+.modal-cerrar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--texto);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-cerrar:hover:not(:disabled) {
+  background: var(--fondo);
+}
+
+.modal-cerrar:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.modal-cuerpo {
+  padding: 20px;
+}
+
+.modal-cuerpo .formulario {
+  max-width: none;
+}
+
+.modal-cuerpo .campo input,
+.modal-cuerpo .campo select,
+.modal-cuerpo .campo textarea {
+  background: var(--blanco);
+  color: var(--texto);
+}
+
+.modal-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.modal-acciones .boton {
+  width: auto;
+  padding: 10px 20px;
+}
+
+@media (max-width: 640px) {
+  .modal-fondo {
+    padding: 12px 8px;
+  }
+
+  .modal-cuerpo {
+    padding: 16px;
+  }
+}
+
+
+/* ============================================
+   Ventas: botón "ojo" y detalle de la venta
+   ============================================ */
+.venta-ojo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.venta-ojo:hover {
+  background: var(--fondo);
+  border-color: var(--azul-marino);
+}
+
+.venta-detalle-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  margin: 0 0 20px;
+}
+
+.venta-detalle-datos dt {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.venta-detalle-datos dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.venta-detalle-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.venta-detalle-tabla th,
+.venta-detalle-tabla td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--borde);
+}
+
+.venta-detalle-tabla thead th {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.venta-detalle-tabla .venta-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.venta-detalle-tabla tfoot th,
+.venta-detalle-tabla tfoot td {
+  border-bottom: none;
+  font-weight: 700;
+}
+
+.venta-detalle-total {
+  font-size: 18px;
+}
+
+@media (max-width: 640px) {
+  .venta-detalle-datos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* Pedido cancelado y confirmación de pagos en efectivo/transferencia */
+.prestamo-item.cancelado {
+  border-left-color: var(--texto-suave);
+}
+
+.prestamo-estado.cancelado {
+  background: rgba(107, 114, 128, 0.18);
+  color: var(--texto-suave);
+}
+
+body.oscuro .prestamo-estado.cancelado {
+  color: #cbd5e1;
+}
+
+.venta-detalle-confirmar {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+}
+
+.venta-detalle-confirmar .ayuda {
+  margin: 0 0 12px;
+}
+
+
+/* Botón de acción dentro de un aviso (p. ej. "Deshacer") */
+.toast-accion {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.toast-accion:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.toast > span:first-child {
+  flex: 1;
+}
+
+
+/* Mis compras: acciones de la cabecera y resumen de productos */
+.compra-cabecera-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compra-resumen {
+  margin: 8px 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+
+/* Préstamos: filtro de estado y búsqueda */
+.prestamos-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+
+.prestamos-filtros .mensajes-filtros {
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.prestamos-busqueda {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.prestamos-busqueda input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14.5px;
+}
+
+
+/* Filtro por rango de fechas (Desde / Hasta) */
+.filtro-fechas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.filtro-fechas legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.filtro-fechas-campo {
+  display: grid;
+  gap: 2px;
+}
+
+.filtro-fechas-campo label {
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+.filtro-fechas-campo input {
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14px;
+}
+
+.filtro-fechas-limpiar {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--azul-marino);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+body.oscuro .filtro-fechas-limpiar {
+  color: inherit;
+}
+
+
+/* Encabezados de tabla ordenables */
+.th-ordenable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.th-ordenable:hover,
+.th-ordenable.activo {
+  text-decoration: underline;
+}
+
+.th-ordenable-flecha {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.th-ordenable.activo .th-ordenable-flecha {
+  opacity: 1;
+}
+
+
+/* Préstamos sin devolver de días anteriores */
+.fila-atrasada {
+  background: rgba(179, 38, 30, 0.08);
+}
+
+.badge-atraso {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #b3261e;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.prestamos-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.prestamos-cabecera h2 {
+  margin: 0;
+}
+
+
+/* Reportes */
+.reporte-seccion {
+  margin-top: 20px;
+}
+
+.reporte-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.reporte-lista li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(80px, 2fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.reporte-nombre {
+  overflow-wrap: anywhere;
+}
+
+.reporte-valor {
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.reporte-barra {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--borde);
+  overflow: hidden;
+}
+
+.reporte-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--azul-marino);
+}
+
+body.oscuro .reporte-barra span {
+  background: #8fa3ff;
+}
+
+.reporte-celda-barra {
+  display: grid;
+  grid-template-columns: 2ch minmax(60px, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+}
+
+.prestamos-resumen .reporte-alerta dd {
+  color: #b3261e;
+}
+
+body.oscuro .prestamos-resumen .reporte-alerta dd {
+  color: #ff8a80;
+}
+
+@media (max-width: 640px) {
+  .reporte-lista li {
+    grid-template-columns: 1fr auto;
+  }
+
+  .reporte-lista .reporte-barra {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
+
+
+/* Conversaciones (Mis mensajes y bandeja del administrador) */
+.hilo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hilo-burbuja {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--borde);
+  overflow-wrap: anywhere;
+}
+
+.hilo-burbuja.propia {
+  align-self: flex-end;
+  background: var(--azul-marino);
+  color: var(--blanco);
+  border-color: var(--azul-marino);
+  border-bottom-right-radius: 4px;
+}
+
+.hilo-burbuja.ajena {
+  align-self: flex-start;
+  background: var(--fondo);
+  color: var(--texto);
+  border-bottom-left-radius: 4px;
+}
+
+.hilo-autor {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.hilo-texto {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.hilo-hora {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  opacity: 0.75;
+}
+
+body.oscuro .hilo-burbuja.propia {
+  background: #3d4fa3;
+  border-color: #3d4fa3;
+}
+
+.hilo-responder {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--borde);
+}
+
+.mis-mensajes-lista {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.mis-mensajes-item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.mis-mensajes-item:hover {
+  border-color: var(--azul-marino);
+}
+
+.mis-mensajes-item.sin-leer {
+  border-left: 4px solid var(--azul-marino);
+}
+
+.mis-mensajes-asunto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.mis-mensajes-meta {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Aviso de respuestas nuevas en el menú de la cuenta */
+.punto-aviso {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #d93025;
+  vertical-align: middle;
+}
+
+.badge-menu {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #d93025;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Filtro desplegable (reemplaza los grupos de botones de estado) */
+.filtro-select {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.filtro-select label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.filtro-select select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14.5px;
+}
+
+/* ============================================
+   Barra de filtros del panel (buscador + desplegables)
+   ============================================ */
+.barra-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  margin: 16px 0;
+}
+
+.filtro-busqueda {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.filtro-busqueda label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.filtro-busqueda input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-size: 14.5px;
+}
+
+.barra-filtros .filtro-select {
+  min-width: 160px;
+}
+
+.boton.boton-chico {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.boton.boton-peligro {
+  background: #c62828;
+  border-color: #c62828;
+  color: #fff;
+}
+
+.boton.boton-peligro:hover:not(:disabled) {
+  background: #a31f1f;
+}
+
+/* Tabla de usuarios */
+.usuarios-resumen {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  color: var(--texto-suave);
+}
+
+.usuarios-tabla small {
+  color: var(--texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.usuarios-tabla .etiqueta {
+  margin: 4px 0 0;
+  white-space: nowrap;
+}
+
+.usuarios-tabla .acciones-fila {
+  gap: 6px 10px;
+}
+
+.usuarios-tabla td,
+.usuarios-tabla th {
+  vertical-align: middle;
+}
+
+.usuarios-prestamos-nombre {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+.usuarios-prestamos-nombre.alerta {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.usuarios-sin-dato {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.usuarios-tabla .usuario-enlace-historial {
+  margin-left: 0;
+}
+
+.usuarios-rol {
+  padding: 7px 8px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: var(--blanco);
+  color: var(--texto);
+}
+
+.fila-inactiva td {
+  opacity: 0.65;
+}
+
+.fila-inactiva td:last-child {
+  opacity: 1;
+}
+
+/* Club: "Antes de venir" como acordeón (reutiliza los estilos de las preguntas frecuentes) */
+.club-acordeon {
+  margin-top: 16px;
+}
+
+.club-acordeon-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.club-acordeon .acordeon-item.club-acordeon-alerta {
+  padding-left: 12px;
+  border-left: 4px solid #3b82f6;
+}
+
+
+/* ============================================
+   Portada con imagen a la derecha (Nosotros y Club)
+   ============================================ */
+.pg-hero-con-imagen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 45%);
+  gap: 40px;
+  align-items: center;
+}
+
+/* Con imagen, el dado decorativo de fondo sobra */
+.pg-hero-con-imagen::after {
+  display: none;
+}
+
+.pg-hero-contenido {
+  min-width: 0;
+}
+
+.pg-hero-imagen {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.pg-hero-imagen img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 4;
+  max-height: 460px;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.pg-hero-imagen figcaption {
+  margin-top: 8px;
+  font-size: 12.5px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 760px) {
+  .pg-hero-con-imagen {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .pg-hero-imagen {
+    width: 100%;
+    max-width: 480px;
   }
 }

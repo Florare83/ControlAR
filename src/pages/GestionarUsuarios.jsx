@@ -1,5 +1,10 @@
 
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import Modal from "../components/Modal.jsx";
+import FiltroSelect from "../components/FiltroSelect.jsx";
+import { useToast } from "../context/ToastContext.jsx";
+import { nombresCompatibles } from "../utils/nombres.js";
 import {
   actualizarUsuarioAdmin,
   crearUsuarioAdmin,
@@ -18,10 +23,14 @@ const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function GestionarUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
-  const [buscar, setBuscar] = useState("");
+  const toast = useToast();
+  const [busqueda, setBusqueda] = useState("");
+  const [buscar, setBuscar] = useState(""); // la búsqueda se envía con una pequeña demora
+  const [filtroRol, setFiltroRol] = useState("todos");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroDni, setFiltroDni] = useState("todos");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [mensaje, setMensaje] = useState("");
   const [procesando, setProcesando] = useState(null);
 
   const [formAbierto, setFormAbierto] = useState(false);
@@ -30,7 +39,6 @@ export default function GestionarUsuarios() {
   const [creando, setCreando] = useState(false);
 
   const cargarUsuarios = useCallback(async () => {
-    setCargando(true);
     setError("");
 
     try {
@@ -44,20 +52,23 @@ export default function GestionarUsuarios() {
   }, [buscar]);
 
   useEffect(() => {
+    const t = setTimeout(() => setBuscar(busqueda.trim()), 350);
+    return () => clearTimeout(t);
+  }, [busqueda]);
+
+  useEffect(() => {
     cargarUsuarios();
   }, [cargarUsuarios]);
 
   async function modificarUsuario(usuario, cambios) {
-    setError("");
-    setMensaje("");
     setProcesando(usuario.id);
 
     try {
       await actualizarUsuarioAdmin(usuario.id, cambios);
-      setMensaje("Usuario actualizado correctamente.");
+      toast.exito("Usuario actualizado.");
       await cargarUsuarios();
     } catch (e) {
-      setError(e.message || "No se pudo actualizar el usuario.");
+      toast.error(e.message || "No se pudo actualizar el usuario.");
     } finally {
       setProcesando(null);
     }
@@ -106,8 +117,6 @@ export default function GestionarUsuarios() {
     }
 
     setCreando(true);
-    setError("");
-    setMensaje("");
 
     try {
       await crearUsuarioAdmin({
@@ -117,7 +126,7 @@ export default function GestionarUsuarios() {
         es_admin: form.es_admin,
       });
 
-      setMensaje(`Usuario ${nombre} creado correctamente.`);
+      toast.exito(`Usuario ${nombre} creado.`);
       setFormAbierto(false);
       setForm(FORMULARIO_VACIO);
       await cargarUsuarios();
@@ -128,47 +137,63 @@ export default function GestionarUsuarios() {
     }
   }
 
+  const visibles = usuarios.filter((u) => {
+    const coincideDni =
+      filtroDni === "todos" ||
+      (filtroDni === "verificado" && u.dni && u.dni_verificado) ||
+      (filtroDni === "sin_verificar" && u.dni && !u.dni_verificado) ||
+      (filtroDni === "sin_dni" && !u.dni);
+
+    return (
+      (filtroRol === "todos" || (filtroRol === "admin") === u.es_admin) &&
+      (filtroEstado === "todos" || (filtroEstado === "activo") === u.activo) &&
+      coincideDni
+    );
+  });
+
+  const hayFiltros =
+    busqueda.trim() !== "" ||
+    filtroRol !== "todos" ||
+    filtroEstado !== "todos" ||
+    filtroDni !== "todos";
+
+  const limpiarFiltros = () => {
+    setBusqueda("");
+    setFiltroRol("todos");
+    setFiltroEstado("todos");
+    setFiltroDni("todos");
+  };
+
   return (
     <section className="gestionar-usuarios">
-      <div
-        className="tarjeta"
-        style={{
-          width: "100%",
-          maxWidth: "100%",
-          minWidth: 0,
-          boxSizing: "border-box",
-          padding: "24px",
-        }}
-      >
-        <div className="usuarios-cabecera">
-          <div>
-            <h1>Gestionar usuarios</h1>
-
-            <p>
-              Administrá las cuentas registradas, sus permisos y su estado.
-            </p>
-          </div>
-
-          {!formAbierto && (
-            <button
-              type="button"
-              className="boton usuarios-nuevo-boton"
-              onClick={abrirFormulario}
-            >
-              + Nuevo usuario
-            </button>
-          )}
+      <div className="usuarios-cabecera">
+        <div>
+          <h1>Usuarios</h1>
+          <p className="subtitulo">
+            Administrá las cuentas registradas, sus permisos y la verificación del DNI.
+          </p>
         </div>
 
+        <button
+          type="button"
+          className="boton usuarios-nuevo-boton"
+          onClick={abrirFormulario}
+        >
+          + Nuevo usuario
+        </button>
+      </div>
+
         {formAbierto && (
+          <Modal
+            titulo="Nuevo usuario"
+            ocupado={creando}
+            onCerrar={cerrarFormulario}
+          >
           <form
-            className="usuario-nuevo"
             onSubmit={crearUsuario}
             noValidate
             aria-label="Nuevo usuario"
           >
-            <h2>Nuevo usuario</h2>
-
             <div className="usuario-nuevo-grilla">
               <div className="campo">
                 <label htmlFor="nuevo-nombre">Nombre</label>
@@ -250,7 +275,7 @@ export default function GestionarUsuarios() {
               </p>
             )}
 
-            <div className="usuario-nuevo-acciones">
+            <div className="modal-acciones">
               <button type="submit" className="boton" disabled={creando}>
                 {creando ? "Creando..." : "Crear usuario"}
               </button>
@@ -264,86 +289,156 @@ export default function GestionarUsuarios() {
               </button>
             </div>
           </form>
+          </Modal>
         )}
 
-        <div
-          className="gestionar-usuarios__busqueda"
-          style={{ width: "100%", marginBottom: "20px" }}
-        >
-          <label htmlFor="buscar-usuario">
-            Buscar por nombre o correo electrónico
-          </label>
-
+      <div className="barra-filtros">
+        <div className="filtro-busqueda">
+          <label htmlFor="buscar-usuario">Buscar</label>
           <input
             id="buscar-usuario"
             type="search"
-            value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
-            placeholder="Escribí un nombre o correo..."
-            style={{
-              display: "block",
-              width: "100%",
-              maxWidth: "100%",
-              boxSizing: "border-box",
-              marginTop: "8px",
-            }}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Nombre, correo o DNI..."
           />
         </div>
 
-        {error && (
-          <p role="alert" className="gestionar-usuarios__error">
-            {error}
-          </p>
-        )}
+        <FiltroSelect
+          id="usuarios-rol"
+          etiqueta="Rol"
+          valor={filtroRol}
+          onCambio={setFiltroRol}
+          opciones={[
+            { valor: "todos", texto: "Todos" },
+            { valor: "cliente", texto: "Clientes" },
+            { valor: "admin", texto: "Administradores" },
+          ]}
+        />
 
-        {mensaje && (
-          <p role="status" className="gestionar-usuarios__mensaje">
-            {mensaje}
-          </p>
-        )}
+        <FiltroSelect
+          id="usuarios-estado"
+          etiqueta="Estado"
+          valor={filtroEstado}
+          onCambio={setFiltroEstado}
+          opciones={[
+            { valor: "todos", texto: "Todos" },
+            { valor: "activo", texto: "Activos" },
+            { valor: "inactivo", texto: "Inactivos" },
+          ]}
+        />
 
-        {cargando ? (
-          <p>Cargando usuarios...</p>
-        ) : usuarios.length === 0 ? (
-          <p>No se encontraron usuarios.</p>
-        ) : (
-          <div
-            className="gestionar-usuarios__tabla-contenedor"
-            style={{
-              width: "100%",
-              overflowX: "auto",
-            }}
+        <FiltroSelect
+          id="usuarios-dni"
+          etiqueta="DNI"
+          valor={filtroDni}
+          onCambio={setFiltroDni}
+          opciones={[
+            { valor: "todos", texto: "Todos" },
+            { valor: "verificado", texto: "Verificado" },
+            { valor: "sin_verificar", texto: "Sin verificar" },
+            { valor: "sin_dni", texto: "Sin DNI cargado" },
+          ]}
+        />
+
+        {hayFiltros && (
+          <button
+            type="button"
+            className="boton boton-secundario boton-chico"
+            onClick={limpiarFiltros}
           >
-            <table
-              className="gestionar-usuarios__tabla"
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-              }}
-            >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+
+      {cargando ? (
+        <p className="cargando" role="status">
+          <span className="spinner" aria-hidden="true" />
+          Cargando usuarios...
+        </p>
+      ) : visibles.length === 0 ? (
+        <p>
+          {hayFiltros
+            ? "No hay usuarios que coincidan con los filtros."
+            : "Todavía no hay usuarios registrados."}
+        </p>
+      ) : (
+        <>
+          <p className="usuarios-resumen" role="status">
+            {visibles.length === usuarios.length
+              ? `${usuarios.length} ${usuarios.length === 1 ? "usuario" : "usuarios"}`
+              : `${visibles.length} de ${usuarios.length} usuarios`}
+          </p>
+
+          <div style={{ overflowX: "auto" }}>
+            <table className="tabla usuarios-tabla">
+              <caption className="solo-lectores">Lista de usuarios</caption>
               <thead>
                 <tr>
-                  <th>Nombre</th>
-                  <th>Correo electrónico</th>
-                  <th>Rol</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
+                  {["Usuario", "DNI", "Rol", "Estado", "Cuenta", "Verificación de DNI", "Préstamos"].map((t) => (
+                    <th key={t} scope="col">
+                      {t}
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
               <tbody>
-                {usuarios.map((usuario) => (
-                  <tr key={usuario.id}>
-                    <td>{usuario.nombre}</td>
-                    <td>{usuario.email}</td>
+                {visibles.map((usuario) => (
+                  <tr key={usuario.id} className={usuario.activo ? undefined : "fila-inactiva"}>
+                    <td>
+                      <strong>{usuario.nombre}</strong>
+                      <br />
+                      <small>{usuario.email}</small>
+                    </td>
+
+                    <td>
+                      {usuario.dni ? (
+                        <>
+                          {usuario.dni}
+                          <br />
+                          <span
+                            className={`etiqueta ${
+                              usuario.dni_verificado ? "disponible" : "neutra"
+                            }`}
+                          >
+                            {usuario.dni_verificado ? "Verificado" : "Sin verificar"}
+                          </span>
+                          {usuario.prestamos_cantidad > 0 && (
+                            <small
+                              className={`usuarios-prestamos-nombre${
+                                nombresCompatibles(usuario.nombre, usuario.prestamo_nombre)
+                                  ? ""
+                                  : " alerta"
+                              }`}
+                            >
+                              {usuario.prestamos_cantidad === 1
+                                ? "1 préstamo"
+                                : `${usuario.prestamos_cantidad} préstamos`}{" "}
+                              a nombre de «{usuario.prestamo_nombre}»
+                              {!nombresCompatibles(usuario.nombre, usuario.prestamo_nombre) &&
+                                ": no coincide con el nombre de la cuenta"}
+                            </small>
+                          )}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
 
                     <td>
                       <select
+                        className="usuarios-rol"
                         aria-label={`Rol de ${usuario.nombre}`}
                         value={usuario.es_admin ? "admin" : "cliente"}
-                        disabled={
-                          procesando === usuario.id || !usuario.activo
-                        }
+                        disabled={procesando === usuario.id || !usuario.activo}
                         onChange={(e) => {
                           const es_admin = e.target.value === "admin";
 
@@ -366,13 +461,7 @@ export default function GestionarUsuarios() {
                     </td>
 
                     <td>
-                      <span
-                        className={
-                          usuario.activo
-                            ? "usuario-estado usuario-estado--activo"
-                            : "usuario-estado usuario-estado--inactivo"
-                        }
-                      >
+                      <span className={`etiqueta ${usuario.activo ? "disponible" : "no-disponible"}`}>
                         {usuario.activo ? "Activo" : "Inactivo"}
                       </span>
                     </td>
@@ -380,21 +469,20 @@ export default function GestionarUsuarios() {
                     <td>
                       <button
                         type="button"
+                        className={`boton boton-chico ${
+                          usuario.activo ? "boton-peligro" : ""
+                        }`}
                         disabled={procesando === usuario.id}
                         onClick={() => {
                           const nuevoEstado = !usuario.activo;
-                          const accion = nuevoEstado
-                            ? "activar"
-                            : "desactivar";
+                          const accion = nuevoEstado ? "activar" : "desactivar";
 
                           if (
                             window.confirm(
                               `¿Querés ${accion} la cuenta de ${usuario.nombre}?`
                             )
                           ) {
-                            modificarUsuario(usuario, {
-                              activo: nuevoEstado,
-                            });
+                            modificarUsuario(usuario, { activo: nuevoEstado });
                           }
                         }}
                       >
@@ -405,13 +493,70 @@ export default function GestionarUsuarios() {
                             : "Activar"}
                       </button>
                     </td>
+
+                    <td>
+                      {usuario.dni ? (
+                        <button
+                          type="button"
+                          className="boton boton-secundario boton-chico"
+                          disabled={procesando === usuario.id}
+                          onClick={() => {
+                            const verificar = !usuario.dni_verificado;
+                            const coincide = nombresCompatibles(
+                              usuario.nombre,
+                              usuario.prestamo_nombre
+                            );
+                            const avisoPrestamos =
+                              verificar && usuario.prestamos_cantidad > 0
+                                ? `\n\nLos préstamos con ese DNI están a nombre de «${usuario.prestamo_nombre}»` +
+                                  (coincide
+                                    ? "."
+                                    : ", que NO coincide con el nombre de la cuenta. Revisá que sea la misma persona.")
+                                : "";
+                            const pregunta = verificar
+                              ? `Mirá el DNI físico de ${usuario.nombre}. ¿El número es ${usuario.dni}?${avisoPrestamos}`
+                              : `¿Querés quitar la verificación del DNI de ${usuario.nombre}?`;
+
+                            if (window.confirm(pregunta)) {
+                              modificarUsuario(usuario, { dni_verificado: verificar });
+                            }
+                          }}
+                        >
+                          {usuario.dni_verificado ? "Quitar verificación" : "Verificar DNI"}
+                        </button>
+                      ) : (
+                        <span className="usuarios-sin-dato">Sin DNI cargado</span>
+                      )}
+                    </td>
+
+                    <td>
+                      {usuario.dni ? (
+                        <>
+                        <Link
+                          className="usuario-enlace-historial"
+                          to={`/panel/historial?dni=${encodeURIComponent(usuario.dni)}`}
+                          aria-label={`Ver préstamos de ${usuario.nombre}`}
+                        >
+                          Ver préstamos
+                          {usuario.prestamos_cantidad > 0 ? ` (${usuario.prestamos_cantidad})` : ""}
+                        </Link>
+                        {!usuario.dni_verificado && (
+                          <small className="usuarios-prestamos-nombre">
+                            Según el DNI cargado, sin verificar
+                          </small>
+                        )}
+                        </>
+                      ) : (
+                        <span className="usuarios-sin-dato">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </section>
   );
 }

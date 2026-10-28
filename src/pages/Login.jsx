@@ -22,9 +22,9 @@ function Login() {
       const perfil = await login(email, contrasena, recordarme);
       toast.exito(`¡Hola, ${perfil.nombre}!`);
       // Si lo mandaron al login desde una página protegida, vuelve a ella.
-      // Si no: operador y admin van al panel; el resto, al catálogo.
+      // Si no: el admin va al panel; el resto, al catálogo.
       const rol = rolDe(perfil);
-      const porDefecto = rol === "admin" || rol === "operador" ? "/panel" : "/juegos";
+      const porDefecto = rol === "admin" ? "/panel" : "/juegos";
       navegar(ubicacion.state?.desde ?? porDefecto, { replace: true });
     } catch (e) {
       setError(e.message);

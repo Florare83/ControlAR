@@ -1,33 +1,37 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { enviarContacto } from "../api/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import {
+  LIMITES,
+  MENSAJE_MAX,
+  errorContacto,
+  errorEmail,
+  errorMensaje,
+  errorNombre,
+  errorTelefono,
+  normalizarEspacios,
+} from "../utils/validacionesContacto.js";
 
 const OBLIGATORIOS = ["nombre", "apellido", "mensaje"];
 
 // Devuelve el mensaje de error de un campo ("" si está bien).
 function errorDeCampo(campo, valor) {
-  const texto = valor.trim();
   switch (campo) {
     case "nombre":
-      return texto ? "" : "Ingresá tu nombre.";
+      return errorNombre(valor, "nombre");
     case "apellido":
-      return texto ? "" : "Ingresá tu apellido.";
+      return errorNombre(valor, "apellido");
     case "mensaje":
-      return texto ? "" : "Escribí tu mensaje.";
+      return errorMensaje(valor);
     case "email":
-      return texto && !/\S+@\S+\.\S+/.test(texto) ? "Ejemplo válido: usuario@dominio.com" : "";
+      return errorEmail(valor);
     case "telefono":
-      return texto && !/^[0-9+\s-]+$/.test(texto) ? "Ingresá solo números, espacios o +" : "";
+      return errorTelefono(valor);
     default:
       return "";
   }
-}
-
-// Regla extra: tiene que haber al menos un Email o un Teléfono.
-function errorDeContacto(datos) {
-  return !datos.email.trim() && !datos.telefono.trim()
-    ? "Ingresá al menos un Email o un Teléfono de contacto."
-    : "";
 }
 
 function validarTodo(datos) {
@@ -35,7 +39,7 @@ function validarTodo(datos) {
   for (const campo of Object.keys(datos)) {
     errores[campo] = errorDeCampo(campo, datos[campo]);
   }
-  errores.contacto = errorDeContacto(datos);
+  errores.contacto = errorContacto(datos);
   return errores;
 }
 
@@ -43,6 +47,7 @@ const VACIO = { nombre: "", apellido: "", telefono: "", email: "", mensaje: "" }
 
 function Contacto() {
   const toast = useToast();
+  const { rol } = useAuth();
   const [datos, setDatos] = useState(VACIO);
   const [errores, setErrores] = useState({});
   const [enviado, setEnviado] = useState(false);
@@ -56,7 +61,7 @@ function Contacto() {
     setErrores((previos) => ({
       ...previos,
       [name]: errorDeCampo(name, value),
-      contacto: errorDeContacto(nuevosDatos),
+      contacto: errorContacto(nuevosDatos),
     }));
   }
 
@@ -77,8 +82,8 @@ function Contacto() {
     setEnviando(true);
     try {
       await enviarContacto({
-        nombre: datos.nombre.trim(),
-        apellido: datos.apellido.trim(),
+        nombre: normalizarEspacios(datos.nombre),
+        apellido: normalizarEspacios(datos.apellido),
         telefono: datos.telefono.trim(),
         email: datos.email.trim(),
         mensaje: datos.mensaje.trim(),
@@ -110,6 +115,7 @@ function Contacto() {
       "aria-invalid": hayError ? "true" : undefined,
       "aria-describedby": ids.length ? ids.join(" ") : undefined,
       "aria-required": OBLIGATORIOS.includes(campo) ? "true" : undefined,
+      maxLength: LIMITES[campo],
     };
   }
 
@@ -118,6 +124,14 @@ function Contacto() {
       <div className="tarjeta tarjeta-central tarjeta-contacto">
       <h1 className="titulo-tarjeta">Contacto</h1>
       <p className="subtitulo">Escribinos y te respondemos a la brevedad.</p>
+
+      {rol === "cliente" && (
+        <p className="ayuda" role="note">
+          Iniciaste sesión: también podés escribirnos desde{" "}
+          <Link to="/mis-mensajes">Mis mensajes</Link> y ver nuestra respuesta
+          ahí mismo, sin esperar un correo.
+        </p>
+      )}
 
       {enviado && (
         <p style={{ color: "var(--exito, green)", fontWeight: 600 }} role="status">
@@ -177,6 +191,9 @@ function Contacto() {
         <div className="campo">
           <label htmlFor="mensaje">Mensaje *</label>
           <textarea {...atributos("mensaje")} />
+          <span className="ayuda" aria-hidden="true">
+            {datos.mensaje.length}/{MENSAJE_MAX}
+          </span>
           {errores.mensaje && (
             <span id="error-mensaje" className="error">
               {errores.mensaje}

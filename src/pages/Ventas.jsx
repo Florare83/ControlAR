@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { listarVentasAdmin } from "../api/api.js";
+import {
+  cancelarPedidoEfectivo,
+  listarVentasAdmin,
+  marcarPedidoPagado,
+} from "../api/api.js";
+import { useToast } from "../context/ToastContext.jsx";
+import Modal from "../components/Modal.jsx";
 
 function fechaArgentina(fecha) {
   if (!fecha) return "—";
@@ -15,6 +21,23 @@ function fechaArgentina(fecha) {
   });
 }
 
+function fechaHoraArgentina(fecha) {
+  if (!fecha) return "—";
+
+  const valor = new Date(fecha);
+
+  if (Number.isNaN(valor.getTime())) return "—";
+
+  return valor.toLocaleString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Argentina/Salta",
+  });
+}
+
 function dinero(valor) {
   return Number(valor || 0).toLocaleString("es-AR", {
     style: "currency",
@@ -26,7 +49,10 @@ const ETIQUETAS = {
   aprobado: "Pagado",
   pendiente: "Pago pendiente",
   rechazado: "Rechazado",
+  cancelado: "Cancelado",
 };
+
+const EFECTIVO = "efectivo_transferencia";
 
 function textoJuegos(venta) {
   return venta.items
@@ -34,12 +60,129 @@ function textoJuegos(venta) {
     .join(", ");
 }
 
+// Detalle completo de una venta (se muestra en una ventana modal).
+function DetalleVenta({ venta, ocupado, error, onConfirmar, onCancelar }) {
+  const unidades = venta.items.reduce((suma, i) => suma + i.cantidad, 0);
+
+  return (
+    <div className="venta-detalle">
+      <dl className="venta-detalle-datos">
+        <div>
+          <dt>Estado</dt>
+          <dd>
+            <span className={`prestamo-estado ${venta.estado}`}>
+              {ETIQUETAS[venta.estado] || venta.estado}
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt>Forma de pago</dt>
+          <dd>{venta.forma_pago_texto || "Mercado Pago"}</dd>
+        </div>
+        <div>
+          <dt>Pedido creado</dt>
+          <dd>{fechaHoraArgentina(venta.creado_en || venta.fecha)}</dd>
+        </div>
+        <div>
+          <dt>Pagado</dt>
+          <dd>{fechaHoraArgentina(venta.pagado_en)}</dd>
+        </div>
+        <div>
+          <dt>Cliente</dt>
+          <dd>{venta.cliente ? venta.cliente.nombre : "Cuenta eliminada"}</dd>
+        </div>
+        <div>
+          <dt>Correo</dt>
+          <dd>{venta.cliente ? venta.cliente.email : "—"}</dd>
+        </div>
+        {venta.forma_pago !== EFECTIVO && (
+          <div>
+            <dt>N.º de pago (Mercado Pago)</dt>
+            <dd>{venta.pago_id || "—"}</dd>
+          </div>
+        )}
+      </dl>
+
+      <div className="ventas-tabla-contenedor">
+        <table className="venta-detalle-tabla">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th className="venta-num">Cant.</th>
+              <th className="venta-num">Precio unit.</th>
+              <th className="venta-num">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {venta.items.map((item, indice) => (
+              <tr key={`${venta.id}-${indice}`}>
+                <td>{item.titulo}</td>
+                <td className="venta-num">{item.cantidad}</td>
+                <td className="venta-num">{dinero(item.precio_unitario)}</td>
+                <td className="venta-num">
+                  {dinero(
+                    item.subtotal ?? item.precio_unitario * item.cantidad
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">
+                Total ({unidades} {unidades === 1 ? "unidad" : "unidades"})
+              </th>
+              <td colSpan={3} className="venta-num venta-detalle-total">
+                {dinero(venta.total)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {venta.forma_pago === EFECTIVO && venta.estado === "pendiente" && (
+        <div className="venta-detalle-confirmar">
+          <p className="ayuda">
+            Pago en efectivo/transferencia pendiente. Cuando el cliente te
+            pague, confirmalo: recién ahí se descuenta el stock.
+          </p>
+
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <div className="modal-acciones">
+            <button
+              type="button"
+              className="boton"
+              disabled={ocupado}
+              onClick={onConfirmar}
+            >
+              {ocupado ? "Guardando..." : "Confirmar pago"}
+            </button>
+            <button
+              type="button"
+              className="boton boton-secundario"
+              disabled={ocupado}
+              onClick={onCancelar}
+            >
+              Cancelar pedido
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Descarga el listado que se está viendo como CSV (se abre bien en Excel).
 function descargarCsv(ventas) {
   const celda = (valor) => `"${String(valor ?? "").replace(/"/g, '""')}"`;
 
   const filas = [
-    ["Pedido", "Fecha", "Cliente", "Correo", "Juegos", "Total", "Estado"],
+    ["Pedido", "Fecha", "Cliente", "Correo", "Juegos", "Total", "Forma de pago", "Estado"],
     ...ventas.map((v) => [
       v.id,
       fechaArgentina(v.fecha),
@@ -47,6 +190,7 @@ function descargarCsv(ventas) {
       v.cliente ? v.cliente.email : "",
       textoJuegos(v),
       String(v.total).replace(".", ","),
+      v.forma_pago_texto || "Mercado Pago",
       ETIQUETAS[v.estado] || v.estado,
     ]),
   ];
@@ -68,6 +212,7 @@ function descargarCsv(ventas) {
 }
 
 export default function Ventas() {
+  const toast = useToast();
   const [estado, setEstado] = useState("aprobado");
   const [buscar, setBuscar] = useState("");
   const [buscarAplicado, setBuscarAplicado] = useState("");
@@ -75,6 +220,11 @@ export default function Ventas() {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [ventaDetalle, setVentaDetalle] = useState(null);
+  const [accionando, setAccionando] = useState(false);
+  const [errorAccion, setErrorAccion] = useState("");
+  // Al cambiar, se vuelve a pedir el listado (después de confirmar o cancelar).
+  const [version, setVersion] = useState(0);
 
   // Espera un momento después de escribir antes de consultar.
   useEffect(() => {
@@ -106,7 +256,30 @@ export default function Ventas() {
     return () => {
       vigente = false;
     };
-  }, [estado, buscarAplicado]);
+  }, [estado, buscarAplicado, version]);
+
+  function abrirDetalle(venta) {
+    setErrorAccion("");
+    setVentaDetalle(venta);
+  }
+
+  async function ejecutarAccion(accion, textoConfirmar, textoExito) {
+    if (!window.confirm(textoConfirmar)) return;
+
+    setAccionando(true);
+    setErrorAccion("");
+
+    try {
+      const actualizada = await accion(ventaDetalle.id);
+      setVentaDetalle(actualizada);
+      setVersion((v) => v + 1);
+      toast.exito(textoExito);
+    } catch (e) {
+      setErrorAccion(e.message || "No se pudo completar la acción.");
+    } finally {
+      setAccionando(false);
+    }
+  }
 
   const resumen = datos ? datos.resumen : null;
   const ventas = datos ? datos.pedidos : [];
@@ -118,6 +291,7 @@ export default function Ventas() {
     { valor: "aprobado", texto: `Pagadas${resumen ? ` (${resumen.pagados})` : ""}` },
     { valor: "pendiente", texto: `Pago pendiente${resumen ? ` (${resumen.pendientes})` : ""}` },
     { valor: "rechazado", texto: `Rechazadas${resumen ? ` (${resumen.rechazados})` : ""}` },
+    { valor: "cancelado", texto: `Canceladas${resumen ? ` (${resumen.cancelados ?? 0})` : ""}` },
     { valor: "", texto: "Todas" },
   ];
 
@@ -254,7 +428,9 @@ export default function Ventas() {
                   <th>Cliente</th>
                   <th>Juegos</th>
                   <th>Total</th>
+                  <th>Forma de pago</th>
                   <th>Estado</th>
+                  <th>Detalle</th>
                 </tr>
               </thead>
 
@@ -293,10 +469,35 @@ export default function Ventas() {
                       </ul>
                     </td>
                     <td className="ventas-total">{dinero(venta.total)}</td>
+                    <td>{venta.forma_pago_texto || "Mercado Pago"}</td>
                     <td>
                       <span className={`prestamo-estado ${venta.estado}`}>
                         {ETIQUETAS[venta.estado] || venta.estado}
                       </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="venta-ojo"
+                        aria-label={`Ver detalle del pedido #${venta.id}`}
+                        title="Ver detalle"
+                        onClick={() => abrirDetalle(venta)}
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -304,6 +505,35 @@ export default function Ventas() {
             </table>
           </div>
         </>
+      )}
+
+      {ventaDetalle && (
+        <Modal
+          titulo={`Pedido #${ventaDetalle.id}`}
+          ancho={720}
+          ocupado={accionando}
+          onCerrar={() => setVentaDetalle(null)}
+        >
+          <DetalleVenta
+            venta={ventaDetalle}
+            ocupado={accionando}
+            error={errorAccion}
+            onConfirmar={() =>
+              ejecutarAccion(
+                marcarPedidoPagado,
+                `¿Confirmás que el pedido #${ventaDetalle.id} se pagó? Se va a descontar el stock.`,
+                `Pedido #${ventaDetalle.id} marcado como pagado.`
+              )
+            }
+            onCancelar={() =>
+              ejecutarAccion(
+                cancelarPedidoEfectivo,
+                `¿Cancelar el pedido #${ventaDetalle.id}? No se puede deshacer.`,
+                `Pedido #${ventaDetalle.id} cancelado.`
+              )
+            }
+          />
+        </Modal>
       )}
     </section>
   );

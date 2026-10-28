@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { listarMisPrestamos } from "../api/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 function fechaArgentina(fecha) {
   if (!fecha) return "—";
@@ -35,6 +37,9 @@ function textoDias(dias) {
 }
 
 function MisPrestamos() {
+  const { usuario } = useAuth();
+  // Los préstamos solo se muestran cuando un administrador verificó el DNI.
+  const verificado = Boolean(usuario?.dni_verificado);
   const [prestamos, setPrestamos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -86,7 +91,26 @@ function MisPrestamos() {
         </div>
       )}
 
-      {!cargando && !error && prestamos.length === 0 && (
+      {!cargando && !verificado && (
+        <div className="prestamos-vacio">
+          <p className="prestamos-vacio-icono" aria-hidden="true">
+            🪪
+          </p>
+          <p className="prestamos-vacio-titulo">
+            {usuario?.dni
+              ? "Falta verificar tu DNI"
+              : "Cargá tu DNI para ver tus préstamos"}
+          </p>
+          <p>
+            {usuario?.dni
+              ? "Mostrale tu DNI a un administrador en el próximo evento. Cuando lo verifique, vas a ver acá tus préstamos."
+              : "Agregalo en Mi cuenta. Después, un administrador lo verifica con tu documento en el próximo evento."}
+          </p>
+          <Link to="/cuenta/dni">Ir a Mi cuenta</Link>
+        </div>
+      )}
+
+      {!cargando && !error && verificado && prestamos.length === 0 && (
         <div className="prestamos-vacio">
           <p className="prestamos-vacio-icono" aria-hidden="true">
             🎲

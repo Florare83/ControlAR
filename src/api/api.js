@@ -99,6 +99,9 @@ async function pedir(ruta, opciones = {}) {
 // Juegos
 export const listarJuegos = () => pedir("/juegos/");
 
+export const listarJuegosPopulares = (limite = 2) =>
+  pedir(`/juegos/populares?limite=${limite}`);
+
 export const crearJuego = (datos) =>
   pedir("/juegos/", {
     method: "POST",
@@ -137,6 +140,13 @@ export const registrarUsuario = (datos) =>
 
 export const obtenerPerfil = () => pedir("/auth/me");
 
+// La persona carga o corrige su DNI (un administrador lo verifica después).
+export const guardarMiDni = (dni) =>
+  pedir("/auth/me/dni", {
+    method: "PUT",
+    body: JSON.stringify({ dni }),
+  });
+
 // Préstamos: administración
 export const listarPrestamos = (estado) =>
   pedir(
@@ -158,12 +168,62 @@ export const cambiarJuegoPrestamo = (id, juegoId) =>
     body: JSON.stringify({ juego_id: juegoId }),
   });
 
+// Corrige los datos de la persona de un préstamo (activo o cerrado).
+export const editarPrestamo = (id, datos) =>
+  pedir(`/prestamos/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(datos),
+  });
+
 export const devolverPrestamo = (id) =>
   pedir(`/prestamos/${id}/devolver`, {
     method: "POST",
   });
 
+// Deshace una devolución registrada por error (hasta 48 horas después).
+export const reabrirPrestamo = (id) =>
+  pedir(`/prestamos/${id}/reabrir`, {
+    method: "POST",
+  });
+
 // Préstamos: historial del cliente autenticado
+// Historial de préstamos de los clientes (administración)
+export const listarHistorialPrestamos = ({
+  buscar = "",
+  estado = "",
+  atrasados = false, // solo préstamos activos retirados antes de hoy
+  desde = "", // AAAA-MM-DD, fecha de retiro
+  hasta = "", // AAAA-MM-DD, incluida
+  ordenar = "fecha", // "fecha" (fecha y hora de retiro) | "juego" | "cliente" | "estado"
+  direccion = "desc", // "asc" | "desc"
+  limite = 20,
+  desplazamiento = 0,
+} = {}) => {
+  const parametros = new URLSearchParams({ limite, desplazamiento });
+  if (buscar.trim()) parametros.set("buscar", buscar.trim());
+  if (estado) parametros.set("estado", estado);
+  if (atrasados) parametros.set("atrasados", "true");
+  if (desde) parametros.set("desde", desde);
+  if (hasta) parametros.set("hasta", hasta);
+  parametros.set("ordenar", ordenar);
+  parametros.set("direccion", direccion);
+  return pedir(`/prestamos/historial?${parametros}`);
+};
+
+// Estadísticas de préstamos (solo administrador).
+export const obtenerReportePrestamos = ({ desde = "", hasta = "" } = {}) => {
+  const parametros = new URLSearchParams();
+  if (desde) parametros.set("desde", desde);
+  if (hasta) parametros.set("hasta", hasta);
+  const consulta = parametros.toString();
+  return pedir(`/reportes/prestamos${consulta ? `?${consulta}` : ""}`);
+};
+
+export const historialPrestamosDePersona = ({ dni = "" } = {}) => {
+  const parametros = new URLSearchParams({ dni });
+  return pedir(`/prestamos/historial/persona?${parametros}`);
+};
+
 export const listarMisPrestamos = () =>
   pedir("/mi-cuenta/prestamos");
 
@@ -204,6 +264,25 @@ export const crearCheckout = (items) =>
     }),
   });
 
+// Pedido para pagar en efectivo o por transferencia: queda pendiente hasta
+// que el administrador confirma que el pago se concretó.
+export const crearPedidoEfectivo = (items) =>
+  pedir("/pedidos/efectivo", {
+    method: "POST",
+    body: JSON.stringify({
+      items: items.map((i) => ({
+        juego_id: i.id,
+        cantidad: i.cantidad,
+      })),
+    }),
+  });
+
+export const marcarPedidoPagado = (pedidoId) =>
+  pedir(`/pedidos/${pedidoId}/marcar-pagado`, { method: "POST" });
+
+export const cancelarPedidoEfectivo = (pedidoId) =>
+  pedir(`/pedidos/${pedidoId}/cancelar`, { method: "POST" });
+
 export const confirmarPedido = (pedidoId, pagoId) =>
   pedir(`/pedidos/${pedidoId}/confirmar`, {
     method: "POST",
@@ -220,12 +299,24 @@ export const enviarContacto = (datos) =>
 // Mensajes de contacto: administración
 export const listarMensajes = ({
   soloNoLeidos = false,
+  estado = "todos",
+  origen = "todos",
+  buscar = "",
   limite = 20,
   desplazamiento = 0,
-} = {}) =>
-  pedir(
-    `/contacto/?solo_no_leidos=${soloNoLeidos}&limite=${limite}&desplazamiento=${desplazamiento}`
-  );
+} = {}) => {
+  const parametros = new URLSearchParams({
+    solo_no_leidos: String(soloNoLeidos),
+    estado,
+    origen,
+    limite: String(limite),
+    desplazamiento: String(desplazamiento),
+  });
+
+  if (buscar.trim()) parametros.set("buscar", buscar.trim());
+
+  return pedir(`/contacto/?${parametros.toString()}`);
+};
 
 export const marcarMensaje = (id, leido) =>
   pedir(`/contacto/${id}`, {
@@ -233,8 +324,41 @@ export const marcarMensaje = (id, leido) =>
     body: JSON.stringify({ leido }),
   });
 
+export const responderMensaje = (id, { asunto, cuerpo }) =>
+  pedir(`/contacto/${id}/responder`, {
+    method: "POST",
+    body: JSON.stringify({ asunto, cuerpo }),
+  });
+
 export const eliminarMensaje = (id) =>
   pedir(`/contacto/${id}`, { method: "DELETE" });
+
+// Respuesta interna del administrador: el cliente la ve en "Mis mensajes".
+export const responderMensajeEnApp = (id, cuerpo) =>
+  pedir(`/contacto/${id}/respuestas`, {
+    method: "POST",
+    body: JSON.stringify({ cuerpo }),
+  });
+
+// "Mis mensajes": conversaciones del cliente con el equipo
+export const listarMisMensajes = () => pedir("/contacto/mis-mensajes");
+
+export const contarMisMensajesSinLeer = () =>
+  pedir("/contacto/mis-mensajes/sin-leer");
+
+export const verMiConversacion = (id) => pedir(`/contacto/mis-mensajes/${id}`);
+
+export const iniciarConversacion = (mensaje) =>
+  pedir("/contacto/mis-mensajes", {
+    method: "POST",
+    body: JSON.stringify({ mensaje }),
+  });
+
+export const responderMiConversacion = (id, mensaje) =>
+  pedir(`/contacto/mis-mensajes/${id}/respuestas`, {
+    method: "POST",
+    body: JSON.stringify({ mensaje }),
+  });
 
 
 // ---------------------------------------------------------
@@ -315,3 +439,55 @@ export const listarVentasAdmin = ({ estado = "", buscar = "" } = {}) => {
 
   return pedir(`/pedidos/admin/ventas${query ? `?${query}` : ""}`);
 };
+
+
+// ---------------------------------------------------------
+// EVENTOS
+// ---------------------------------------------------------
+
+export const listarEventos = () => pedir("/eventos/");
+
+export const crearEvento = (datos) =>
+  pedir("/eventos/", { method: "POST", body: JSON.stringify(datos) });
+
+export const actualizarEvento = (id, datos) =>
+  pedir(`/eventos/${id}`, { method: "PUT", body: JSON.stringify(datos) });
+
+export const duplicarEvento = (id, datos) =>
+  pedir(`/eventos/${id}/duplicar`, {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+
+export const eliminarEvento = (id) =>
+  pedir(`/eventos/${id}`, { method: "DELETE" });
+
+
+// ---------------------------------------------------------
+// RESERVAS
+// ---------------------------------------------------------
+
+// Público: evento reservable, si siguen abiertas y qué juegos ya están reservados.
+export const obtenerEstadoReservas = () => pedir("/reservas/estado");
+
+// Cliente autenticado
+export const listarMisReservas = () => pedir("/reservas/mias");
+
+export const reservarJuego = (juegoId) =>
+  pedir("/reservas/", {
+    method: "POST",
+    body: JSON.stringify({ juego_id: juegoId }),
+  });
+
+export const cancelarReserva = (id) =>
+  pedir(`/reservas/${id}`, { method: "DELETE" });
+
+// Administración
+export const listarReservasAdmin = (eventoId) =>
+  pedir(eventoId ? `/reservas/?evento_id=${eventoId}` : "/reservas/");
+
+export const entregarReserva = (id, datos) =>
+  pedir(`/reservas/${id}/entregar`, {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });

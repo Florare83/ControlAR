@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,13 +17,24 @@ from app.api.v1.pedidos import (
     router_pagos,
 )
 from app.api.v1.contacto import router as contacto_router
+from app.api.v1.eventos import router as eventos_router
+from app.api.v1.reservas import router as reservas_router
+from app.api.v1.reportes import router as reportes_router
 
 from app.core.asegurar_esquema import asegurar_esquema
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Preparación del esquema de la base de datos al iniciar el servidor.
+    asegurar_esquema()
+    yield
 
 
 app = FastAPI(
     title="API de Juegos de Mesa",
     description="API REST para gestionar juegos modernos y categorías.",
+    lifespan=lifespan,
 )
 
 
@@ -33,7 +45,6 @@ app = FastAPI(
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://controlarstaticsite.onrender.com",
 ]
 
 extra = os.getenv("CORS_ORIGINS", "")
@@ -55,15 +66,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# ---------------------------------------------------------
-# Preparación del esquema de la base de datos
-# ---------------------------------------------------------
-
-@app.on_event("startup")
-def preparar_base_de_datos():
-    asegurar_esquema()
 
 
 # ---------------------------------------------------------
@@ -89,6 +91,13 @@ app.include_router(favoritos_router)
 # Compras y pagos
 app.include_router(pedidos_router)
 app.include_router(router_pagos)
+
+# Eventos del club y reservas de juegos para los eventos
+app.include_router(eventos_router)
+app.include_router(reservas_router)
+
+# Reportes y estadísticas para administración
+app.include_router(reportes_router)
 
 # Formulario de contacto y mensajes para administración
 app.include_router(contacto_router)

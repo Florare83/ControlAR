@@ -11,7 +11,16 @@ from app.api.v1.auth.dependencies import get_current_user
 from app.core import mercadopago as mp
 from app.core.db import get_db
 from app.models.juego import Juego
-from app.models.pedido import APROBADO, PENDIENTE, RECHAZADO, Pedido, PedidoItem
+from app.models.pedido import (
+    APROBADO,
+    CANCELADO,
+    EFECTIVO_TRANSFERENCIA,
+    MERCADO_PAGO,
+    PENDIENTE,
+    RECHAZADO,
+    Pedido,
+    PedidoItem,
+)
 from app.models.usuario import Usuario
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
@@ -57,6 +66,8 @@ def _serializar_compra(pedido: Pedido) -> dict:
         codigo = "aprobado"
     elif pedido.estado == RECHAZADO:
         codigo = "rechazado"
+    elif pedido.estado == CANCELADO:
+        codigo = "cancelado"
     else:
         codigo = "pendiente"
 
@@ -68,6 +79,7 @@ def _serializar_compra(pedido: Pedido) -> dict:
     return {
         "id": pedido.id,
         "estado": codigo,
+        "forma_pago": pedido.forma_pago or MERCADO_PAGO,
         "total": pedido.total,
         "fecha": fecha.isoformat() if fecha else None,
         "items": [
@@ -86,6 +98,15 @@ def _serializar_venta(pedido: Pedido, usuario: Usuario | None) -> dict:
     """Formato para el panel de ventas del administrador."""
     datos = _serializar_compra(pedido)
     datos["pago_id"] = pedido.pago_id
+    datos["forma_pago_texto"] = (
+        "Efectivo / Transferencia"
+        if datos["forma_pago"] == EFECTIVO_TRANSFERENCIA
+        else "Mercado Pago"
+    )
+    creado = getattr(pedido, "creado_en", None)
+    pagado = getattr(pedido, "pagado_en", None)
+    datos["creado_en"] = creado.isoformat() if creado else None
+    datos["pagado_en"] = pagado.isoformat() if pagado else None
     datos["cliente"] = (
         {"nombre": usuario.nombre, "email": usuario.email}
         if usuario is not None
@@ -140,17 +161,12 @@ def sincronizar_pago(db: Session, pedido_id: int, pago: dict) -> Pedido | None:
 
 # ---------- Endpoints ----------
 
-@router.post("/checkout", status_code=201)
-def crear_checkout(
-    datos: CheckoutIn,
-    db: Session = Depends(get_db),
-    usuario: Usuario = Depends(get_current_user),
-):
-    """Valida el carrito con los precios y el stock REALES de la base,
-    crea el pedido y la preferencia de pago de Mercado Pago."""
+def _armar_items(db: Session, items: list) -> tuple[list, list, float]:
+    """Valida el carrito con los precios y el stock REALES de la base.
+    Devuelve (items del pedido, items para Mercado Pago, total)."""
     # Unir renglones repetidos del mismo juego.
     cantidades: dict[int, int] = {}
-    for it in datos.items:
+    for it in items:
         cantidades[it.juego_id] = cantidades.get(it.juego_id, 0) + it.cantidad
 
     juegos = db.query(Juego).filter(Juego.id.in_(cantidades)).all()
@@ -195,10 +211,24 @@ def crear_checkout(
             }
         )
 
+    return items_pedido, items_mp, total
+
+
+@router.post("/checkout", status_code=201)
+def crear_checkout(
+    datos: CheckoutIn,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    """Valida el carrito con los precios y el stock REALES de la base,
+    crea el pedido y la preferencia de pago de Mercado Pago."""
+    items_pedido, items_mp, total = _armar_items(db, datos.items)
+
     pedido = Pedido(
         usuario_id=usuario.id,
         total=round(total, 2),
         estado=PENDIENTE,
+        forma_pago=MERCADO_PAGO,
         items=items_pedido,
     )
     db.add(pedido)
@@ -214,6 +244,122 @@ def crear_checkout(
         "total": pedido.total,
         "init_point": preferencia["init_point"],
     }
+
+
+@router.post("/efectivo", status_code=201)
+def crear_pedido_efectivo(
+    datos: CheckoutIn,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    """Pedido para pagar en efectivo o por transferencia. Queda PENDIENTE y
+    sin tocar el stock: el administrador lo confirma cuando se concreta el
+    pago (ver /{pedido_id}/marcar-pagado)."""
+    items_pedido, _items_mp, total = _armar_items(db, datos.items)
+
+    pedido = Pedido(
+        usuario_id=usuario.id,
+        total=round(total, 2),
+        estado=PENDIENTE,
+        forma_pago=EFECTIVO_TRANSFERENCIA,
+        items=items_pedido,
+    )
+    db.add(pedido)
+    db.commit()
+    db.refresh(pedido)
+
+    return {"pedido_id": pedido.id, "total": pedido.total}
+
+
+def _pedido_efectivo_pendiente(
+    db: Session, pedido_id: int, usuario: Usuario
+) -> Pedido:
+    """Pedido bloqueado para modificar. Solo administradores, solo pedidos
+    en efectivo/transferencia que sigan pendientes."""
+    if not getattr(usuario, "es_admin", False):
+        raise HTTPException(403, "Solo los administradores pueden hacer esto.")
+
+    pedido = (
+        db.query(Pedido)
+        .filter(Pedido.id == pedido_id)
+        .with_for_update()
+        .first()
+    )
+    if pedido is None:
+        raise HTTPException(404, "Pedido no encontrado")
+
+    if pedido.forma_pago != EFECTIVO_TRANSFERENCIA:
+        raise HTTPException(
+            400,
+            "Los pedidos de Mercado Pago se acreditan solos; "
+            "no se confirman a mano.",
+        )
+    if pedido.estado != PENDIENTE:
+        raise HTTPException(
+            409, f"El pedido ya está {pedido.estado}: no se puede modificar."
+        )
+    return pedido
+
+
+@router.post("/{pedido_id}/marcar-pagado")
+def marcar_pedido_pagado(
+    pedido_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    """El administrador confirma que el pago en efectivo/transferencia se
+    concretó. Recién acá se descuenta el stock."""
+    pedido = _pedido_efectivo_pendiente(db, pedido_id, usuario)
+
+    # Primero se verifica todo; recién después se descuenta.
+    a_descontar = []
+    for item in pedido.items:
+        if item.juego_id is None:
+            continue
+        juego = (
+            db.query(Juego)
+            .filter(Juego.id == item.juego_id)
+            .with_for_update()
+            .first()
+        )
+        if juego is None:
+            continue  # el juego se borró del catálogo
+        if juego.stock < item.cantidad:
+            raise HTTPException(
+                409,
+                f"No hay stock suficiente de \"{juego.titulo}\" "
+                f"(quedan {juego.stock}, el pedido pide {item.cantidad}).",
+            )
+        a_descontar.append((juego, item.cantidad))
+
+    for juego, cantidad in a_descontar:
+        juego.stock = max(0, juego.stock - cantidad)
+
+    pedido.estado = APROBADO
+    pedido.pagado_en = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(pedido)
+
+    cliente = db.query(Usuario).filter(Usuario.id == pedido.usuario_id).first()
+    return _serializar_venta(pedido, cliente)
+
+
+@router.post("/{pedido_id}/cancelar")
+def cancelar_pedido_efectivo(
+    pedido_id: int,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    """El administrador cancela un pedido en efectivo/transferencia que no
+    se concretó. No toca el stock (nunca se había descontado)."""
+    pedido = _pedido_efectivo_pendiente(db, pedido_id, usuario)
+
+    pedido.estado = CANCELADO
+    db.commit()
+    db.refresh(pedido)
+
+    cliente = db.query(Usuario).filter(Usuario.id == pedido.usuario_id).first()
+    return _serializar_venta(pedido, cliente)
 
 
 # IMPORTANTE: las rutas fijas ("/admin/ventas", "/mis-compras") deben ir
@@ -235,6 +381,7 @@ def listar_ventas(
         "aprobado": APROBADO,
         "pendiente": PENDIENTE,
         "rechazado": RECHAZADO,
+        "cancelado": CANCELADO,
     }
     if estado and estado not in estados:
         raise HTTPException(400, "Estado inválido.")
@@ -267,6 +414,7 @@ def listar_ventas(
         "pagados": len(pagados),
         "pendientes": sum(1 for p in todos if p.estado == PENDIENTE),
         "rechazados": sum(1 for p in todos if p.estado == RECHAZADO),
+        "cancelados": sum(1 for p in todos if p.estado == CANCELADO),
         "ticket_promedio": (
             round(ingresos_total / len(pagados), 2) if pagados else 0
         ),

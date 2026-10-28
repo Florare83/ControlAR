@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { cambiarContrasena } from "../api/api.js";
 import { useToast } from "../context/ToastContext.jsx";
 
@@ -47,7 +46,7 @@ function CambiarContrasena() {
   }
 
   return (
-    <section className="pagina">
+    <section>
       <h1>🔑 Cambiar contraseña</h1>
       <p className="subtitulo">
         Ingresá tu contraseña actual y elegí una nueva.
@@ -105,10 +104,6 @@ function CambiarContrasena() {
           {cargando ? "Guardando..." : "Cambiar contraseña"}
         </button>
       </form>
-
-      <p>
-        <Link to="/cuenta">Volver a Mi cuenta</Link>
-      </p>
     </section>
   );
 }

@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 // Uso en cualquier componente:
 //   const toast = useToast();
 //   toast.exito("Juego creado");   toast.error("No se pudo guardar");   toast.info("...");
+// Con botón de acción (p. ej. "Deshacer") y duración propia:
+//   toast.exito("Devuelto", { accion: { texto: "Deshacer", onClick: () => ... }, duracion: 10000 });
 const ToastContext = createContext(null);
 
 const DURACION_MS = 4500;
@@ -17,20 +19,23 @@ export function ToastProvider({ children }) {
   }, []);
 
   const mostrar = useCallback(
-    (mensaje, tipo) => {
+    (mensaje, tipo, opciones = {}) => {
       contador.current += 1;
       const id = contador.current;
-      setAvisos((actuales) => [...actuales, { id, mensaje, tipo }]);
-      window.setTimeout(() => quitar(id), DURACION_MS);
+      setAvisos((actuales) => [
+        ...actuales,
+        { id, mensaje, tipo, accion: opciones.accion ?? null },
+      ]);
+      window.setTimeout(() => quitar(id), opciones.duracion ?? DURACION_MS);
     },
     [quitar]
   );
 
   const toast = useMemo(
     () => ({
-      exito: (mensaje) => mostrar(mensaje, "exito"),
-      error: (mensaje) => mostrar(mensaje, "error"),
-      info: (mensaje) => mostrar(mensaje, "info"),
+      exito: (mensaje, opciones) => mostrar(mensaje, "exito", opciones),
+      error: (mensaje, opciones) => mostrar(mensaje, "error", opciones),
+      info: (mensaje, opciones) => mostrar(mensaje, "info", opciones),
     }),
     [mostrar]
   );
@@ -49,6 +54,18 @@ export function ToastProvider({ children }) {
             role={aviso.tipo === "error" ? "alert" : "status"}
           >
             <span>{aviso.mensaje}</span>
+            {aviso.accion && (
+              <button
+                type="button"
+                className="toast-accion"
+                onClick={() => {
+                  quitar(aviso.id);
+                  aviso.accion.onClick();
+                }}
+              >
+                {aviso.accion.texto}
+              </button>
+            )}
             <button
               type="button"
               className="toast-cerrar"
