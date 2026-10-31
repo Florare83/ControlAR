@@ -28,11 +28,17 @@ def listar(
     return _segun_usuario(juegos, usuario)
 
 
-# Va antes de "/{juego_id}": si no, "populares" se tomaría como un id y daría error 422.
+# Van antes de "/{juego_id}": si no, "populares" y "novedades" se tomarían como un id y daría error 422.
 @router.get("/populares", response_model=list[JuegoResponse])
 def populares(limite: int = Query(2, ge=1, le=12), db: Session = Depends(get_db)):
     """Juegos de la tienda más populares (los que más "me gusta" tienen). Público."""
     return _segun_usuario(repo.list_populares(db, limite), None)
+
+
+@router.get("/novedades", response_model=list[JuegoResponse])
+def novedades(limite: int = Query(3, ge=1, le=12), db: Session = Depends(get_db)):
+    """Los últimos juegos cargados al catálogo. Público."""
+    return _segun_usuario(repo.list_novedades(db, limite), None)
 
 
 @router.get("/{juego_id}", response_model=JuegoResponse)

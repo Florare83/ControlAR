@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { obtenerReportePrestamos } from "../api/api.js";
+import { listarVentasAdmin, obtenerReportePrestamos } from "../api/api.js";
 import FiltroFechas from "../components/FiltroFechas.jsx";
 
 // "2026-10-25" -> "25/10/2026" (sin pasar por Date para no correr el día por la zona horaria).
@@ -28,7 +28,7 @@ function Barra({ valor, maximo }) {
   );
 }
 
-// Reportes del administrador: estadísticas simples de préstamos.
+// Reportes del administrador: estadísticas de préstamos y de ventas.
 function Reportes() {
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
@@ -58,6 +58,35 @@ function Reportes() {
     };
   }, [desde, hasta, intento]);
 
+  // Juegos más vendidos: sale del resumen de ventas (pedidos pagados, sin filtro de fechas).
+  const [vendidos, setVendidos] = useState(null);
+  const [cargandoVentas, setCargandoVentas] = useState(true);
+  const [errorVentas, setErrorVentas] = useState("");
+  const [intentoVentas, setIntentoVentas] = useState(0);
+
+  useEffect(() => {
+    let vigente = true;
+    setCargandoVentas(true);
+    setErrorVentas("");
+
+    listarVentasAdmin({ estado: "aprobado" })
+      .then((respuesta) => {
+        if (vigente) setVendidos(respuesta?.resumen?.mas_vendidos ?? []);
+      })
+      .catch((e) => {
+        if (vigente) setErrorVentas(e.message || "No se pudo cargar el reporte de ventas.");
+      })
+      .finally(() => {
+        if (vigente) setCargandoVentas(false);
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, [intentoVentas]);
+
+  const maxVendido = (vendidos ?? []).reduce((m, j) => Math.max(m, j.cantidad), 0);
+
   const resumen = datos?.resumen;
   const juegos = datos?.juegos_mas_prestados ?? [];
   const dias = datos?.por_evento ?? [];
@@ -68,8 +97,8 @@ function Reportes() {
     <div className="reportes">
       <h1>Reportes</h1>
       <p className="subtitulo">
-        Estadísticas de los préstamos de la ludoteca. Se calculan según la fecha
-        de retiro del juego.
+        Estadísticas de los préstamos de la ludoteca (según la fecha de retiro
+        del juego) y de las ventas de la tienda.
       </p>
 
       <div className="prestamos-filtros">
@@ -196,6 +225,53 @@ function Reportes() {
           )}
         </div>
       )}
+
+      <section className="tarjeta tarjeta-columna reporte-seccion" aria-labelledby="rep-vendidos">
+        <h2 id="rep-vendidos">Juegos más vendidos</h2>
+        <p className="ayuda">
+          Se cuentan las unidades de los pedidos pagados. No depende del período
+          elegido arriba.
+        </p>
+
+        {cargandoVentas && !vendidos && (
+          <p className="cargando" role="status">
+            <span className="spinner" aria-hidden="true" />
+            Cargando ventas...
+          </p>
+        )}
+
+        {errorVentas && (
+          <div role="alert">
+            <span className="error">{errorVentas}</span>
+            <button
+              type="button"
+              className="boton"
+              style={{ width: "auto", marginTop: 12 }}
+              onClick={() => setIntentoVentas((n) => n + 1)}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {!errorVentas && vendidos && vendidos.length === 0 && (
+          <p>Todavía no hay ventas pagadas.</p>
+        )}
+
+        {!errorVentas && vendidos && vendidos.length > 0 && (
+          <ol className="reporte-lista">
+            {vendidos.map((j) => (
+              <li key={j.titulo}>
+                <span className="reporte-nombre">{j.titulo}</span>
+                <Barra valor={j.cantidad} maximo={maxVendido} />
+                <strong className="reporte-valor">
+                  {j.cantidad} {j.cantidad === 1 ? "unidad" : "unidades"}
+                </strong>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </div>
   );
 }

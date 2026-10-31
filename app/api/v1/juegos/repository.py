@@ -65,6 +65,16 @@ def list_populares(db: Session, limite: int = 2) -> list[Juego]:
     return marcar_en_prestamo(db, juegos)
 
 
+def list_novedades(db: Session, limite: int = 3) -> list[Juego]:
+    """Los últimos juegos cargados, del más nuevo al más viejo.
+
+    No hay fecha de alta en la tabla, pero el id crece con cada juego nuevo,
+    así que ordenar por id descendente da el orden de carga.
+    """
+    juegos = db.query(Juego).order_by(Juego.id.desc()).limit(limite).all()
+    return marcar_en_prestamo(db, juegos)
+
+
 def search_by_titulo(db: Session, query: str) -> list[Juego]:
     juegos = db.query(Juego).filter(Juego.titulo.ilike(f"%{query}%")).all()
     return marcar_en_prestamo(db, juegos)

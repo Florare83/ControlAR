@@ -3,6 +3,7 @@ import grupo from "../img/grupo.jpeg";
 import { partesFecha, proximoEvento } from "../data/eventos.js";
 import { useEventos } from "../hooks/useEventos.js";
 import JuegosPopulares from "../components/JuegosPopulares.jsx";
+import JuegosNovedades from "../components/JuegosNovedades.jsx";
 
 const ANIO_FUNDACION = 2017;
 
@@ -78,6 +79,9 @@ function Nosotros() {
 
       {/* Los 2 juegos más populares de la tienda (se actualizan solos) */}
       <JuegosPopulares />
+
+      {/* Los 3 últimos juegos cargados (se actualizan solos) */}
+      <JuegosNovedades />
 
       {/* Cierre */}
       <aside className="pg-cierre">

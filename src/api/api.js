@@ -102,6 +102,9 @@ export const listarJuegos = () => pedir("/juegos/");
 export const listarJuegosPopulares = (limite = 2) =>
   pedir(`/juegos/populares?limite=${limite}`);
 
+export const listarJuegosNovedades = (limite = 3) =>
+  pedir(`/juegos/novedades?limite=${limite}`);
+
 export const crearJuego = (datos) =>
   pedir("/juegos/", {
     method: "POST",
