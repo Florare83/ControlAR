@@ -57,6 +57,12 @@ function PanelLayout() {
             </li>
 
             <li>
+              <NavLink to="/panel/clientes" className={clase}>
+                Clientes
+              </NavLink>
+            </li>
+
+            <li>
               <NavLink to="/panel/reportes" className={clase}>
                 Reportes
               </NavLink>

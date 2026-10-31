@@ -156,6 +156,31 @@ export const listarPrestamos = (estado) =>
     estado ? `/prestamos/?estado=${encodeURIComponent(estado)}` : "/prestamos/"
   );
 
+// Clientes sin cuenta (registrados por DNI): administración
+export const listarClientes = ({ buscar = "", limite = 20, desplazamiento = 0 } = {}) => {
+  const parametros = new URLSearchParams({
+    limite: String(limite),
+    desplazamiento: String(desplazamiento),
+  });
+  if (buscar.trim()) parametros.set("buscar", buscar.trim());
+  return pedir(`/clientes/?${parametros}`);
+};
+
+export const registrarCliente = (datos) =>
+  pedir("/clientes/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+
+export const editarCliente = (id, datos) =>
+  pedir(`/clientes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(datos),
+  });
+
+export const eliminarCliente = (id) =>
+  pedir(`/clientes/${id}`, { method: "DELETE" });
+
 export const buscarPersonaPorDni = (dni) =>
   pedir(`/prestamos/buscar-persona/${encodeURIComponent(dni)}`);
 

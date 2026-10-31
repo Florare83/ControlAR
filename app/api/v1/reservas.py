@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.v1.auth.dependencies import get_current_user, require_admin
 from app.api.v1.juegos import repository as juegos_repo
 from app.core import avisos
+from app.core.clientes import asegurar_cliente
 from app.core.db import get_db
 from app.core.reservas_reglas import ahora, cierre_reservas, inicio_evento, limite_espera
 from app.models.evento import Evento
@@ -430,6 +431,7 @@ def entregar(
     try:
         db.add(prestamo)
         db.flush()  # obtiene el id del préstamo sin cerrar todavía la transacción
+        asegurar_cliente(db, prestamo.dni, prestamo.nombre, prestamo.sexo, prestamo.telefono)
 
         reserva.estado = ENTREGADA
         reserva.cerrada_en = ahora()

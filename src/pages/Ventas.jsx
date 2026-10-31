@@ -213,7 +213,7 @@ function descargarCsv(ventas) {
 
 export default function Ventas() {
   const toast = useToast();
-  const [estado, setEstado] = useState("aprobado");
+  const [estado, setEstado] = useState("");
   const [buscar, setBuscar] = useState("");
   const [buscarAplicado, setBuscarAplicado] = useState("");
 

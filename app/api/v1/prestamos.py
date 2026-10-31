@@ -14,8 +14,10 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.v1.auth.dependencies import require_admin
 from app.api.v1.juegos import repository as juegos_repo
+from app.core.clientes import asegurar_cliente
 from app.core.db import get_db
 from app.core.validaciones import escapar_like
+from app.models.cliente import Cliente
 from app.models.prestamo import ACTIVO, CERRADO, Prestamo
 
 
@@ -166,7 +168,17 @@ def buscar_persona_por_dni(
     )
 
     if prestamo is None:
-        return {"encontrado": False}
+        # Sin préstamos todavía: puede estar registrada como cliente (sin cuenta).
+        cliente = db.query(Cliente).filter(Cliente.dni == dni).first()
+        if cliente is None:
+            return {"encontrado": False}
+        return {
+            "encontrado": True,
+            "dni": cliente.dni,
+            "nombre": cliente.nombre,
+            "sexo": cliente.sexo,
+            "telefono": cliente.telefono,
+        }
 
     return {
         "encontrado": True,
@@ -361,6 +373,15 @@ def historial_de_persona(
             "nombre": ultimo.nombre,
             "telefono": ultimo.telefono,
         }
+    else:
+        # Cliente registrado que todavía no pidió ningún juego.
+        cliente = db.query(Cliente).filter(Cliente.dni == dni).first()
+        if cliente is not None:
+            persona = {
+                "dni": cliente.dni,
+                "nombre": cliente.nombre,
+                "telefono": cliente.telefono,
+            }
 
     return {
         "persona": persona,
@@ -420,6 +441,8 @@ def registrar_prestamo(
 
     try:
         db.add(prestamo)
+        # Quien se lleva un juego queda registrado como cliente (si no lo estaba).
+        asegurar_cliente(db, datos.dni, datos.nombre, datos.sexo, datos.telefono)
         db.commit()
 
     except IntegrityError as e:
