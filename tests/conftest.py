@@ -55,8 +55,14 @@ def client():
     return TestClient(app)
 
 
-def _crear_usuario(db, email, es_admin):
+def _crear_usuario(db, email, es_admin, dni_verificado=None):
+    """dni_verificado: None = sin DNI; un texto = DNI ya validado por un administrador."""
     usuario = repo_usuarios.create(db, "Usuaria Prueba", email, "clave12345", es_admin=es_admin)
+    if dni_verificado:
+        usuario.dni = dni_verificado
+        usuario.dni_verificado = True
+        db.commit()
+        db.refresh(usuario)
     return usuario, {"Authorization": f"Bearer {crear_token(usuario.id)}"}
 
 
@@ -73,6 +79,17 @@ def cliente(db):
 @pytest.fixture
 def cliente2(db):
     return _crear_usuario(db, "cliente2@prueba.com", False)
+
+
+@pytest.fixture
+def cliente_verificado(db):
+    """Cliente con el DNI validado en un evento: es quien puede reservar."""
+    return _crear_usuario(db, "cliente@prueba.com", False, dni_verificado="30111222")
+
+
+@pytest.fixture
+def cliente2_verificado(db):
+    return _crear_usuario(db, "cliente2@prueba.com", False, dni_verificado="30333444")
 
 
 @pytest.fixture

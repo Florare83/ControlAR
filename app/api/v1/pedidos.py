@@ -2,12 +2,13 @@
 from collections import Counter
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.v1.auth.dependencies import get_current_user
+from app.core import avisos
 from app.core import mercadopago as mp
 from app.core.db import get_db
 from app.models.juego import Juego
@@ -115,10 +116,15 @@ def _serializar_venta(pedido: Pedido, usuario: Usuario | None) -> dict:
     return datos
 
 
-def sincronizar_pago(db: Session, pedido_id: int, pago: dict) -> Pedido | None:
+def sincronizar_pago(
+    db: Session,
+    pedido_id: int,
+    pago: dict,
+    tareas: BackgroundTasks | None = None,
+) -> Pedido | None:
     """Actualiza el pedido según un pago REAL traído de Mercado Pago.
     Es idempotente: si el webhook y la vuelta del cliente llegan a la vez,
-    el stock se descuenta una sola vez."""
+    el stock se descuenta una sola vez (y el correo de compra se manda una sola vez)."""
     pedido = (
         db.query(Pedido)
         .filter(Pedido.id == pedido_id)
@@ -139,10 +145,12 @@ def sincronizar_pago(db: Session, pedido_id: int, pago: dict) -> Pedido | None:
 
     estado_mp = pago.get("status")
     pedido.pago_id = str(pago.get("id"))
+    recien_aprobado = False
 
     if estado_mp == "approved":
         pedido.estado = APROBADO
         pedido.pagado_en = datetime.now(timezone.utc)
+        recien_aprobado = True
         for item in pedido.items:
             if item.juego_id is None:
                 continue
@@ -156,7 +164,18 @@ def sincronizar_pago(db: Session, pedido_id: int, pago: dict) -> Pedido | None:
 
     db.commit()
     db.refresh(pedido)
+
+    if recien_aprobado and tareas is not None:
+        _avisar_compra_confirmada(db, tareas, pedido)
+
     return pedido
+
+
+def _avisar_compra_confirmada(db: Session, tareas: BackgroundTasks, pedido: Pedido) -> None:
+    """Programa el correo de \"compra confirmada\" (se arma ahora, se envía en segundo plano)."""
+    cliente = db.query(Usuario).filter(Usuario.id == pedido.usuario_id).first()
+    if cliente is not None:
+        tareas.add_task(avisos.enviar_aviso, *avisos.correo_compra_confirmada(cliente, pedido))
 
 
 # ---------- Endpoints ----------
@@ -249,6 +268,7 @@ def crear_checkout(
 @router.post("/efectivo", status_code=201)
 def crear_pedido_efectivo(
     datos: CheckoutIn,
+    tareas: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
@@ -267,6 +287,8 @@ def crear_pedido_efectivo(
     db.add(pedido)
     db.commit()
     db.refresh(pedido)
+
+    tareas.add_task(avisos.enviar_aviso, *avisos.correo_pedido_efectivo(usuario, pedido))
 
     return {"pedido_id": pedido.id, "total": pedido.total}
 
@@ -304,6 +326,7 @@ def _pedido_efectivo_pendiente(
 @router.post("/{pedido_id}/marcar-pagado")
 def marcar_pedido_pagado(
     pedido_id: int,
+    tareas: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
@@ -341,12 +364,15 @@ def marcar_pedido_pagado(
     db.refresh(pedido)
 
     cliente = db.query(Usuario).filter(Usuario.id == pedido.usuario_id).first()
+    if cliente is not None:
+        tareas.add_task(avisos.enviar_aviso, *avisos.correo_compra_confirmada(cliente, pedido))
     return _serializar_venta(pedido, cliente)
 
 
 @router.post("/{pedido_id}/cancelar")
 def cancelar_pedido_efectivo(
     pedido_id: int,
+    tareas: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
@@ -359,6 +385,8 @@ def cancelar_pedido_efectivo(
     db.refresh(pedido)
 
     cliente = db.query(Usuario).filter(Usuario.id == pedido.usuario_id).first()
+    if cliente is not None:
+        tareas.add_task(avisos.enviar_aviso, *avisos.correo_pedido_cancelado(cliente, pedido))
     return _serializar_venta(pedido, cliente)
 
 
@@ -489,6 +517,7 @@ def obtener_pedido(
 def confirmar_pedido(
     pedido_id: int,
     datos: ConfirmarIn,
+    tareas: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
@@ -506,13 +535,15 @@ def confirmar_pedido(
         pago = mp.obtener_pago(datos.pago_id)
         if pago is None:
             raise HTTPException(404, "Pago no encontrado en Mercado Pago.")
-        pedido = sincronizar_pago(db, pedido.id, pago) or pedido
+        pedido = sincronizar_pago(db, pedido.id, pago, tareas) or pedido
 
     return _serializar(pedido)
 
 
 @router_pagos.post("/webhook")
-async def webhook(request: Request, db: Session = Depends(get_db)):
+async def webhook(
+    request: Request, tareas: BackgroundTasks, db: Session = Depends(get_db)
+):
     """Aviso de Mercado Pago (IPN/webhook). Solo funciona con BACKEND_URL público.
     No es necesario validar la firma: el estado se vuelve a pedir a Mercado Pago
     con nuestro token, así que un aviso falso no puede aprobar un pedido."""
@@ -532,7 +563,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         ref = (pago or {}).get("external_reference")
         if pago and ref and ref.isdigit():
             try:
-                sincronizar_pago(db, int(ref), pago)
+                sincronizar_pago(db, int(ref), pago, tareas)
             except HTTPException:
                 pass  # aviso inconsistente: se ignora, siempre respondemos 200
 

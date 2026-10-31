@@ -128,17 +128,18 @@ function Cuenta() {
         <h2>Mi DNI</h2>
 
         {usuario?.dni_verificado ? (
-          <p>✓ Tu DNI está verificado. Ya podés ver tus préstamos.</p>
+          <p>✓ Tu DNI está verificado. Ya podés reservar juegos y ver tus préstamos.</p>
         ) : usuario?.dni ? (
           <p>
             Pendiente de verificación: mostrale tu DNI a un administrador en
-            el próximo evento. Cuando lo verifique, vas a ver tus préstamos en
-            la sección "Mis préstamos".
+            el próximo evento. Cuando lo verifique, vas a poder reservar
+            juegos y ver tus préstamos en la sección "Mis préstamos".
           </p>
         ) : (
           <p>
-            Cargá tu DNI para poder ver tus préstamos. Un administrador lo
-            verifica con tu documento en el próximo evento.
+            Cargá tu DNI para poder reservar juegos y ver tus préstamos. Un
+            administrador lo verifica con tu documento cuando vengas a un
+            evento del Rincón.
           </p>
         )}
 
