@@ -76,7 +76,13 @@ app.add_middleware(
 
 @app.get("/", tags=["Root"])
 def read_root():
-    return {"Bienvenido a la API de Juegos"}
+    return {"mensaje": "Bienvenido a la API de Juegos"}
+
+
+@app.get("/health", tags=["Root"])
+def health():
+    """Para que Render (o un servicio como UptimeRobot) compruebe que el backend responde."""
+    return {"estado": "ok"}
 
 
 # ---------------------------------------------------------

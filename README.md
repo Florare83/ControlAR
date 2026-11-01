@@ -352,6 +352,11 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 - «Eliminar cuenta» **desactiva** la cuenta: anonimiza nombre y email, invalida la contraseña y borra los favoritos, pero conserva préstamos, pedidos y mensajes.
 - Un administrador no puede desactivarse ni quitarse el rol a sí mismo.
 
+### Olvidé mi contraseña
+- Desde *Iniciar sesión → ¿Olvidaste tu contraseña?* (`/recuperar`) la persona escribe su correo y recibe un enlace (`/restablecer?token=...`).
+- La respuesta es siempre la misma, exista o no la cuenta, para no revelar qué correos están registrados. Hay un límite de 5 pedidos por hora por conexión.
+- El enlace vale **1 hora** y se puede usar **una sola vez**: lleva una huella de la contraseña vigente, así que deja de servir apenas se elige la nueva (o se cambia desde la cuenta). Usa una clave derivada de `SECRET_KEY` y no sirve como sesión.
+
 ---
 
 ## 9. Roles y permisos
@@ -382,6 +387,9 @@ Leyenda de acceso: **Público**, **Usuario** (cualquier sesión), **Admin**. Có
 | POST | `/auth/login` | Público | Formulario `username` (el correo) y `password`. Devuelve `access_token`. `429` tras 8 contraseñas incorrectas seguidas (misma cuenta y misma conexión): espera 10 minutos |
 | GET | `/auth/me` | Usuario | Perfil (`id`, `nombre`, `email`, `es_admin`, `rol`, `suscrito_novedades`) |
 | PUT | `/auth/me/novedades` | Usuario | Suscribe o da de baja de las novedades por correo (`{"suscrito": true}`) |
+| POST | `/auth/recuperar` | Público | «Olvidé mi contraseña»: manda el enlace por correo (`{"email": ...}`). Responde igual exista o no la cuenta. `429` si se piden más de 5 por hora |
+| POST | `/auth/restablecer` | Público | Elige la contraseña nueva con el `token` del enlace (`token`, `contrasena` de 8 o más). `400` si el enlace venció o ya se usó |
+| GET | `/health` | Público | `{"estado": "ok"}`: para comprobar que el backend responde (Render, UptimeRobot) |
 | POST | `/auth/cambiar-contrasena` | Usuario | Requiere la actual; la nueva, de 8 o más y distinta |
 | DELETE | `/auth/me` | Usuario | Desactiva la cuenta (pide la contraseña) |
 | GET | `/auth/admin/usuarios` | Admin | Lista usuarios (`?buscar=` por nombre, email o DNI, también con puntos). Incluye `prestamos_cantidad` y `prestamo_nombre` (a nombre de quién están los préstamos con el DNI de la cuenta) para compararlos antes de verificar |
@@ -507,10 +515,12 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 | Ruta | Acceso | Pantalla |
 |------|--------|----------|
 | `/` | Público | Redirige a `/nosotros` |
+| cualquier otra dirección | Público | Página «no encontrada» (404) |
 | `/nosotros` | Público | Presentación del club, preguntas frecuentes y **juegos más populares** |
 | `/club` | Público | Eventos próximos y anteriores, con mapa y datos de la tarde de juegos |
 | `/juegos` | Público | Catálogo: filtros, orden, paginación, favoritos, carrito y reservas |
 | `/contacto` | Público | Formulario de contacto con validación en tiempo real |
+| `/recuperar`, `/restablecer?token=...` | Público | «Olvidé mi contraseña»: pedir el enlace y elegir la contraseña nueva |
 | `/login`, `/registro` | Público | Sesión («Recordarme» guarda el token en `localStorage`; si no, en `sessionStorage`) |
 | `/checkout`, `/compra/resultado` | Cliente / Admin | Pantallas completas de pago y resultado |
 | `/favoritos`, `/mis-compras`, `/mis-mensajes` | Cliente / Admin | Listas personales |

@@ -60,6 +60,8 @@ function TarjetaJuego({
         <img
           src={imagen}
           alt={`Imagen de ${juego.titulo}`}
+          loading="lazy"
+          decoding="async"
           onError={() => {
             if (juego.imagen_url && !imagenFallida) {
               setImagenFallida(true);

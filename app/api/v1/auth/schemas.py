@@ -39,6 +39,15 @@ class NovedadesActualizar(BaseModel):
     suscrito: bool
 
 
+class RecuperarIn(BaseModel):
+    email: EmailStr
+
+
+class RestablecerIn(BaseModel):
+    token: str = Field(min_length=10, max_length=2000)
+    contrasena: str = Field(min_length=8, max_length=128)
+
+
 class DniActualizar(BaseModel):
     dni: str
 

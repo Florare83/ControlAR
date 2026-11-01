@@ -205,6 +205,27 @@ def correo_pedido_cancelado(usuario, pedido) -> Correo:
     return usuario.email, f"Pedido #{pedido.id} cancelado", cuerpo
 
 
+# --------------------------------------------------------- olvidé mi contraseña
+
+def correo_recuperar_contrasena(usuario, token: str) -> Correo:
+    """Enlace para elegir una contraseña nueva (vale 1 hora y se usa una sola vez)."""
+    cuerpo = "\n".join(
+        [
+            _saludo(usuario),
+            "",
+            "Recibimos un pedido para elegir una contraseña nueva en El Rincón de Hermes.",
+            "Para hacerlo, entrá a este enlace (vale 1 hora y se puede usar una sola vez):",
+            "",
+            f"{_frontend()}/restablecer?token={token}",
+            "",
+            "Si no lo pediste vos, ignorá este mensaje: tu contraseña sigue igual.",
+            "",
+            _FIRMA,
+        ]
+    )
+    return usuario.email, "Elegí una contraseña nueva", cuerpo
+
+
 # ------------------------------------------------------------------- novedades
 # Correos para quienes se suscribieron a las novedades. Cada uno lleva su propio enlace
 # de baja, por eso se arma un correo por persona (no un mismo mensaje para todos).

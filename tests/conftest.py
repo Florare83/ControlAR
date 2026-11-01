@@ -18,7 +18,7 @@ from app.core.db import Base, SessionLocal, engine
 from app.core import asegurar_esquema  # noqa: F401  (importa todos los modelos)
 from app.main import app
 from app.api.v1.auth import repository as repo_usuarios
-from app.core.limitador import limite_login
+from app.core.limitador import limite_login, limite_recuperar
 from app.core.security import crear_token
 from app.models.categoria import Categoria
 from app.models.evento import Evento
@@ -37,6 +37,7 @@ def base_limpia():
 def limite_login_limpio():
     """Los intentos fallidos de login viven en memoria: cada prueba arranca sin ninguno."""
     limite_login.reiniciar()
+    limite_recuperar.reiniciar()
     yield
 
 

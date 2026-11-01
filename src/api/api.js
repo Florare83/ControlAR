@@ -142,6 +142,19 @@ export const registrarUsuario = (datos) =>
     body: JSON.stringify(datos),
   });
 
+// «Olvidé mi contraseña»: pide el enlace por correo y elige la contraseña nueva con él.
+export const pedirRecuperacion = (email) =>
+  pedir("/auth/recuperar", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+export const restablecerContrasena = (token, contrasena) =>
+  pedir("/auth/restablecer", {
+    method: "POST",
+    body: JSON.stringify({ token, contrasena }),
+  });
+
 export const obtenerPerfil = () => pedir("/auth/me");
 
 // Novedades por correo: la persona se suscribe o se da de baja desde "Mi cuenta".

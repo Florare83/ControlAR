@@ -87,7 +87,7 @@ function Login() {
               />
               Recordarme
             </label>
-            <a href="#">¿Olvidaste tu contraseña?</a>
+            <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
           </div>
 
           {error && (

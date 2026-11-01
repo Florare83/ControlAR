@@ -49,3 +49,7 @@ class LimiteIntentos:
 # 8 contraseñas incorrectas seguidas para la misma cuenta y desde la misma conexión
 # bloquean los intentos durante 10 minutos.
 limite_login = LimiteIntentos(maximo=8, ventana_segundos=600)
+
+# "Olvidé mi contraseña": 5 pedidos por hora desde la misma conexión (evita que alguien
+# use el formulario para llenar de correos la casilla de otra persona).
+limite_recuperar = LimiteIntentos(maximo=5, ventana_segundos=3600)
