@@ -21,6 +21,7 @@ from app.api.v1.eventos import router as eventos_router
 from app.api.v1.reservas import router as reservas_router
 from app.api.v1.reportes import router as reportes_router
 from app.api.v1.clientes import router as clientes_router
+from app.api.v1.suscripcion import router as suscripcion_router
 
 from app.core.asegurar_esquema import asegurar_esquema
 
@@ -102,6 +103,9 @@ app.include_router(reportes_router)
 
 # Clientes sin cuenta (registrados por DNI) para administración
 app.include_router(clientes_router)
+
+# Baja de las novedades por correo (enlace de cada mail)
+app.include_router(suscripcion_router)
 
 # Formulario de contacto y mensajes para administración
 app.include_router(contacto_router)

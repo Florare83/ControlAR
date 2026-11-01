@@ -105,8 +105,9 @@ export const listarJuegosPopulares = (limite = 2) =>
 export const listarJuegosNovedades = (limite = 3) =>
   pedir(`/juegos/novedades?limite=${limite}`);
 
-export const crearJuego = (datos) =>
-  pedir("/juegos/", {
+// avisar: manda un correo a quienes se suscribieron a las novedades.
+export const crearJuego = (datos, { avisar = false } = {}) =>
+  pedir(`/juegos/${avisar ? "?avisar=true" : ""}`, {
     method: "POST",
     body: JSON.stringify(datos),
   });
@@ -142,6 +143,26 @@ export const registrarUsuario = (datos) =>
   });
 
 export const obtenerPerfil = () => pedir("/auth/me");
+
+// Novedades por correo: la persona se suscribe o se da de baja desde "Mi cuenta".
+export const guardarNovedades = (suscrito) =>
+  pedir("/auth/me/novedades", {
+    method: "PUT",
+    body: JSON.stringify({ suscrito }),
+  });
+
+// Resumen de novedades (administración): qué llevaría y envío manual.
+export const obtenerResumenNovedades = () => pedir("/suscripcion/resumen");
+
+export const enviarResumenNovedades = () =>
+  pedir("/suscripcion/resumen/enviar", { method: "POST" });
+
+// Baja con el enlace de un correo (no hace falta iniciar sesión).
+export const darseDeBajaNovedades = (token) =>
+  pedir("/suscripcion/baja", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
 
 // La persona carga o corrige su DNI (un administrador lo verifica después).
 export const guardarMiDni = (dni) =>
@@ -475,11 +496,20 @@ export const listarVentasAdmin = ({ estado = "", buscar = "" } = {}) => {
 
 export const listarEventos = () => pedir("/eventos/");
 
-export const crearEvento = (datos) =>
-  pedir("/eventos/", { method: "POST", body: JSON.stringify(datos) });
+// avisar: manda un correo a quienes se suscribieron a las novedades.
+export const crearEvento = (datos, { avisar = false } = {}) =>
+  pedir(`/eventos/${avisar ? "?avisar=true" : ""}`, {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
 
-export const actualizarEvento = (id, datos) =>
-  pedir(`/eventos/${id}`, { method: "PUT", body: JSON.stringify(datos) });
+// avisar: si cambió nombre, fecha, horario o lugar, avisa por correo a los suscriptores
+// y a quienes tienen una reserva activa.
+export const actualizarEvento = (id, datos, { avisar = false } = {}) =>
+  pedir(`/eventos/${id}${avisar ? "?avisar=true" : ""}`, {
+    method: "PUT",
+    body: JSON.stringify(datos),
+  });
 
 export const duplicarEvento = (id, datos) =>
   pedir(`/eventos/${id}/duplicar`, {
@@ -487,8 +517,9 @@ export const duplicarEvento = (id, datos) =>
     body: JSON.stringify(datos),
   });
 
-export const eliminarEvento = (id) =>
-  pedir(`/eventos/${id}`, { method: "DELETE" });
+// avisar: le cuenta por correo a los suscriptores que el evento se canceló.
+export const eliminarEvento = (id, { avisar = false } = {}) =>
+  pedir(`/eventos/${id}${avisar ? "?avisar=true" : ""}`, { method: "DELETE" });
 
 
 // ---------------------------------------------------------

@@ -302,11 +302,11 @@ function Juegos({ enPanel = false }) {
     }
   }
 
-  async function guardarJuego(datos) {
+  async function guardarJuego(datos, opciones) {
     const esNuevo = formulario === "nuevo";
 
     if (esNuevo) {
-      await crearJuego(datos);
+      await crearJuego(datos, opciones);
     } else {
       await actualizarJuego(formulario.id, datos);
     }

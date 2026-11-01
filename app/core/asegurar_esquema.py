@@ -30,6 +30,7 @@ from app.models.mensaje import MensajeContacto, RespuestaMensaje  # noqa: F401
 from app.models.evento import Evento  # noqa: F401
 from app.models.reserva import Reserva  # noqa: F401
 from app.models.cliente import Cliente  # noqa: F401
+from app.models.resumen import ResumenNovedades  # noqa: F401
 
 log = logging.getLogger("uvicorn.error")
 

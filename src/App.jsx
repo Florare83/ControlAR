@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+git statusimport React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "./context/AuthContext.jsx";
@@ -13,6 +13,9 @@ import Juegos from "./pages/Juegos.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
 import CuentaLayout from "./components/CuentaLayout.jsx";
 import EditarDni from "./pages/EditarDni.jsx";
+import Novedades from "./pages/Novedades.jsx";
+import Baja from "./pages/Baja.jsx";
+import NovedadesAdmin from "./pages/NovedadesAdmin.jsx";
 import CambiarContrasena from "./pages/CambiarContrasena.jsx";
 import EliminarCuenta from "./pages/EliminarCuenta.jsx";
 import Contacto from "./pages/Contacto.jsx";
@@ -106,6 +109,7 @@ function App() {
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/baja" element={<Baja />} />
 
           <Route
             path="/checkout"
@@ -143,7 +147,7 @@ function App() {
             }
           />
 
-          {/* Mi cuenta: menú lateral con DNI, contraseña y eliminar cuenta */}
+          {/* Mi cuenta: menú lateral con DNI, novedades, contraseña y eliminar cuenta */}
           <Route
             path="/cuenta"
             element={<RutaProtegida roles={["cliente", "admin"]} />}
@@ -155,6 +159,14 @@ function App() {
                 element={
                   <RutaProtegida roles={["cliente"]}>
                     <EditarDni />
+                  </RutaProtegida>
+                }
+              />
+              <Route
+                path="novedades"
+                element={
+                  <RutaProtegida roles={["cliente"]}>
+                    <Novedades />
                   </RutaProtegida>
                 }
               />
@@ -249,6 +261,11 @@ function App() {
               <Route
                 path="mensajes"
                 element={<Mensajes />}
+              />
+
+              <Route
+                path="novedades"
+                element={<NovedadesAdmin />}
               />
 
               <Route

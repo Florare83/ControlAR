@@ -22,6 +22,11 @@ class Usuario(Base):
     dni = Column(String(20), nullable=True, index=True)
     dni_verificado = Column(Boolean, nullable=False, default=False)
 
+    # Si es True, la persona eligió recibir por correo las novedades del club
+    # (eventos y juegos nuevos). Por defecto NO: se suscribe ella misma, y puede
+    # darse de baja desde "Mi cuenta" o con el enlace que lleva cada correo.
+    suscrito_novedades = Column(Boolean, nullable=False, default=False)
+
     # Un mismo DNI solo puede estar verificado en UNA cuenta. Las cuentas sin verificar
     # no cuentan: así nadie puede "ocupar" el DNI de otra persona.
     __table_args__ = (

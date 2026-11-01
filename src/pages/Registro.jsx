@@ -9,6 +9,7 @@ function Registro() {
   const [email, setEmail] = useState("");
   const [dni, setDni] = useState("");
   const [contrasena, setContrasena] = useState("");
+  const [novedades, setNovedades] = useState(false);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
   const { login } = useAuth();
@@ -20,7 +21,13 @@ function Registro() {
     setError("");
     setEnviando(true);
     try {
-      await registrarUsuario({ nombre, email, contrasena, dni });
+      await registrarUsuario({
+        nombre,
+        email,
+        contrasena,
+        dni,
+        suscrito_novedades: novedades,
+      });
       await login(email, contrasena, false); // entra directo después de registrarse
       toast.exito("¡Cuenta creada! Ya iniciaste sesión.");
       navegar("/juegos");
@@ -98,6 +105,23 @@ function Registro() {
             />
             <small id="ayuda-contrasena" className="ayuda">
               Mínimo 8 caracteres.
+            </small>
+          </div>
+
+          <div className="campo" style={{ textAlign: "left" }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={novedades}
+                onChange={(e) => setNovedades(e.target.checked)}
+                style={{ width: "auto" }}
+                aria-describedby="ayuda-novedades"
+              />
+              Quiero recibir las novedades por correo
+            </label>
+            <small id="ayuda-novedades" className="ayuda">
+              Te avisamos cuando haya eventos o juegos nuevos. Podés darte de
+              baja cuando quieras.
             </small>
           </div>
 

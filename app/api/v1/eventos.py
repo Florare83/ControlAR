@@ -1,15 +1,17 @@
 # Eventos del club. Lectura pública; crear, editar, duplicar y borrar: solo administradores.
 from datetime import date, time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth.dependencies import require_admin
 from app.api.v1.juegos.schemas import validar_url_imagen
+from app.core import avisos, suscripciones
 from app.core.db import get_db
 from app.models.evento import Evento
-from app.models.reserva import Reserva
+from app.models.reserva import ACTIVA, Reserva
+from app.models.usuario import Usuario
 
 router = APIRouter(prefix="/eventos", tags=["Eventos"])
 
@@ -98,6 +100,26 @@ class EventoRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+def _es_proximo(evento: Evento) -> bool:
+    """Un evento sin fecha exacta o con fecha de hoy en adelante todavía no pasó."""
+    return evento.fecha is None or evento.fecha >= date.today()
+
+
+def _reservantes_activos(db: Session, evento_id: int) -> list[Usuario]:
+    """Personas con una reserva activa para el evento."""
+    return (
+        db.query(Usuario)
+        .join(Reserva, Reserva.usuario_id == Usuario.id)
+        .filter(
+            Reserva.evento_id == evento_id,
+            Reserva.estado == ACTIVA,
+            Usuario.activo.is_(True),
+        )
+        .distinct()
+        .all()
+    )
+
+
 def _buscar(db: Session, evento_id: int) -> Evento:
     evento = db.query(Evento).filter(Evento.id == evento_id).first()
     if evento is None:
@@ -111,11 +133,23 @@ def listar(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=EventoRespuesta, status_code=201)
-def crear(datos: EventoCrear, db: Session = Depends(get_db), _=Depends(require_admin)):
+def crear(
+    datos: EventoCrear,
+    tareas: BackgroundTasks,
+    avisar: bool = False,
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    """Crea el evento. Con ?avisar=true se manda un correo a quienes se suscribieron a las
+    novedades (solo si el evento todavía no pasó: cargar uno anterior no avisa a nadie)."""
     evento = Evento(**datos.model_dump())
     db.add(evento)
     db.commit()
     db.refresh(evento)
+
+    if avisar and _es_proximo(evento):
+        avisos.avisar_novedad(db, tareas, avisos.correo_nuevo_evento, evento)
+
     return evento
 
 
@@ -123,10 +157,16 @@ def crear(datos: EventoCrear, db: Session = Depends(get_db), _=Depends(require_a
 def actualizar(
     evento_id: int,
     datos: EventoActualizar,
+    tareas: BackgroundTasks,
+    avisar: bool = False,
     db: Session = Depends(get_db),
     _=Depends(require_admin),
 ):
+    """Actualiza el evento. Con ?avisar=true, si cambió el nombre, la fecha, el horario o el
+    lugar, se avisa a los suscriptores y a quienes tienen una reserva activa (aunque no estén
+    suscriptos). Cambiar solo la descripción, el aporte, etc. no manda nada."""
     evento = _buscar(db, evento_id)
+    antes = avisos.foto_evento(evento)
 
     for campo, valor in datos.model_dump(exclude_unset=True).items():
         setattr(evento, campo, valor)
@@ -140,6 +180,26 @@ def actualizar(
 
     db.commit()
     db.refresh(evento)
+
+    if avisar and _es_proximo(evento):
+        cambios = avisos.cambios_de_evento(antes, evento)
+        if cambios:
+            reservantes = _reservantes_activos(db, evento.id)
+            con_reserva = {u.id for u in reservantes}
+            destinatarios = {u.id: u for u in suscripciones.suscriptores(db)}
+            for usuario in reservantes:
+                destinatarios.setdefault(usuario.id, usuario)
+
+            avisos.avisar_novedad(
+                db,
+                tareas,
+                lambda usuario, ev: avisos.correo_evento_modificado(
+                    usuario, ev, cambios, con_reserva=usuario.id in con_reserva
+                ),
+                evento,
+                usuarios=list(destinatarios.values()),
+            )
+
     return evento
 
 
@@ -176,7 +236,15 @@ def duplicar(
 
 
 @router.delete("/{evento_id}", status_code=204)
-def eliminar(evento_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+def eliminar(
+    evento_id: int,
+    tareas: BackgroundTasks,
+    avisar: bool = False,
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    """Elimina el evento. Con ?avisar=true se avisa a los suscriptores que se canceló (solo
+    si todavía no había pasado). Un evento con reservas no se puede eliminar."""
     evento = _buscar(db, evento_id)
 
     if db.query(Reserva.id).filter(Reserva.evento_id == evento_id).first() is not None:
@@ -185,5 +253,17 @@ def eliminar(evento_id: int, db: Session = Depends(get_db), _=Depends(require_ad
             detail="No se puede eliminar: el evento tiene reservas registradas",
         )
 
+    # El correo se arma antes de borrar (después el evento ya no existe) y se manda
+    # solo si el borrado salió bien.
+    correos = []
+    if avisar and _es_proximo(evento):
+        correos = [
+            avisos.correo_evento_cancelado(usuario, evento)
+            for usuario in suscripciones.suscriptores(db)
+        ]
+
     db.delete(evento)
     db.commit()
+
+    if correos:
+        tareas.add_task(avisos.enviar_avisos, correos)

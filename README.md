@@ -59,6 +59,7 @@ Sitio web y sistema de gestión de **El Rincón de Hermes**, un club de juegos d
 - **Reservar un juego** de la ludoteca para el próximo evento (una reserva por persona y evento) y cancelarla. Ver el estado en **Mis reservas**.
 - **Mis préstamos**: historial de los juegos que retiró en eventos.
 - **Mis mensajes**: conversaciones con el equipo dentro de la app, con aviso de respuestas nuevas.
+- **Novedades por correo**: suscribirse (en el registro o en *Mi cuenta → Novedades*) para que le avisemos de eventos y juegos nuevos, y darse de baja cuando quiera.
 - Cambiar la contraseña y eliminar (desactivar) su cuenta.
 
 ### Administradores
@@ -337,6 +338,16 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 - Límites anti-spam (en memoria): 5 mensajes por hora y por IP en el formulario público, 5 conversaciones nuevas por hora y 30 respuestas por hora por usuario.
 - Las reglas de validación están duplicadas a propósito en `app/core/validaciones.py` y `src/utils/validacionesContacto.js`: **si se cambia una, hay que cambiar la otra**.
 
+### Novedades por correo
+- Es **opt-in**: nadie recibe nada si no se suscribió (casilla del registro o *Mi cuenta → Novedades*). Se guarda en `usuarios.suscrito_novedades`.
+- Al crear un evento o un juego, el admin decide si avisar con una casilla del formulario (la API lo recibe como `?avisar=true`). En eventos arranca tildada; en juegos, destildada, para no mandar un mail por cada juego al cargar el catálogo. No se avisa de eventos con fecha pasada.
+- Además del aviso de **evento nuevo** (que ya explica cómo reservar juegos, hasta qué hora y qué se necesita), el admin puede avisar cuando un evento **cambia** (nombre, fecha, horario o lugar; le llega también a quien tiene una reserva activa aunque no esté suscripto) o se **cancela**. Corregir solo la descripción no manda nada.
+- **Resumen de novedades**: próximos eventos + juegos nuevos + los favoritos de cada persona que ya están a la venta o volvieron a tener stock. Se manda desde el panel (*Novedades → Enviar resumen ahora*). El primer envío solo lleva los próximos eventos (sirve de punto de partida); desde el segundo cuenta lo nuevo. A quien no le toca nada no se le escribe.
+- Para mandarlo solo una vez por mes, definí `CRON_CLAVE` y programá en un cron externo (por ejemplo cron-job.org) un `POST {BACKEND_URL}/suscripcion/resumen/automatico` con el encabezado `X-Cron-Clave`. No repite si ya salió uno en los últimos 20 días. Sin `CRON_CLAVE` queda desactivado.
+- Se arma **un correo por suscriptor** (cada uno con su enlace de baja) y se envía en segundo plano; un fallo no impide crear el evento o el juego. Con Brevo gratuito el tope es de unos 300 correos por día en total (incluye los avisos de reservas y compras).
+- El enlace de baja (`/baja?token=...`) lleva un token firmado que **solo sirve para darse de baja**: usa otra clave derivada de `SECRET_KEY` y no sirve como sesión. No vence. La baja se confirma con un botón para que los antivirus que abren los enlaces no den de baja a nadie.
+- «Eliminar cuenta» también cancela la suscripción.
+
 ### Cuentas
 - «Eliminar cuenta» **desactiva** la cuenta: anonimiza nombre y email, invalida la contraseña y borra los favoritos, pero conserva préstamos, pedidos y mensajes.
 - Un administrador no puede desactivarse ni quitarse el rol a sí mismo.
@@ -367,9 +378,10 @@ Leyenda de acceso: **Público**, **Usuario** (cualquier sesión), **Admin**. Có
 
 | Método | Ruta | Acceso | Descripción |
 |--------|------|--------|-------------|
-| POST | `/auth/register` | Público | Crea un cliente (`nombre`, `email`, `contrasena` de 8 o más). `409` si el correo existe |
+| POST | `/auth/register` | Público | Crea un cliente (`nombre`, `email`, `contrasena` de 8 o más, `suscrito_novedades` opcional). `409` si el correo existe |
 | POST | `/auth/login` | Público | Formulario `username` (el correo) y `password`. Devuelve `access_token`. `429` tras 8 contraseñas incorrectas seguidas (misma cuenta y misma conexión): espera 10 minutos |
-| GET | `/auth/me` | Usuario | Perfil (`id`, `nombre`, `email`, `es_admin`, `rol`) |
+| GET | `/auth/me` | Usuario | Perfil (`id`, `nombre`, `email`, `es_admin`, `rol`, `suscrito_novedades`) |
+| PUT | `/auth/me/novedades` | Usuario | Suscribe o da de baja de las novedades por correo (`{"suscrito": true}`) |
 | POST | `/auth/cambiar-contrasena` | Usuario | Requiere la actual; la nueva, de 8 o más y distinta |
 | DELETE | `/auth/me` | Usuario | Desactiva la cuenta (pide la contraseña) |
 | GET | `/auth/admin/usuarios` | Admin | Lista usuarios (`?buscar=` por nombre, email o DNI, también con puntos). Incluye `prestamos_cantidad` y `prestamo_nombre` (a nombre de quién están los préstamos con el DNI de la cuenta) para compararlos antes de verificar |
@@ -382,7 +394,7 @@ Leyenda de acceso: **Público**, **Usuario** (cualquier sesión), **Admin**. Có
 | GET | `/juegos/` | Público | Lista (`?query=` busca por título). Incluye `en_prestamo` y `me_gusta`. `observaciones` solo se devuelve a admins |
 | GET | `/juegos/populares` | Público | Más populares de la tienda (`?limite=`, 1 a 12, por defecto 2) |
 | GET | `/juegos/{id}` | Público | Detalle. `404` si no existe |
-| POST | `/juegos/` | Admin | Crea (`201`). `400` si la categoría no existe |
+| POST | `/juegos/` | Admin | Crea (`201`). `400` si la categoría no existe. Con `?avisar=true` manda un correo a los suscriptores |
 | PUT | `/juegos/{id}` | Admin | Actualización parcial (solo cambia los campos enviados) |
 | DELETE | `/juegos/{id}` | Admin | `204`. `409` si tiene préstamos o reservas |
 | GET | `/categorias/` | Público | Lista de categorías |
@@ -416,15 +428,24 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 |--------|------|--------|-------------|
 | GET | `/mi-cuenta/prestamos` | Usuario | Préstamos del DNI verificado de la cuenta (vacío si no está verificado) |
 
+### Suscripción (`/suscripcion`)
+
+| Método | Ruta | Acceso | Descripción |
+|--------|------|--------|-------------|
+| POST | `/suscripcion/baja` | Público | Da de baja con el `token` del enlace de un correo. `400` si el enlace no es válido. Se puede repetir |
+| GET | `/suscripcion/resumen` | Admin | Qué llevaría el próximo resumen, cuántos suscriptores hay y cuándo salió el último |
+| POST | `/suscripcion/resumen/enviar` | Admin | Manda el resumen ahora |
+| POST | `/suscripcion/resumen/automatico` | Clave | Para un cron externo (`X-Cron-Clave` = `CRON_CLAVE`). `404` si está desactivado, `401` si la clave no coincide |
+
 ### Eventos (`/eventos`)
 
 | Método | Ruta | Acceso | Descripción |
 |--------|------|--------|-------------|
 | GET | `/eventos/` | Público | Lista de eventos (más recientes primero) |
-| POST | `/eventos/` | Admin | Crea (`201`) |
-| PUT | `/eventos/{id}` | Admin | Actualiza |
+| POST | `/eventos/` | Admin | Crea (`201`). Con `?avisar=true` manda un correo a los suscriptores (solo si el evento no pasó) |
+| PUT | `/eventos/{id}` | Admin | Actualiza. Con `?avisar=true`, si cambió nombre, fecha, horario o lugar, avisa a suscriptores y a quien tiene reserva activa |
 | POST | `/eventos/{id}/duplicar` | Admin | Copia el evento con otra `fecha` (y `hora_inicio` opcional), sin reservas |
-| DELETE | `/eventos/{id}` | Admin | `204`. `409` si tiene reservas |
+| DELETE | `/eventos/{id}` | Admin | `204`. `409` si tiene reservas. Con `?avisar=true` avisa a los suscriptores que se canceló |
 
 ### Reservas (`/reservas`)
 
@@ -493,7 +514,9 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 | `/login`, `/registro` | Público | Sesión («Recordarme» guarda el token en `localStorage`; si no, en `sessionStorage`) |
 | `/checkout`, `/compra/resultado` | Cliente / Admin | Pantallas completas de pago y resultado |
 | `/favoritos`, `/mis-compras`, `/mis-mensajes` | Cliente / Admin | Listas personales |
-| `/cuenta`, `/cambiar-contrasena`, `/eliminar-cuenta` | Cliente / Admin | Gestión de la cuenta |
+| `/cuenta`, `/cambiar-contrasena`, `/eliminar-cuenta` | Cliente / Admin | Gestión de la cuenta (`/cuenta/novedades`: solo cliente) |
+| `/baja?token=...` | Público | Baja de las novedades desde el enlace de un correo |
+| `/panel/novedades` | Admin | Enviar el resumen de novedades |
 | `/mis-prestamos`, `/mis-reservas` | Solo cliente | Historial de préstamos y reservas |
 | `/panel` | Operador / Admin | Redirige a `/panel/prestamos` |
 | `/panel/prestamos`, `/panel/reservas` | Operador / Admin | Gestión de préstamos y de reservas |

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from app.core import avisos
 from app.core.db import get_db
 from app.api.v1.auth.dependencies import get_current_user_opcional, require_admin
 from app.models.usuario import Usuario
@@ -54,11 +55,25 @@ def obtener(
 
 
 @router.post("/", response_model=JuegoResponse, status_code=201)
-def crear(datos: JuegoCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
+def crear(
+    datos: JuegoCreate,
+    tareas: BackgroundTasks,
+    avisar: bool = False,
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    """Crea el juego. Con ?avisar=true se manda un correo a quienes se suscribieron a las
+    novedades (así, al cargar muchos juegos de una vez no se llena la casilla de nadie)."""
     ok, error = repo.ensure_categoria(db, datos.categoria_id)
     if not ok:
         raise HTTPException(status_code=400, detail=error)
-    return repo.create(db, datos)
+
+    juego = repo.create(db, datos)
+
+    if avisar:
+        avisos.avisar_novedad(db, tareas, avisos.correo_nuevo_juego, juego)
+
+    return juego
 
 
 @router.put("/{juego_id}", response_model=JuegoResponse)
