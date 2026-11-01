@@ -24,6 +24,7 @@ def create(
     contrasena: str,
     es_admin: bool = False,
     dni: str | None = None,
+    suscrito_novedades: bool = False,
 ) -> Usuario:
     nuevo = Usuario(
         nombre=nombre.strip(),
@@ -32,6 +33,7 @@ def create(
         es_admin=es_admin,
         dni=dni,
         dni_verificado=False,  # siempre lo verifica un administrador
+        suscrito_novedades=suscrito_novedades,
     )
 
     db.add(nuevo)

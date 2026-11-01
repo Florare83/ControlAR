@@ -26,11 +26,17 @@ class UsuarioCreate(BaseModel):
     contrasena: str = Field(min_length=8, max_length=128)
     # Opcional en la API (el alta desde el panel no lo pide); el formulario público sí.
     dni: str | None = None
+    # Casilla opcional del formulario de registro (sin tildar = no se suscribe).
+    suscrito_novedades: bool = False
 
     @field_validator("dni")
     @classmethod
     def validar_dni(cls, valor):
         return normalizar_dni(valor)
+
+
+class NovedadesActualizar(BaseModel):
+    suscrito: bool
 
 
 class DniActualizar(BaseModel):
@@ -55,6 +61,7 @@ class UsuarioOut(BaseModel):
     rol: str  # "admin" o "cliente"
     dni: str | None = None
     dni_verificado: bool = False
+    suscrito_novedades: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
