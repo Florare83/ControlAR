@@ -1,10 +1,10 @@
-# ControlAR — El Rincón de Hermes
+git hstatus# ControlAR — El Rincón de Hermes
 
 Sitio web y sistema de gestión de **El Rincón de Hermes**, un club de juegos de mesa modernos de Salta. Combina tres cosas en una sola aplicación:
 
 1. **Tienda**: catálogo de juegos en venta, carrito y pago con Mercado Pago o efectivo/transferencia.
 2. **Ludoteca**: juegos que el club presta **solo durante los eventos presenciales** (no salen del lugar), con reservas anticipadas por parte de los clientes.
-3. **Administración**: panel para registrar préstamos y entregas, gestionar eventos, ventas, usuarios, mensajes y ver reportes.
+3. **Administración**: panel para registrar préstamos y entregas, gestionar eventos, clientes, ventas, usuarios, mensajes y novedades, y ver reportes con gráficos y una tabla dinámica.
 
 - Sitio en producción (Static Site): https://controlar-de64.onrender.com
 - API en producción (Swagger): https://controlarwebsservice-3u4z.onrender.com/docs
@@ -47,31 +47,35 @@ Sitio web y sistema de gestión de **El Rincón de Hermes**, un club de juegos d
 ## 1. Funcionalidades
 
 ### Visitantes (sin sesión)
-- Ver la portada (**Nosotros**: presentación, preguntas frecuentes y los 2 juegos más populares) y la agenda del **Club** (eventos próximos y anteriores, con enlace a Google Maps).
+- Ver la portada (**Nosotros**: presentación, preguntas frecuentes, los 2 juegos más populares y las **novedades**: los 3 últimos juegos cargados, que se actualizan solos) y la agenda del **Club** (eventos próximos y anteriores, con enlace a Google Maps).
 - Explorar el **catálogo de juegos** con buscador, filtros (categoría, editorial, edad, precio, etc.), orden y paginación.
 - Enviar un mensaje desde el formulario de **Contacto** (validado en frontend y backend).
-- Registrarse e iniciar sesión.
+- Registrarse e iniciar sesión, y recuperar la contraseña con un enlace por correo («¿Olvidaste tu contraseña?»).
 
 ### Clientes (con sesión)
 - Todo lo anterior, más:
 - **Favoritos** («me gusta»): determinan qué juegos son los más populares.
 - **Carrito y compra**: pagar con Mercado Pago, o registrar un pedido en efectivo/transferencia y coordinarlo por WhatsApp. Historial en **Mis compras**.
-- **Reservar un juego** de la ludoteca para el próximo evento (una reserva por persona y evento) y cancelarla. Ver el estado en **Mis reservas**.
+- **Cargar su DNI** en *Mi cuenta*: un administrador lo **valida en persona** cuando lo presenta en un evento del club.
+- **Reservar un juego** de la ludoteca para el próximo evento (una reserva por persona y evento; **requiere el DNI validado**) y cancelarla. Ver el estado en **Mis reservas**. Si todavía no puede reservar, la pantalla le explica cómo validar el DNI.
+- **Correos automáticos**: confirmación de la reserva, del pedido y de la compra, y aviso si una reserva o un pedido se cancela o vence.
 - **Mis préstamos**: historial de los juegos que retiró en eventos.
 - **Mis mensajes**: conversaciones con el equipo dentro de la app, con aviso de respuestas nuevas.
 - **Novedades por correo**: suscribirse (en el registro o en *Mi cuenta → Novedades*) para que le avisemos de eventos y juegos nuevos, y darse de baja cuando quiera.
 - Cambiar la contraseña y eliminar (desactivar) su cuenta.
 
 ### Administradores
-- **Préstamos**: registrar, cambiar el juego, devolver y deshacer una devolución (hasta 48 h). Exportar a CSV.
+- **Préstamos**: registrar, corregir los datos de la persona, cambiar el juego, devolver y deshacer una devolución (hasta 48 h). Exportar a CSV.
 - **Reservas**: ver las del próximo evento y **entregar** el juego (crea el préstamo en el mismo paso).
 - **Historial**: todos los préstamos con búsqueda, filtros, orden y exportación CSV; historial por persona.
-- **Reportes**: totales, juegos más prestados y movimiento por día de evento.
-- **Eventos**: crear, editar, duplicar y eliminar.
+- **Clientes**: registrar a una persona **solo con su DNI**, sin correo ni cuenta (no puede iniciar sesión), y ver el historial de préstamos de cada una. Quien se lleva un juego queda registrado solo.
+- **Reportes**: cuatro pestañas (préstamos, ventas, reservas y **tabla dinámica**) con gráficos, períodos rápidos y comparación contra el período anterior. Ver [Reportes](#reportes).
+- **Novedades**: avisar por correo a los suscriptores de eventos y juegos nuevos, y enviar el resumen de novedades.
+- **Eventos**: crear, editar, duplicar y eliminar, con la opción de avisar por correo a los suscriptores.
 - **Ventas**: resumen de ingresos, listado de pedidos, confirmar o cancelar pagos en efectivo/transferencia.
 - **Juegos**: alta, edición y baja de juegos (venta, stock, precio, si se presta, observaciones internas).
 - **Mensajes**: bandeja de contacto; responder por correo (SMTP/Brevo) o dentro de la app.
-- **Usuarios**: buscar, activar/desactivar y dar o quitar el rol de administrador.
+- **Usuarios**: buscar, activar/desactivar, dar o quitar el rol de administrador y **verificar el DNI** de una cuenta.
 
 ---
 
@@ -83,18 +87,21 @@ Sitio web y sistema de gestión de **El Rincón de Hermes**, un club de juegos d
 | Base de datos | **PostgreSQL** (Render). Los índices parciales también tienen variante SQLite |
 | Autenticación | **JWT** (HS256, PyJWT) y hash de contraseñas con **argon2** (pwdlib) |
 | Pagos      | **Mercado Pago** (Checkout Pro) vía `httpx` |
-| Correo     | API HTTPS de **Brevo** o SMTP directo (`smtplib`) |
+| Correo     | API HTTPS de **Brevo** o SMTP directo (`smtplib`), en segundo plano (`BackgroundTasks`) |
 | Frontend   | **React 18**, **React Router 6**, **Vite 5** (JavaScript, sin librería de UI) |
+| Pruebas    | **pytest** con SQLite temporal (nunca toca la base real) |
 | Hosting    | Render: Web Service (API), Static Site (frontend) y PostgreSQL |
 
 ```
 Navegador (React + Vite)  ──HTTP/JSON──►  FastAPI (/auth, /juegos, /prestamos, ...)  ──SQLAlchemy──►  PostgreSQL
         │                                          │
         └── redirige a Mercado Pago ◄──────────────┴── webhook / verificación de pagos
-                                                   └── Brevo / SMTP (respuestas de contacto)
+                                                   └── Brevo / SMTP (contacto, reservas, compras, novedades y recuperación)
 ```
 
-El backend sigue una organización por módulos: cada recurso tiene su *router*; los módulos más grandes (`auth`, `juegos`) separan además `schemas` (validación Pydantic) y `repository` (consultas). Las reglas de tiempo y las validaciones compartidas viven en `app/core`.
+El backend sigue una organización por módulos: cada recurso tiene su *router*; los módulos más grandes (`auth`, `juegos`) separan además `schemas` (validación Pydantic) y `repository` (consultas). Las reglas de tiempo y las validaciones compartidas viven en `app/core`. El texto de **todos los correos** está junto en `app/core/avisos.py`: cada endpoint arma el correo con la sesión de la base abierta y lo envía en segundo plano, así que un fallo de correo nunca deshace una reserva, un pedido o un préstamo.
+
+En el frontend, cada pantalla se descarga recién al entrar (`React.lazy`), así que el sitio abre más rápido. Los gráficos de **Reportes** se dibujan en SVG propio, sin librerías de gráficos.
 
 Al iniciar, el backend ejecuta `asegurar_esquema()` (ver [Esquema de base de datos automático](#esquema-de-base-de-datos-automático)).
 
@@ -115,16 +122,23 @@ ControlAR/
 │   │   ├── favoritos.py              # Favoritos («me gusta»)
 │   │   ├── prestamos.py              # Préstamos (admin): alta, devolución, historial
 │   │   ├── historial_prestamos.py    # «Mis préstamos» del cliente
-│   │   ├── reservas.py               # Reservas para eventos y entrega
+│   │   ├── reservas.py               # Reservas para eventos (solo con DNI verificado) y entrega
+│   │   ├── clientes.py               # Clientes sin cuenta, registrados por DNI (admin)
+│   │   ├── suscripcion.py            # Baja de novedades por enlace y resumen de novedades
 │   │   ├── eventos.py                # Eventos del club
 │   │   ├── pedidos.py                # Carrito → pedido → pago; ventas; webhook
 │   │   ├── contacto.py               # Formulario de contacto y conversaciones
-│   │   └── reportes.py               # Estadísticas de préstamos
+│   │   └── reportes.py               # Reportes: préstamos, ventas, reservas y tabla dinámica
 │   ├── core/
 │   │   ├── db.py                     # Motor, sesión y Base de SQLAlchemy
 │   │   ├── security.py               # Hash de contraseñas y JWT
 │   │   ├── validaciones.py           # Validaciones del formulario de contacto y escape de búsquedas LIKE
-│   │   ├── limitador.py              # Límite de intentos fallidos de login (en memoria)
+│   │   ├── limitador.py              # Límites de intentos (login y recuperación), en memoria
+│   │   ├── avisos.py                 # Todos los correos al cliente y su envío en segundo plano
+│   │   ├── clientes.py               # Fichas de clientes: alta automática y carga desde préstamos
+│   │   ├── recuperacion.py           # Enlace firmado de «olvidé mi contraseña»
+│   │   ├── suscripciones.py          # Token de baja de novedades
+│   │   ├── resumen.py                # Armado del resumen de novedades
 │   │   ├── reservas_reglas.py        # Zona horaria, cierre y espera de reservas
 │   │   ├── mercadopago.py            # Cliente de Mercado Pago
 │   │   ├── correo.py                 # Envío de correos (Brevo / SMTP)
@@ -136,17 +150,20 @@ ControlAR/
 │   ├── main.jsx  App.jsx  index.css
 │   ├── api/api.js                    # Cliente HTTP y manejo del token
 │   ├── context/                      # AuthContext, CarritoContext, ToastContext
-│   ├── components/                   # Navbar, TarjetaJuego, CarritoSidebar, Modal, ...
+│   ├── components/                   # Navbar, TarjetaJuego, CarritoSidebar, Modal, Graficos, ...
 │   ├── pages/                        # Una pantalla por ruta
+│   │   └── reportes/                 # Pestañas de Reportes: préstamos, ventas, reservas, tabla dinámica
 │   ├── data/eventos.js               # Funciones para mostrar eventos
 │   ├── hooks/useEventos.js           # Carga de eventos desde la API
 │   ├── utils/                        # prestamos.js, validacionesContacto.js
 │   └── img/                          # Imágenes y logos
+├── tests/                            # Pruebas automáticas (pytest)
 ├── docs/capturas/                    # Capturas usadas en este README
 ├── requirements.txt                  # Dependencias del backend
+├── requirements-dev.txt  pytest.ini  # Dependencias y configuración de las pruebas
+├── .env.example                      # Plantilla de variables de entorno del backend
 ├── package.json  vite.config.js  index.html
 ├── .env.development                 # VITE_API_URL para desarrollo
-├── .env.ejemplo-smtp  env.ejemplo-smtp   # Ejemplos de variables de correo
 └── README.md
 ```
 
@@ -187,6 +204,15 @@ npm run build      # genera la carpeta dist/
 npm run preview    # sirve el build localmente
 ```
 
+### Pruebas automáticas
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+Son más de 180 pruebas sobre un SQLite temporal (no usan la base real ni mandan correos: el envío se reemplaza por una lista). Cubren permisos, préstamos, reservas y su regla del DNI, compras, clientes, correos, novedades, recuperación de contraseña y reportes.
+
 La URL de la API sale de `VITE_API_URL`. En desarrollo ya está definida en `.env.development` (`http://localhost:8000`). Vite la incorpora al compilar: si se cambia en Render, hay que **volver a desplegar** el Static Site.
 
 ---
@@ -212,8 +238,9 @@ La URL de la API sale de `VITE_API_URL`. En desarrollo ya está definida en `.en
 | `SMTP_USER` / `SMTP_PASSWORD` | Opción B | — | Credenciales (en Gmail, una *contraseña de aplicación*) |
 | `SMTP_FROM` | Sí para correo | `SMTP_USER` | Remitente. Con Brevo debe ser un remitente **verificado** |
 | `SMTP_FROM_NAME` | No | `ControlAR` | Nombre del remitente |
+| `CRON_CLAVE` | No | — | Clave para que un cron externo dispare el resumen mensual de novedades (`POST /suscripcion/resumen/automatico`, encabezado `X-Cron-Clave`). Sin ella el envío automático queda desactivado |
 
-Los archivos `.env.ejemplo-smtp` (solo SMTP) y `env.ejemplo-smtp` (Brevo + SMTP) sirven como plantilla.
+El archivo `.env.example` sirve como plantilla de estas variables.
 
 ### Frontend
 
@@ -246,6 +273,7 @@ Se ejecutan desde la raíz con `python -m app.core.<script>` y leen sus parámet
 3. En PostgreSQL, quita el `NOT NULL` de columnas viejas que el modelo ya no usa.
 4. Crea los índices que falten (si hay datos que los incumplen, lo avisa en el log).
 5. Convierte datos del diseño anterior de `prestamos` (`titulo_juego` / `devuelto`).
+6. Registra como **clientes** a las personas que ya tienen préstamos y todavía no tienen ficha (con los datos de su préstamo más reciente). Se puede repetir sin duplicar.
 
 Nunca borra datos y **nunca impide que el servidor arranque**: cualquier error queda en el log.
 
@@ -263,6 +291,7 @@ erDiagram
     JUEGO ||--o{ PEDIDO_ITEM : "se vende en"
     JUEGO ||--o{ PRESTAMO : "se presta en"
     USUARIO ||--o{ RESERVA : realiza
+    CLIENTE ||..o{ PRESTAMO : "mismo DNI"
     EVENTO ||--o{ RESERVA : recibe
     JUEGO ||--o{ RESERVA : reservado
     RESERVA ||--o| PRESTAMO : genera
@@ -270,9 +299,13 @@ erDiagram
     MENSAJE_CONTACTO ||--o{ RESPUESTA_MENSAJE : tiene
 ```
 
+> `CLIENTE` no tiene clave foránea: se vincula con los préstamos por **DNI**. `RESUMEN_NOVEDADES` (tabla `resumenes_novedades`) no se relaciona con otras: solo guarda cada envío del resumen.
+
 | Tabla | Descripción y campos destacados |
 |-------|---------------------------------|
-| `usuarios` | `nombre`, `email` (único), `contrasena_hash`, `es_admin`, `activo`. La propiedad `rol` devuelve `admin` o `cliente` |
+| `usuarios` | `nombre`, `email` (único), `contrasena_hash`, `es_admin`, `activo`, `dni`, `dni_verificado`, `suscrito_novedades`. La propiedad `rol` devuelve `admin` o `cliente` |
+| `clientes` | Personas registradas por un administrador **sin cuenta**: `dni` (único), `nombre`, `sexo` y `telefono` (opcionales), `creado_en`. No tienen correo ni contraseña, así que no pueden iniciar sesión |
+| `resumenes_novedades` | Un envío del resumen de novedades: `enviado_en`, `ultimo_juego_id`, `disponibles` (JSON) y `destinatarios`. El último sirve de punto de partida del siguiente |
 | `categorias` | `nombre` (único) |
 | `juegos` | `titulo`, `editorial`, `cantidad_jugadores` (p. ej. `"2-4"`), `duracion_minutos`, `edad_minima`, `precio`, `stock`, `en_venta`, **`se_presta`** (pertenece a la ludoteca), `imagen_url` (HTTPS), `observaciones` (nota interna, solo visible para admin), `categoria_id` |
 | `favoritos` | `usuario_id`, `juego_id`; único por par |
@@ -295,6 +328,8 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 | `uq_reserva_persona_evento` | Una persona tiene como máximo **una reserva por evento** (activa o entregada) |
 | `uq_reserva_juego_evento` | Un juego está en como máximo **una reserva por evento** (activa o entregada) |
 | `uq_favorito_usuario_juego` | No se duplican favoritos |
+| `uq_usuario_dni_verificado` | Un mismo DNI solo puede estar **verificado** en una cuenta |
+| `clientes.dni` (único) | Una sola ficha de cliente por DNI |
 
 ---
 
@@ -303,7 +338,8 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 ### Préstamos (ludoteca)
 - Los juegos se prestan **solo durante el evento y en el lugar**. Un administrador registra el préstamo con DNI, nombre, sexo (F/M) y teléfono. Ya no se pide el email.
 - Solo se pueden prestar juegos marcados como `se_presta` y que no estén ya prestados. «Prestado ahora» (`en_prestamo`) se calcula a partir de los préstamos activos.
-- Al cargar un DNI, el formulario completa los datos de préstamos anteriores de esa persona.
+- Al cargar un DNI, el formulario completa los datos de préstamos anteriores de esa persona o de su ficha de cliente.
+- Quien se lleva un juego (por préstamo directo o al entregar una reserva) **queda registrado como cliente** si no lo estaba. Los datos de una ficha existente no se pisan.
 - La pantalla de gestión carga de a 20 préstamos («Ver más») y filtra, busca y ordena en el servidor (usa `GET /prestamos/historial`); el CSV descarga todo lo que coincide con los filtros. En pantalla el sexo se muestra como F o M.
 - **Cambiar juego**: se puede cambiar el juego de un préstamo activo por otro disponible.
 - **Devolver** cierra el préstamo. Si fue un error, se puede **deshacer dentro de las 48 horas**, siempre que el juego siga libre y la persona no tenga otro préstamo activo.
@@ -312,6 +348,7 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 - El cliente ve «Mis préstamos» cruzando por **el DNI de su cuenta**, y solo si un administrador **verificó** ese DNI mirando el documento físico. Un mismo DNI solo puede estar verificado en una cuenta.
 
 ### Reservas
+- **Solo reservan las cuentas con el DNI validado.** La persona carga su DNI en *Mi cuenta* y, cuando lo presenta en un evento, un administrador lo verifica. Si no puede reservar, la API responde `403` con un mensaje que explica el paso que le falta (cargar el DNI o presentarlo). Las reservas ya hechas antes de la regla no se tocan.
 - Se reserva para **el próximo evento que permita reservas** (con fecha exacta y hora de inicio).
 - Las reservas se aceptan **hasta las 20:00 del día anterior** al evento.
 - **Una reserva por persona y por evento**; un juego solo puede estar en una reserva por evento. Se puede cancelar mientras esté activa.
@@ -321,6 +358,7 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 - Para permitir reservas, un evento necesita fecha exacta y hora de inicio.
 - No se puede eliminar un evento que tenga reservas.
 - Todas las reglas de hora usan UTC-3 fijo (Argentina no tiene horario de verano).
+- El correo de «reserva vencida» sale cuando alguien usa la web después del límite (no hay un reloj aparte), así que puede demorar si nadie entra.
 
 ### Compras
 - El servidor **recalcula** precios y stock desde la base: nunca confía en los valores del cliente. Un juego debe estar `en_venta`, tener precio mayor a 0 y stock suficiente.
@@ -328,8 +366,9 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 - **Efectivo / transferencia**: el pedido queda `pendiente` sin tocar el stock y se abre WhatsApp con el detalle. El administrador lo confirma (descuenta stock, pasa a `aprobado`) o lo cancela desde **Ventas**.
 - Los ítems guardan copia del título y del precio: el pedido no cambia si después se edita o borra el juego.
 
-### Juegos populares
-- Son los juegos **en venta** con más favoritos, con desempate por título. La portada muestra 2 (`/juegos/populares?limite=2`).
+### Juegos populares y novedades
+- Los **populares** son los juegos **en venta** con más favoritos, con desempate por título. La portada muestra 2 (`/juegos/populares?limite=2`).
+- Las **novedades** de la portada son los últimos juegos cargados (`/juegos/novedades?limite=3`). Como la tabla no guarda fecha de alta, el orden sale del `id`, que crece con cada juego nuevo. No filtra por «en venta»: aparece cualquier juego cargado.
 
 ### Mensajes de contacto
 - Cualquiera puede escribir desde **Contacto** (con al menos un email o un teléfono). Si tiene sesión iniciada, el mensaje queda vinculado a su cuenta.
@@ -348,9 +387,37 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 - El enlace de baja (`/baja?token=...`) lleva un token firmado que **solo sirve para darse de baja**: usa otra clave derivada de `SECRET_KEY` y no sirve como sesión. No vence. La baja se confirma con un botón para que los antivirus que abren los enlaces no den de baja a nadie.
 - «Eliminar cuenta» también cancela la suscripción.
 
+### Clientes sin cuenta
+- Un administrador registra a una persona con su **DNI** (6 a 9 números, sin puntos) y su nombre; sexo y teléfono son opcionales. **No lleva correo ni contraseña**, por eso no puede iniciar sesión.
+- El DNI **no se puede cambiar** (es lo que une a la persona con sus préstamos): si se cargó mal, se elimina la ficha y se registra de nuevo. Una ficha **con préstamos no se puede eliminar** (`409`).
+- El historial de cada cliente sale de los préstamos con el mismo DNI (`/panel/historial?dni=`). Si además la persona tiene una cuenta con el DNI verificado, el listado lo indica («Con cuenta»).
+
 ### Cuentas
 - «Eliminar cuenta» **desactiva** la cuenta: anonimiza nombre y email, invalida la contraseña y borra los favoritos, pero conserva préstamos, pedidos y mensajes.
 - Un administrador no puede desactivarse ni quitarse el rol a sí mismo.
+
+### Correos automáticos
+Todos son texto plano, se envían en segundo plano y un fallo se anota en el log sin deshacer la operación.
+
+| Cuándo | Qué recibe la persona |
+|--------|-----------------------|
+| Hace una reserva | Confirmación: juego, evento, fecha, lugar, n.º de reserva y hasta qué hora se la guardamos |
+| Cancela una reserva / la reserva vence | Aviso de que el juego quedó libre |
+| Crea un pedido en efectivo/transferencia | «Recibimos tu pedido», pendiente de pago |
+| Se acredita el pago (Mercado Pago, o el administrador lo confirma a mano) | «Compra confirmada». Sale **una sola vez** aunque lleguen a la vez la vuelta del cliente y el webhook |
+| Un administrador cancela un pedido pendiente | «Pedido cancelado» (no se cobró nada ni se descontó stock) |
+| Pide recuperar la contraseña | Enlace para elegir una nueva |
+| Se suscribió a las novedades | Evento nuevo, evento modificado o cancelado, juego nuevo y resumen (ver [Novedades por correo](#novedades-por-correo)) |
+
+Los pedidos de Mercado Pago no mandan correo al crearse (la persona todavía está pagando): reciben uno solo cuando el pago se aprueba.
+
+### Reportes
+- Todos los reportes son **solo para administradores** y aceptan un período (`desde` / `hasta`, inclusive, en horario argentino).
+- Cada pestaña toma las fechas de su propio criterio: los **préstamos** por la fecha de retiro; las **ventas**, los pedidos pagados por el día del pago y el resto por el día de creación; las **reservas** por el día en que se hicieron.
+- Si se indican las dos fechas, la API devuelve también el **período anterior de la misma duración** (`anterior`), y el frontend muestra las flechas de variación.
+- El gráfico va **día por día** hasta 62 días y **mes por mes** (hasta 36) en períodos más largos; los días sin movimiento se incluyen en cero para no engañar.
+- **Pendientes de devolución**, **stock bajo** y **juegos sin movimiento** son datos del día de hoy.
+- **Tabla dinámica**: se elige la fuente (préstamos, ventas pagadas o reservas), qué va en filas, qué en columnas (opcional) y qué se calcula. Solo se aceptan las dimensiones y medidas que la API publica en `/reportes/tabla-dinamica/opciones` (cualquier otra devuelve `422`). Los totales de «personas distintas» y «pedidos» cuentan una vez a cada persona o pedido, por eso pueden ser menores que la suma de las celdas. Muestra hasta 200 filas y 20 columnas (avisa si hay más).
 
 ### Olvidé mi contraseña
 - Desde *Iniciar sesión → ¿Olvidaste tu contraseña?* (`/recuperar`) la persona escribe su correo y recibe un enlace (`/restablecer?token=...`).
@@ -364,12 +431,12 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 | Rol | Cómo se obtiene | Acceso |
 |-----|-----------------|--------|
 | Visitante | Sin sesión | Catálogo, Club, Nosotros, Contacto, login y registro |
-| Cliente | Registro desde `/registro` | Lo anterior + favoritos, carrito/compras, reservas, mis préstamos, mis mensajes, cuenta |
+| Cliente | Registro desde `/registro` | Lo anterior + favoritos, carrito/compras, reservas (con DNI validado), mis préstamos, mis mensajes, novedades, cuenta |
 | Administrador | `crear_admin` o desde **Usuarios** en el panel | Todo, incluido el panel `/panel/*` |
 
 La seguridad real la aplica la API (401 sin sesión, 403 sin permisos). `RutaProtegida` en el frontend solo ordena la pantalla.
 
-> **Rol «operador»:** el frontend ya contempla un tercer rol (voluntario que solo gestiona préstamos y reservas), pero el backend todavía **no lo emite** y los endpoints de préstamos exigen administrador. Ver [Puntos a revisar](#15-puntos-a-revisar).
+> Hay solo dos roles (`admin` y `cliente`). Los **clientes sin cuenta** (ver [Clientes sin cuenta](#clientes-sin-cuenta)) no son un rol: no tienen acceso al sistema.
 
 ---
 
@@ -385,15 +452,15 @@ Leyenda de acceso: **Público**, **Usuario** (cualquier sesión), **Admin**. Có
 |--------|------|--------|-------------|
 | POST | `/auth/register` | Público | Crea un cliente (`nombre`, `email`, `contrasena` de 8 o más, `suscrito_novedades` opcional). `409` si el correo existe |
 | POST | `/auth/login` | Público | Formulario `username` (el correo) y `password`. Devuelve `access_token`. `429` tras 8 contraseñas incorrectas seguidas (misma cuenta y misma conexión): espera 10 minutos |
-| GET | `/auth/me` | Usuario | Perfil (`id`, `nombre`, `email`, `es_admin`, `rol`, `suscrito_novedades`) |
+| GET | `/auth/me` | Usuario | Perfil (`id`, `nombre`, `email`, `es_admin`, `rol`, `dni`, `dni_verificado`, `suscrito_novedades`) |
+| PUT | `/auth/me/dni` | Usuario | Carga o corrige el DNI. Si cambia, hay que volver a verificarlo |
 | PUT | `/auth/me/novedades` | Usuario | Suscribe o da de baja de las novedades por correo (`{"suscrito": true}`) |
 | POST | `/auth/recuperar` | Público | «Olvidé mi contraseña»: manda el enlace por correo (`{"email": ...}`). Responde igual exista o no la cuenta. `429` si se piden más de 5 por hora |
 | POST | `/auth/restablecer` | Público | Elige la contraseña nueva con el `token` del enlace (`token`, `contrasena` de 8 o más). `400` si el enlace venció o ya se usó |
-| GET | `/health` | Público | `{"estado": "ok"}`: para comprobar que el backend responde (Render, UptimeRobot) |
 | POST | `/auth/cambiar-contrasena` | Usuario | Requiere la actual; la nueva, de 8 o más y distinta |
 | DELETE | `/auth/me` | Usuario | Desactiva la cuenta (pide la contraseña) |
 | GET | `/auth/admin/usuarios` | Admin | Lista usuarios (`?buscar=` por nombre, email o DNI, también con puntos). Incluye `prestamos_cantidad` y `prestamo_nombre` (a nombre de quién están los préstamos con el DNI de la cuenta) para compararlos antes de verificar |
-| PATCH | `/auth/admin/usuarios/{id}` | Admin | Cambia `es_admin` y/o `activo` (no sobre uno mismo) |
+| PATCH | `/auth/admin/usuarios/{id}` | Admin | Cambia `es_admin`, `activo` y/o `dni_verificado` (los dos primeros no sobre uno mismo). `dni_verificado` exige que la cuenta tenga DNI y que ninguna otra lo tenga verificado |
 
 ### Juegos y categorías
 
@@ -401,6 +468,7 @@ Leyenda de acceso: **Público**, **Usuario** (cualquier sesión), **Admin**. Có
 |--------|------|--------|-------------|
 | GET | `/juegos/` | Público | Lista (`?query=` busca por título). Incluye `en_prestamo` y `me_gusta`. `observaciones` solo se devuelve a admins |
 | GET | `/juegos/populares` | Público | Más populares de la tienda (`?limite=`, 1 a 12, por defecto 2) |
+| GET | `/juegos/novedades` | Público | Los últimos juegos cargados (`?limite=`, 1 a 12, por defecto 3) |
 | GET | `/juegos/{id}` | Público | Detalle. `404` si no existe |
 | POST | `/juegos/` | Admin | Crea (`201`). `400` si la categoría no existe. Con `?avisar=true` manda un correo a los suscriptores |
 | PUT | `/juegos/{id}` | Admin | Actualización parcial (solo cambia los campos enviados) |
@@ -423,12 +491,22 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 |--------|------|-------------|
 | GET | `/prestamos/` | Lista (`?estado=activo\|cerrado`) |
 | POST | `/prestamos/` | Registra un préstamo. `409` si la persona ya tiene uno activo o el juego está prestado; `400` si el juego no existe o no se presta |
-| GET | `/prestamos/buscar-persona/{dni}` | Datos de la persona en préstamos anteriores (`encontrado: true/false`) |
+| GET | `/prestamos/buscar-persona/{dni}` | Datos de la persona en préstamos anteriores o en su ficha de cliente (`encontrado: true/false`) |
 | GET | `/prestamos/historial` | Historial paginado. Filtros: `buscar`, `estado`, `atrasados`, `desde`, `hasta`; orden: `ordenar` (`fecha`/`juego`/`cliente`/`estado`) y `direccion`; paginación: `limite` (1–100) y `desplazamiento`. Devuelve `items`, `total` y `resumen` |
-| GET | `/prestamos/historial/persona` | Todos los préstamos de una persona (`?dni=`, obligatorio) |
+| GET | `/prestamos/historial/persona` | Todos los préstamos de una persona (`?dni=`, obligatorio). Si todavía no tiene préstamos pero está registrada como cliente, devuelve sus datos |
+| PATCH | `/prestamos/{id}` | Corrige los datos de la persona de un préstamo (activo o cerrado). `409` si el nuevo DNI ya tiene otro préstamo activo |
 | PUT | `/prestamos/{id}/juego` | Cambia el juego de un préstamo activo |
 | POST | `/prestamos/{id}/devolver` | Cierra el préstamo |
 | POST | `/prestamos/{id}/reabrir` | Deshace una devolución (hasta 48 h) |
+
+### Clientes (`/clientes`) — Admin
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/clientes/` | Lista alfabética (`?buscar=` por nombre o DNI, también con puntos; `?limite=` 1–100 y `?desplazamiento=`). Devuelve `items` y `total`; cada cliente trae `prestamos_total`, `prestamos_activos` y `con_cuenta` |
+| POST | `/clientes/` | Registra a una persona sin cuenta (`dni`, `nombre`; `sexo` y `telefono` opcionales). `409` si el DNI ya está registrado, `422` si es inválido |
+| PUT | `/clientes/{id}` | Corrige `nombre`, `sexo` y `telefono`. El DNI no se cambia |
+| DELETE | `/clientes/{id}` | `204`. `409` si tiene préstamos |
 
 ### Mi cuenta
 
@@ -461,7 +539,7 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 |--------|------|--------|-------------|
 | GET | `/reservas/estado` | Público | Evento reservable, si las reservas siguen abiertas, hasta cuándo se espera y qué juegos ya están reservados |
 | GET | `/reservas/mias` | Usuario | Mis reservas |
-| POST | `/reservas/` | Usuario | Reserva un juego (`{ "juego_id": 1 }`). `409` si no hay evento, ya cerraron, ya tenés una reserva o el juego está tomado |
+| POST | `/reservas/` | Usuario | Reserva un juego (`{ "juego_id": 1 }`). `403` si el DNI no está cargado o validado (el mensaje explica cómo hacerlo). `409` si no hay evento, ya cerraron, ya tenés una reserva o el juego está tomado |
 | DELETE | `/reservas/{id}` | Usuario | Cancela una reserva propia y activa (`404` si es de otra persona) |
 | GET | `/reservas/` | Admin | Reservas de un evento (`?evento_id=`; por defecto, el próximo) |
 | POST | `/reservas/{id}/entregar` | Admin | Entrega el juego: crea el préstamo y cierra la reserva (`dni`, `sexo`, `telefono`, `nombre` opcional) |
@@ -496,10 +574,26 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 | POST | `/contacto/{id}/respuestas` | Admin | Responde **dentro de la app** (solo cuentas activas) |
 | DELETE | `/contacto/{id}` | Admin | Elimina el mensaje y su conversación |
 
-### Reportes
+### Reportes (`/reportes`) — Admin
+
+Todos aceptan `desde` y `hasta` (`AAAA-MM-DD`, inclusive). `422` si «desde» es posterior a «hasta». Con las dos fechas devuelven además `anterior` (el período previo de la misma duración).
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/reportes/prestamos` | Totales (`total`, `activos`, `devueltos`, `sin_devolver`, `personas`, nuevas y que vuelven, duración promedio), evolución, 10 juegos más prestados, por categoría, día de la semana y sexo, movimiento por día de evento, juegos sin movimiento y pendientes de devolución |
+| GET | `/reportes/ventas` | Ingresos, pedidos pagados, unidades, ticket promedio, compradores y tasa de pago; evolución, 10 más vendidos (unidades e ingresos), ingresos por categoría, forma de pago, día de la semana, estado de pedidos y stock bajo |
+| GET | `/reportes/reservas` | Reservas por estado (retiradas, vencidas, canceladas, activas) y tasa de retiro; evolución, detalle por evento y juegos más reservados |
+| GET | `/reportes/tabla-dinamica/opciones` | Fuentes, dimensiones y medidas disponibles para la tabla dinámica |
+| GET | `/reportes/tabla-dinamica` | Cruza los datos: `fuente` (`prestamos`/`ventas`/`reservas`), `filas`, `columnas` (opcional) y `medida`. Devuelve filas, columnas, celdas y totales. `422` si alguna opción no existe o si filas y columnas son iguales |
+
+### Raíz y estado
 
 | Método | Ruta | Acceso | Descripción |
 |--------|------|--------|-------------|
+| GET | `/` | Público | Mensaje de bienvenida (`{"mensaje": ...}`) |
+| GET | `/health` | Público | `{"estado": "ok"}`: para comprobar que el backend responde (Render, UptimeRobot) |
+
+--------|------|--------|-------------|
 | GET | `/reportes/prestamos` | Admin | Totales (`total`, `activos`, `devueltos`, `sin_devolver`, `personas`, duración promedio), 10 juegos más prestados y movimiento por día de evento (hasta 30 días). Filtros `desde` / `hasta` por fecha de retiro |
 
 ### Raíz
@@ -516,7 +610,7 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 |------|--------|----------|
 | `/` | Público | Redirige a `/nosotros` |
 | cualquier otra dirección | Público | Página «no encontrada» (404) |
-| `/nosotros` | Público | Presentación del club, preguntas frecuentes y **juegos más populares** |
+| `/nosotros` | Público | Presentación del club, preguntas frecuentes, **juegos más populares** y **novedades** (los 3 últimos juegos cargados) |
 | `/club` | Público | Eventos próximos y anteriores, con mapa y datos de la tarde de juegos |
 | `/juegos` | Público | Catálogo: filtros, orden, paginación, favoritos, carrito y reservas |
 | `/contacto` | Público | Formulario de contacto con validación en tiempo real |
@@ -524,15 +618,16 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 | `/login`, `/registro` | Público | Sesión («Recordarme» guarda el token en `localStorage`; si no, en `sessionStorage`) |
 | `/checkout`, `/compra/resultado` | Cliente / Admin | Pantallas completas de pago y resultado |
 | `/favoritos`, `/mis-compras`, `/mis-mensajes` | Cliente / Admin | Listas personales |
-| `/cuenta`, `/cambiar-contrasena`, `/eliminar-cuenta` | Cliente / Admin | Gestión de la cuenta (`/cuenta/novedades`: solo cliente) |
+| `/cuenta`, `/cambiar-contrasena`, `/eliminar-cuenta` | Cliente / Admin | Gestión de la cuenta (`/cuenta/dni` y `/cuenta/novedades`: solo cliente; el DNI se carga en `/cuenta#mi-dni`) |
 | `/baja?token=...` | Público | Baja de las novedades desde el enlace de un correo |
-| `/panel/novedades` | Admin | Enviar el resumen de novedades |
 | `/mis-prestamos`, `/mis-reservas` | Solo cliente | Historial de préstamos y reservas |
-| `/panel` | Operador / Admin | Redirige a `/panel/prestamos` |
-| `/panel/prestamos`, `/panel/reservas` | Operador / Admin | Gestión de préstamos y de reservas |
-| `/panel/resumen` | Admin | Pantalla base del panel (todavía sin contenido) |
+| `/panel` | Admin | Redirige a `/panel/prestamos` |
+| `/panel/prestamos`, `/panel/reservas` | Admin | Gestión de préstamos y de reservas |
 | `/panel/historial` | Admin | Historial; con `?dni=` muestra una sola persona |
-| `/panel/reportes`, `/panel/eventos`, `/panel/mensajes`, `/panel/ventas`, `/panel/juegos`, `/panel/usuarios` | Admin | Secciones administrativas |
+| `/panel/clientes` | Admin | Clientes registrados por DNI (sin cuenta) y acceso a su historial |
+| `/panel/reportes` | Admin | Reportes con pestañas (`?tab=prestamos\|ventas\|reservas\|tabla`, `?desde=`, `?hasta=`): se puede recargar o compartir el enlace sin perder lo que se miraba |
+| `/panel/novedades` | Admin | Enviar el resumen de novedades |
+| `/panel/eventos`, `/panel/mensajes`, `/panel/ventas`, `/panel/juegos`, `/panel/usuarios` | Admin | Secciones administrativas |
 
 `/prestamos` y `/panel/agregar-juego` son redirecciones heredadas hacia `/panel/prestamos` y `/panel/juegos`.
 
@@ -542,7 +637,7 @@ Se montan en `main.jsx` en este orden (el carrito usa los avisos y la sesión): 
 
 | Contexto | Responsabilidad |
 |----------|-----------------|
-| `AuthContext` | Usuario logueado y rol (`admin`, `operador`, `cliente`); `login`, `logout`. Al abrir la página recupera el perfil con el token guardado |
+| `AuthContext` | Usuario logueado y rol (`admin` o `cliente`); `login`, `logout`. Al abrir la página recupera el perfil con el token guardado |
 | `CarritoContext` | Ítems, cantidades, total y panel lateral. Se guarda **por usuario** en `localStorage` (`controlar_carrito_<id>`) porque el pago ocurre en otro sitio y la página se recarga al volver |
 | `ToastContext` | Avisos breves (`exito`, `error`, `info`), con botón de acción opcional (p. ej. «Deshacer») |
 
@@ -555,10 +650,25 @@ Se montan en `main.jsx` en este orden (el carrito usa los avisos y la sesión): 
 | `RutaProtegida` | Restringe rutas por rol (redirige a login o muestra «Sin permiso») |
 | `TarjetaJuego` | Tarjeta del catálogo: favorito, carrito, reservar/cancelar y acciones de admin |
 | `FormularioJuego` | Alta y edición de juegos |
-| `JuegosPopulares` | Sección de la portada con los más populares |
+| `JuegosPopulares`, `JuegosNovedades` | Secciones de la portada: los más populares y los 3 últimos juegos cargados |
+| `Graficos` | Gráficos SVG livianos (barras, líneas, dona y ranking) con tooltip, modo claro/oscuro y ajuste al ancho del contenedor |
 | `CarritoSidebar`, `LineaCarrito` | Carrito lateral y sus renglones |
 | `FiltroFechas`, `ThOrdenable` | Filtro «desde/hasta» y encabezados de tabla ordenables |
 | `Modal`, `HiloMensajes` | Ventana modal y vista de una conversación |
+
+### Reportes (frontend)
+
+`src/pages/Reportes.jsx` arma la barra de pestañas y el período; cada pestaña vive en `src/pages/reportes/` y se descarga solo al abrirla.
+
+| Archivo | Función |
+|---------|---------|
+| `PanelPrestamos.jsx`, `PanelVentas.jsx`, `PanelReservas.jsx` | Indicadores con comparación contra el período anterior, gráficos y tablas de cada área |
+| `TablaDinamica.jsx` | Selectores de fuente, filas, columnas y valores; totales, mapa de calor, orden por columna, intercambiar filas y columnas, vistas rápidas y descarga en CSV |
+| `componentes.jsx` | `useReporte` (carga y caché), indicadores (`Kpi`), tarjetas y estados de carga/error |
+| `utilidades.js` | Formatos (dinero, fechas), períodos rápidos (7 y 30 días, este mes, mes pasado, este año, todo) y exportación CSV |
+| `reportes.css` | Estilos propios, con variables para modo claro y oscuro; se cargan solo al entrar a Reportes |
+
+Lo ya consultado se guarda en memoria mientras la página está abierta: volver a una pestaña o a un período visto es instantáneo (el botón «Actualizar» vuelve a pedir los datos).
 
 ### Utilidades
 
@@ -569,7 +679,8 @@ Se montan en `main.jsx` en este orden (el carrito usa los avisos y la sesión): 
 
 ### Otros detalles
 - Accesibilidad: enlace «Saltar al contenido», regiones *aria-live* para avisos y manejo de foco en el carrito.
-- Modo claro/oscuro desde la barra de navegación (no se guarda entre visitas).
+- Modo claro/oscuro desde la barra de navegación (no se guarda entre visitas). Los reportes también lo respetan.
+- Las pantallas se cargan bajo demanda (`React.lazy`) y las imágenes usan `loading="lazy"`.
 - El número de WhatsApp de la tienda está definido en `src/pages/Checkout.jsx`.
 
 ---
@@ -588,7 +699,8 @@ Para pruebas, usar credenciales de **prueba** en `MP_ACCESS_TOKEN`: no se mueve 
 - Con `BREVO_API_KEY` definida, se envía por la **API HTTPS de Brevo** (puerto 443).
 - Sin ella, se usa **SMTP** (`SMTP_HOST`, etc.).
 - Los servicios gratuitos de Render **bloquean los puertos SMTP** (25, 465 y 587): el envío se queda esperando y falla a los 15 segundos. En Render gratuito, usar Brevo (con remitente verificado en *Settings → Senders*).
-- Los errores de envío dejan el detalle técnico en el log y devuelven al usuario un mensaje claro; si falla, no se modifica la base.
+- Los correos que dispara el sistema (reservas, compras, novedades, recuperación) se arman en `app/core/avisos.py` y se envían **en segundo plano**: si el envío falla, queda en el log y la operación igual se guarda. En cambio, al **responder un mensaje de contacto** el error sí se muestra al administrador.
+- Con Brevo gratuito el tope es de unos 300 correos por día **en total** (incluye reservas, compras y novedades).
 
 ---
 
@@ -622,7 +734,9 @@ PostgreSQL de Render. Dentro de Render, usar la **Internal Database URL**.
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**:
   `python -m app.core.crear_tablas && python -m app.core.cargar_categorias && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- **Variables**: `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS` (URL del Static Site, sin barra final; varias separadas por coma). Para pagos y correo: `MP_ACCESS_TOKEN`, `FRONTEND_URL`, `BACKEND_URL`, `BREVO_API_KEY`, `SMTP_FROM`, `SMTP_FROM_NAME`.
+- **Variables**: `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS` (URL del Static Site, sin barra final; varias separadas por coma). Para pagos y correo: `MP_ACCESS_TOKEN`, `FRONTEND_URL`, `BACKEND_URL`, `BREVO_API_KEY`, `SMTP_FROM`, `SMTP_FROM_NAME`. Para el resumen mensual automático: `CRON_CLAVE`.
+- **Health Check Path** (opcional): `/health`.
+- **Resumen mensual automático** (opcional): en un cron externo (por ejemplo cron-job.org) programar `POST {BACKEND_URL}/suscripcion/resumen/automatico` con el encabezado `X-Cron-Clave` igual a `CRON_CLAVE`. No repite si ya salió uno en los últimos 20 días.
 
 ### Frontend (Static Site)
 - **Build Command**: `npm install && npm run build`
@@ -645,6 +759,27 @@ El plan gratuito de Render duerme el servicio sin uso: la primera carga puede ta
 - Correos: se eliminan saltos de línea en asunto y destinatario (evita inyección de cabeceras).
 - Búsquedas con `LIKE` escapan `%` y `_` en el historial de préstamos.
 - CORS limitado a los orígenes configurados.
+- Los enlaces de **baja de novedades** y de **recuperación de contraseña** llevan tokens firmados con claves derivadas de `SECRET_KEY` que **no sirven como sesión**. El de recuperación vence en 1 hora y se usa una sola vez; la respuesta de «olvidé mi contraseña» es siempre la misma para no revelar qué correos existen, y hay un límite de 5 pedidos por hora.
+- Reservar exige el **DNI verificado en persona** por un administrador. Los clientes sin cuenta no tienen credenciales, así que no pueden acceder.
+- Los reportes, los clientes y las novedades son solo para administradores. La lista de pendientes de devolución muestra nombre, DNI y teléfono: es información personal y no debe compartirse.
+- La tabla dinámica solo acepta dimensiones y medidas de una lista cerrada: no se arma ninguna consulta con texto del usuario.
+
+---
+
+## 15. Puntos a revisar
+
+Limitaciones conocidas y cosas para tener presentes:
+
+- **Vencimiento de reservas sin reloj**: se aplica cuando alguien consulta la web. El correo de «reserva vencida» puede demorar si nadie entra. Para que salga a la hora exacta haría falta una tarea programada.
+- **Límites de intentos en memoria** (login, contacto, recuperación): se reinician con el servidor y no se comparten entre varias instancias.
+- **Tope de correos de Brevo gratuito** (unos 300 por día): lo comparten reservas, compras, novedades y recuperación. Con muchos suscriptores, el resumen podría agotarlo.
+- **Resumen mensual**: solo es automático si se configura `CRON_CLAVE` y un cron externo; si no, se manda a mano desde el panel.
+- **`CORS_ORIGINS`**: debe incluir el dominio del Static Site actual; en `main.py` quedó fijo el dominio anterior.
+- **«Novedades» de la portada** ordena por `id` porque la tabla de juegos no guarda fecha de alta. Si se necesita una fecha real, habría que agregar una columna.
+- **Reportes** calculan en Python sobre las filas del período (es suficiente para el volumen de un club). Si los datos crecieran mucho, convendría pasar las agregaciones a SQL.
+- **JWT sin refresh token**: al vencer (60 minutos por defecto) hay que iniciar sesión de nuevo.
+- **`PanelResumen.jsx`** es una pantalla base sin ruta ni contenido; hoy no se usa.
+- **Correos en texto plano**: `enviar_correo` todavía no soporta HTML.
 
 ---
 
