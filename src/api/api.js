@@ -281,6 +281,29 @@ export const obtenerReportePrestamos = ({ desde = "", hasta = "" } = {}) => {
   return pedir(`/reportes/prestamos${consulta ? `?${consulta}` : ""}`);
 };
 
+const consultaPeriodo = ({ desde = "", hasta = "", ...otros } = {}) => {
+  const parametros = new URLSearchParams();
+  Object.entries(otros).forEach(([clave, valor]) => {
+    if (valor) parametros.set(clave, valor);
+  });
+  if (desde) parametros.set("desde", desde);
+  if (hasta) parametros.set("hasta", hasta);
+  const texto = parametros.toString();
+  return texto ? `?${texto}` : "";
+};
+
+export const obtenerReporteVentas = (periodo) =>
+  pedir(`/reportes/ventas${consultaPeriodo(periodo)}`);
+
+export const obtenerReporteReservas = (periodo) =>
+  pedir(`/reportes/reservas${consultaPeriodo(periodo)}`);
+
+export const obtenerOpcionesTablaDinamica = () =>
+  pedir("/reportes/tabla-dinamica/opciones");
+
+export const obtenerTablaDinamica = (parametros) =>
+  pedir(`/reportes/tabla-dinamica${consultaPeriodo(parametros)}`);
+
 export const historialPrestamosDePersona = ({ dni = "" } = {}) => {
   const parametros = new URLSearchParams({ dni });
   return pedir(`/prestamos/historial/persona?${parametros}`);

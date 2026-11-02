@@ -1,277 +1,166 @@
-import { useEffect, useState } from "react";
-import { listarVentasAdmin, obtenerReportePrestamos } from "../api/api.js";
-import FiltroFechas from "../components/FiltroFechas.jsx";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Esqueleto } from "./reportes/componentes.jsx";
+import { PERIODOS, fechaCorta, periodoActivo, rangoDe } from "./reportes/utilidades.js";
+import "./reportes/reportes.css";
 
-// "2026-10-25" -> "25/10/2026" (sin pasar por Date para no correr el día por la zona horaria).
-function fechaCorta(iso) {
-  const [anio, mes, dia] = String(iso).split("-");
-  return `${dia}/${mes}/${anio}`;
-}
+// Cada pestaña se descarga recién cuando se abre.
+const PanelPrestamos = lazy(() => import("./reportes/PanelPrestamos.jsx"));
+const PanelVentas = lazy(() => import("./reportes/PanelVentas.jsx"));
+const PanelReservas = lazy(() => import("./reportes/PanelReservas.jsx"));
+const TablaDinamica = lazy(() => import("./reportes/TablaDinamica.jsx"));
 
-// Minutos -> "45 min" / "2 h 15 min".
-function duracionTexto(minutos) {
-  if (minutos === null || minutos === undefined) return "—";
-  if (minutos < 60) return `${minutos} min`;
-  const horas = Math.floor(minutos / 60);
-  const resto = minutos % 60;
-  return resto === 0 ? `${horas} h` : `${horas} h ${resto} min`;
-}
+const PESTANAS = [
+  { id: "prestamos", nombre: "Préstamos", Panel: PanelPrestamos },
+  { id: "ventas", nombre: "Ventas", Panel: PanelVentas },
+  { id: "reservas", nombre: "Reservas", Panel: PanelReservas },
+  { id: "tabla", nombre: "Tabla dinámica", Panel: TablaDinamica },
+];
 
-// Barra proporcional al valor máximo de la lista.
-function Barra({ valor, maximo }) {
-  const porcentaje = maximo > 0 ? Math.max(4, Math.round((valor / maximo) * 100)) : 0;
+const PERIODO_INICIAL = "30d";
 
-  return (
-    <div className="reporte-barra" aria-hidden="true">
-      <span style={{ width: `${porcentaje}%` }} />
-    </div>
-  );
-}
-
-// Reportes del administrador: estadísticas de préstamos y de ventas.
+// Reportes del administrador: préstamos, ventas y reservas con gráficos, comparación con el
+// período anterior y una tabla dinámica. El estado (pestaña y período) vive en la dirección,
+// así se puede recargar o compartir el enlace sin perder lo que se estaba mirando.
 function Reportes() {
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
-  const [datos, setDatos] = useState(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState("");
-  const [intento, setIntento] = useState(0);
+  const [parametros, setParametros] = useSearchParams();
 
-  useEffect(() => {
-    let vigente = true;
-    setCargando(true);
-    setError("");
+  const pestana = PESTANAS.find((p) => p.id === parametros.get("tab")) ?? PESTANAS[0];
 
-    obtenerReportePrestamos({ desde, hasta })
-      .then((respuesta) => {
-        if (vigente) setDatos(respuesta);
-      })
-      .catch((e) => {
-        if (vigente) setError(e.message || "No se pudo cargar el reporte.");
-      })
-      .finally(() => {
-        if (vigente) setCargando(false);
-      });
+  // Sin fechas en la dirección arranca en los últimos 30 días (con comparación).
+  const { desde, hasta } = useMemo(() => {
+    if (parametros.has("desde") || parametros.has("hasta")) {
+      return { desde: parametros.get("desde") ?? "", hasta: parametros.get("hasta") ?? "" };
+    }
+    return rangoDe(PERIODO_INICIAL);
+  }, [parametros]);
 
-    return () => {
-      vigente = false;
-    };
-  }, [desde, hasta, intento]);
+  // Reportes ya pedidos: volver a una pestaña o período visto es instantáneo.
+  const cache = useRef(new Map());
+  const [generacion, setGeneracion] = useState(0);
 
-  // Juegos más vendidos: sale del resumen de ventas (pedidos pagados, sin filtro de fechas).
-  const [vendidos, setVendidos] = useState(null);
-  const [cargandoVentas, setCargandoVentas] = useState(true);
-  const [errorVentas, setErrorVentas] = useState("");
-  const [intentoVentas, setIntentoVentas] = useState(0);
+  function actualizarUrl(cambios) {
+    const siguiente = new URLSearchParams(parametros);
+    Object.entries(cambios).forEach(([clave, valor]) => siguiente.set(clave, valor));
+    setParametros(siguiente, { replace: true });
+  }
 
-  useEffect(() => {
-    let vigente = true;
-    setCargandoVentas(true);
-    setErrorVentas("");
+  function elegirPeriodo(id) {
+    const r = rangoDe(id);
+    actualizarUrl({ desde: r.desde, hasta: r.hasta });
+  }
 
-    listarVentasAdmin({ estado: "aprobado" })
-      .then((respuesta) => {
-        if (vigente) setVendidos(respuesta?.resumen?.mas_vendidos ?? []);
-      })
-      .catch((e) => {
-        if (vigente) setErrorVentas(e.message || "No se pudo cargar el reporte de ventas.");
-      })
-      .finally(() => {
-        if (vigente) setCargandoVentas(false);
-      });
+  function teclasPestanas(e) {
+    const i = PESTANAS.findIndex((p) => p.id === pestana.id);
+    let siguiente = null;
+    if (e.key === "ArrowRight") siguiente = PESTANAS[(i + 1) % PESTANAS.length];
+    if (e.key === "ArrowLeft") siguiente = PESTANAS[(i - 1 + PESTANAS.length) % PESTANAS.length];
+    if (!siguiente) return;
+    e.preventDefault();
+    actualizarUrl({ tab: siguiente.id });
+    document.getElementById(`tab-${siguiente.id}`)?.focus();
+  }
 
-    return () => {
-      vigente = false;
-    };
-  }, [intentoVentas]);
-
-  const maxVendido = (vendidos ?? []).reduce((m, j) => Math.max(m, j.cantidad), 0);
-
-  const resumen = datos?.resumen;
-  const juegos = datos?.juegos_mas_prestados ?? [];
-  const dias = datos?.por_evento ?? [];
-  const maxJuego = juegos.reduce((m, j) => Math.max(m, j.cantidad), 0);
-  const maxDia = dias.reduce((m, d) => Math.max(m, d.cantidad), 0);
+  const activo = periodoActivo(desde, hasta);
+  const Panel = pestana.Panel;
+  const conComparacion = Boolean(desde && hasta) && pestana.id !== "tabla";
 
   return (
-    <div className="reportes">
-      <h1>Reportes</h1>
-      <p className="subtitulo">
-        Estadísticas de los préstamos de la ludoteca (según la fecha de retiro
-        del juego) y de las ventas de la tienda.
-      </p>
-
-      <div className="prestamos-filtros">
-        <FiltroFechas
-          desde={desde}
-          hasta={hasta}
-          onDesde={setDesde}
-          onHasta={setHasta}
-          etiqueta="Período"
-        />
+    <div className="rep">
+      <div className="rep-cabecera">
+        <div>
+          <h1>Reportes</h1>
+          <p className="subtitulo">
+            Cómo van los préstamos, las ventas y las reservas del club. Elegí un período y, para cruzar los datos a tu
+            manera, usá la tabla dinámica.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rep-actualizar"
+          onClick={() => setGeneracion((n) => n + 1)}
+          title="Volver a pedir los datos al servidor"
+        >
+          ↻ Actualizar
+        </button>
       </div>
 
-      {cargando && !datos && (
-        <p className="cargando" role="status">
-          <span className="spinner" aria-hidden="true" />
-          Cargando reportes...
-        </p>
-      )}
-
-      {error && (
-        <div role="alert">
-          <span className="error">{error}</span>
-          <button
-            type="button"
-            className="boton"
-            style={{ width: "auto", marginTop: 12 }}
-            onClick={() => setIntento((n) => n + 1)}
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
-
-      {!error && resumen && (
-        <div aria-busy={cargando}>
-          {resumen.total === 0 ? (
-            <div className="tarjeta">
-              <p>
-                {desde || hasta
-                  ? "No hay préstamos en ese período."
-                  : "Todavía no hay préstamos registrados."}
-              </p>
-            </div>
-          ) : (
-            <>
-              <dl className="prestamos-resumen">
-                <div>
-                  <dd>{resumen.total}</dd>
-                  <dt>{resumen.total === 1 ? "Préstamo" : "Préstamos"}</dt>
-                </div>
-                <div>
-                  <dd>{resumen.personas}</dd>
-                  <dt>{resumen.personas === 1 ? "Persona" : "Personas distintas"}</dt>
-                </div>
-                <div>
-                  <dd>{resumen.activos}</dd>
-                  <dt>Activos ahora</dt>
-                </div>
-                <div className={resumen.sin_devolver > 0 ? "reporte-alerta" : undefined}>
-                  <dd>{resumen.sin_devolver}</dd>
-                  <dt>Sin devolver (días anteriores)</dt>
-                </div>
-                <div>
-                  <dd>{resumen.devueltos}</dd>
-                  <dt>{resumen.devueltos === 1 ? "Devuelto" : "Devueltos"}</dt>
-                </div>
-                <div>
-                  <dd>{duracionTexto(resumen.duracion_promedio_minutos)}</dd>
-                  <dt>Duración promedio</dt>
-                </div>
-              </dl>
-
-              <section className="tarjeta tarjeta-columna reporte-seccion" aria-labelledby="rep-juegos">
-                <h2 id="rep-juegos">Juegos más prestados</h2>
-                <ol className="reporte-lista">
-                  {juegos.map((j, i) => (
-                    <li key={`${j.titulo}-${i}`}>
-                      <span className="reporte-nombre">{j.titulo}</span>
-                      <Barra valor={j.cantidad} maximo={maxJuego} />
-                      <strong className="reporte-valor">
-                        {j.cantidad} {j.cantidad === 1 ? "vez" : "veces"}
-                      </strong>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-
-              <section className="tarjeta tarjeta-columna reporte-seccion" aria-labelledby="rep-dias">
-                <h2 id="rep-dias">Movimiento por día de evento</h2>
-                <p className="ayuda">
-                  Los préstamos se agrupan por el día en que se retiraron. Si ese
-                  día hubo un evento cargado, se muestra su nombre.
-                </p>
-                <div style={{ overflowX: "auto" }}>
-                  <table className="tabla">
-                    <caption className="solo-lectores">Préstamos por día</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">Fecha</th>
-                        <th scope="col">Evento</th>
-                        <th scope="col">Préstamos</th>
-                        <th scope="col">Personas</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dias.map((d) => (
-                        <tr key={d.fecha}>
-                          <td>{fechaCorta(d.fecha)}</td>
-                          <td>{d.evento || <span className="ayuda">Sin evento cargado</span>}</td>
-                          <td>
-                            <div className="reporte-celda-barra">
-                              <strong>{d.cantidad}</strong>
-                              <Barra valor={d.cantidad} maximo={maxDia} />
-                            </div>
-                          </td>
-                          <td>{d.personas}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </>
-          )}
-        </div>
-      )}
-
-      <section className="tarjeta tarjeta-columna reporte-seccion" aria-labelledby="rep-vendidos">
-        <h2 id="rep-vendidos">Juegos más vendidos</h2>
-        <p className="ayuda">
-          Se cuentan las unidades de los pedidos pagados. No depende del período
-          elegido arriba.
-        </p>
-
-        {cargandoVentas && !vendidos && (
-          <p className="cargando" role="status">
-            <span className="spinner" aria-hidden="true" />
-            Cargando ventas...
-          </p>
-        )}
-
-        {errorVentas && (
-          <div role="alert">
-            <span className="error">{errorVentas}</span>
+      <div className="rep-controles">
+        <div className="rep-tabs" role="tablist" aria-label="Tipo de reporte" onKeyDown={teclasPestanas}>
+          {PESTANAS.map((p) => (
             <button
+              key={p.id}
+              id={`tab-${p.id}`}
               type="button"
-              className="boton"
-              style={{ width: "auto", marginTop: 12 }}
-              onClick={() => setIntentoVentas((n) => n + 1)}
+              role="tab"
+              className="rep-tab"
+              aria-selected={p.id === pestana.id}
+              aria-controls="rep-panel"
+              tabIndex={p.id === pestana.id ? 0 : -1}
+              onClick={() => actualizarUrl({ tab: p.id })}
             >
-              Reintentar
+              {p.nombre}
             </button>
-          </div>
-        )}
+          ))}
+        </div>
 
-        {!errorVentas && vendidos && vendidos.length === 0 && (
-          <p>Todavía no hay ventas pagadas.</p>
-        )}
-
-        {!errorVentas && vendidos && vendidos.length > 0 && (
-          <ol className="reporte-lista">
-            {vendidos.map((j) => (
-              <li key={j.titulo}>
-                <span className="reporte-nombre">{j.titulo}</span>
-                <Barra valor={j.cantidad} maximo={maxVendido} />
-                <strong className="reporte-valor">
-                  {j.cantidad} {j.cantidad === 1 ? "unidad" : "unidades"}
-                </strong>
-              </li>
+        <div className="rep-periodo">
+          <div className="rep-chips" role="group" aria-label="Período">
+            {PERIODOS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="rep-chip"
+                aria-pressed={activo === p.id}
+                onClick={() => elegirPeriodo(p.id)}
+              >
+                {p.nombre}
+              </button>
             ))}
-          </ol>
+          </div>
+
+          <div className="rep-fechas">
+            <label>
+              Desde
+              <input
+                type="date"
+                value={desde}
+                max={hasta || undefined}
+                onChange={(e) => actualizarUrl({ desde: e.target.value, hasta })}
+              />
+            </label>
+            <label>
+              Hasta
+              <input
+                type="date"
+                value={hasta}
+                min={desde || undefined}
+                onChange={(e) => actualizarUrl({ desde, hasta: e.target.value })}
+              />
+            </label>
+          </div>
+        </div>
+
+        {conComparacion ? (
+          <p className="rep-comparacion">
+            Las flechas comparan con el período anterior de la misma duración (las fechas inmediatamente previas).
+          </p>
+        ) : (
+          pestana.id !== "tabla" && (
+            <p className="rep-comparacion">
+              {desde || hasta
+                ? `Mostrando ${desde ? `desde el ${fechaCorta(desde)}` : ""}${desde && hasta ? " " : ""}${hasta ? `hasta el ${fechaCorta(hasta)}` : ""}. Poné las dos fechas para ver la comparación con el período anterior.`
+                : "Mostrando todo el historial. Elegí un período para ver la comparación con el anterior."}
+            </p>
+          )
         )}
-      </section>
+      </div>
+
+      <div id="rep-panel" role="tabpanel" aria-labelledby={`tab-${pestana.id}`}>
+        <Suspense fallback={<Esqueleto />}>
+          <Panel desde={desde} hasta={hasta} cache={cache.current} generacion={generacion} />
+        </Suspense>
+      </div>
     </div>
   );
 }
