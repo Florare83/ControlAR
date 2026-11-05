@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import {
   listarJuegos,
@@ -201,10 +201,14 @@ function Juegos({ enPanel = false }) {
       ) ?? null
     : null;
 
+  // Solo reservan las cuentas con el DNI validado por un administrador en un evento.
+  const dniValidado = Boolean(usuario?.dni_verificado);
+
   function datosReservaDe(juego) {
     if (!eventoReservas) return null;
 
     return {
+      sinDniValidado: Boolean(usuario) && !dniValidado,
       evento: eventoReservas,
       abiertas: Boolean(estadoReservas?.reservas_abiertas),
       reservada: estadoReservas.juegos_reservados.includes(juego.id),
@@ -222,6 +226,20 @@ function Juegos({ enPanel = false }) {
     if (!usuario) {
       toast.info("Iniciá sesión para reservar un juego.");
       navegar("/login");
+      return;
+    }
+
+    if (!usuario.dni_verificado) {
+      if (usuario.dni) {
+        toast.info(
+          "Tu DNI todavía no está validado. Presentalo en el próximo evento del Rincón y un administrador lo valida: ahí vas a poder reservar."
+        );
+      } else {
+        toast.info(
+          "Para reservar, primero cargá tu DNI en tu cuenta. Lo validamos cuando lo presentes en un evento del Rincón."
+        );
+        navegar("/cuenta#mi-dni");
+      }
       return;
     }
 
@@ -284,11 +302,11 @@ function Juegos({ enPanel = false }) {
     }
   }
 
-  async function guardarJuego(datos) {
+  async function guardarJuego(datos, opciones) {
     const esNuevo = formulario === "nuevo";
 
     if (esNuevo) {
-      await crearJuego(datos);
+      await crearJuego(datos, opciones);
     } else {
       await actualizarJuego(formulario.id, datos);
     }
@@ -492,6 +510,36 @@ function Juegos({ enPanel = false }) {
                   timeZone: "America/Argentina/Salta",
                 })} h. Lo retirás en el evento y te lo guardamos hasta 30 minutos después de que empiece.`
               : "Las reservas ya cerraron: podés pedir el juego directamente en el evento, si está disponible."}
+          </p>
+        </div>
+      )}
+
+      {/* Cómo validar el DNI para poder reservar */}
+      {!esAdmin && eventoReservas && !dniValidado && (
+        <div className="club-aviso" role="note">
+          <span aria-hidden="true">🪪</span>
+          <p>
+            <strong>Para reservar necesitás tener tu DNI validado. </strong>
+            {!usuario ? (
+              <>
+                <Link to="/registro">Creá tu cuenta</Link> o{" "}
+                <Link to="/login">iniciá sesión</Link>, cargá tu DNI y
+                presentalo en un evento del Rincón: un administrador lo valida
+                y desde ese momento podés reservar.
+              </>
+            ) : usuario.dni ? (
+              <>
+                Ya cargaste tu DNI. Falta que lo presentes en el próximo evento
+                del Rincón: un administrador lo valida y desde ese momento
+                podés reservar.
+              </>
+            ) : (
+              <>
+                <Link to="/cuenta#mi-dni">Cargá tu DNI en tu cuenta</Link> y
+                presentalo en el próximo evento del Rincón: un administrador lo
+                valida y desde ese momento podés reservar.
+              </>
+            )}
           </p>
         </div>
       )}

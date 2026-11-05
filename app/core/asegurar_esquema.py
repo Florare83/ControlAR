@@ -29,6 +29,8 @@ from app.models.pedido import Pedido, PedidoItem  # noqa: F401
 from app.models.mensaje import MensajeContacto, RespuestaMensaje  # noqa: F401
 from app.models.evento import Evento  # noqa: F401
 from app.models.reserva import Reserva  # noqa: F401
+from app.models.cliente import Cliente  # noqa: F401
+from app.models.resumen import ResumenNovedades  # noqa: F401
 
 log = logging.getLogger("uvicorn.error")
 
@@ -228,6 +230,18 @@ def _recrear_prestamos_si_esta_vacia() -> None:
         log.exception("Esquema: no se pudo recrear la tabla 'prestamos'.")
 
 
+def _cargar_clientes_existentes() -> None:
+    """Registra como clientes a las personas que ya tienen préstamos (si no lo estaban)."""
+    try:
+        from app.core.clientes import cargar_desde_prestamos
+        from app.core.db import SessionLocal
+
+        with SessionLocal() as db:
+            cargar_desde_prestamos(db)
+    except Exception:
+        log.exception("Esquema: no se pudieron cargar los clientes desde los préstamos.")
+
+
 def asegurar_esquema() -> None:
     try:
         # Antes de create_all, para que la tabla vacía se vuelva a crear bien.
@@ -260,6 +274,7 @@ def asegurar_esquema() -> None:
         _reparar_prestamos(agregadas)
         _relajar_columnas_viejas()
         _crear_indices_faltantes()
+        _cargar_clientes_existentes()
     except Exception:
         # Nunca debe impedir que el servidor arranque.
         log.exception("Esquema: no se pudo verificar la base de datos.")

@@ -27,6 +27,14 @@ function CuentaLayout() {
                 </li>
               )}
 
+              {rol === "cliente" && (
+                <li>
+                  <NavLink to="/cuenta/novedades" className={clase}>
+                    📬 Novedades
+                  </NavLink>
+                </li>
+              )}
+
               <li>
                 <NavLink to="/cuenta/contrasena" className={clase}>
                   🔑 Cambiar contraseña

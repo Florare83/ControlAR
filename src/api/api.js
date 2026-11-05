@@ -102,8 +102,12 @@ export const listarJuegos = () => pedir("/juegos/");
 export const listarJuegosPopulares = (limite = 2) =>
   pedir(`/juegos/populares?limite=${limite}`);
 
-export const crearJuego = (datos) =>
-  pedir("/juegos/", {
+export const listarJuegosNovedades = (limite = 3) =>
+  pedir(`/juegos/novedades?limite=${limite}`);
+
+// avisar: manda un correo a quienes se suscribieron a las novedades.
+export const crearJuego = (datos, { avisar = false } = {}) =>
+  pedir(`/juegos/${avisar ? "?avisar=true" : ""}`, {
     method: "POST",
     body: JSON.stringify(datos),
   });
@@ -138,7 +142,40 @@ export const registrarUsuario = (datos) =>
     body: JSON.stringify(datos),
   });
 
+// «Olvidé mi contraseña»: pide el enlace por correo y elige la contraseña nueva con él.
+export const pedirRecuperacion = (email) =>
+  pedir("/auth/recuperar", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+export const restablecerContrasena = (token, contrasena) =>
+  pedir("/auth/restablecer", {
+    method: "POST",
+    body: JSON.stringify({ token, contrasena }),
+  });
+
 export const obtenerPerfil = () => pedir("/auth/me");
+
+// Novedades por correo: la persona se suscribe o se da de baja desde "Mi cuenta".
+export const guardarNovedades = (suscrito) =>
+  pedir("/auth/me/novedades", {
+    method: "PUT",
+    body: JSON.stringify({ suscrito }),
+  });
+
+// Resumen de novedades (administración): qué llevaría y envío manual.
+export const obtenerResumenNovedades = () => pedir("/suscripcion/resumen");
+
+export const enviarResumenNovedades = () =>
+  pedir("/suscripcion/resumen/enviar", { method: "POST" });
+
+// Baja con el enlace de un correo (no hace falta iniciar sesión).
+export const darseDeBajaNovedades = (token) =>
+  pedir("/suscripcion/baja", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
 
 // La persona carga o corrige su DNI (un administrador lo verifica después).
 export const guardarMiDni = (dni) =>
@@ -152,6 +189,31 @@ export const listarPrestamos = (estado) =>
   pedir(
     estado ? `/prestamos/?estado=${encodeURIComponent(estado)}` : "/prestamos/"
   );
+
+// Clientes sin cuenta (registrados por DNI): administración
+export const listarClientes = ({ buscar = "", limite = 20, desplazamiento = 0 } = {}) => {
+  const parametros = new URLSearchParams({
+    limite: String(limite),
+    desplazamiento: String(desplazamiento),
+  });
+  if (buscar.trim()) parametros.set("buscar", buscar.trim());
+  return pedir(`/clientes/?${parametros}`);
+};
+
+export const registrarCliente = (datos) =>
+  pedir("/clientes/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+
+export const editarCliente = (id, datos) =>
+  pedir(`/clientes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(datos),
+  });
+
+export const eliminarCliente = (id) =>
+  pedir(`/clientes/${id}`, { method: "DELETE" });
 
 export const buscarPersonaPorDni = (dni) =>
   pedir(`/prestamos/buscar-persona/${encodeURIComponent(dni)}`);
@@ -218,6 +280,29 @@ export const obtenerReportePrestamos = ({ desde = "", hasta = "" } = {}) => {
   const consulta = parametros.toString();
   return pedir(`/reportes/prestamos${consulta ? `?${consulta}` : ""}`);
 };
+
+const consultaPeriodo = ({ desde = "", hasta = "", ...otros } = {}) => {
+  const parametros = new URLSearchParams();
+  Object.entries(otros).forEach(([clave, valor]) => {
+    if (valor) parametros.set(clave, valor);
+  });
+  if (desde) parametros.set("desde", desde);
+  if (hasta) parametros.set("hasta", hasta);
+  const texto = parametros.toString();
+  return texto ? `?${texto}` : "";
+};
+
+export const obtenerReporteVentas = (periodo) =>
+  pedir(`/reportes/ventas${consultaPeriodo(periodo)}`);
+
+export const obtenerReporteReservas = (periodo) =>
+  pedir(`/reportes/reservas${consultaPeriodo(periodo)}`);
+
+export const obtenerOpcionesTablaDinamica = () =>
+  pedir("/reportes/tabla-dinamica/opciones");
+
+export const obtenerTablaDinamica = (parametros) =>
+  pedir(`/reportes/tabla-dinamica${consultaPeriodo(parametros)}`);
 
 export const historialPrestamosDePersona = ({ dni = "" } = {}) => {
   const parametros = new URLSearchParams({ dni });
@@ -447,11 +532,20 @@ export const listarVentasAdmin = ({ estado = "", buscar = "" } = {}) => {
 
 export const listarEventos = () => pedir("/eventos/");
 
-export const crearEvento = (datos) =>
-  pedir("/eventos/", { method: "POST", body: JSON.stringify(datos) });
+// avisar: manda un correo a quienes se suscribieron a las novedades.
+export const crearEvento = (datos, { avisar = false } = {}) =>
+  pedir(`/eventos/${avisar ? "?avisar=true" : ""}`, {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
 
-export const actualizarEvento = (id, datos) =>
-  pedir(`/eventos/${id}`, { method: "PUT", body: JSON.stringify(datos) });
+// avisar: si cambió nombre, fecha, horario o lugar, avisa por correo a los suscriptores
+// y a quienes tienen una reserva activa.
+export const actualizarEvento = (id, datos, { avisar = false } = {}) =>
+  pedir(`/eventos/${id}${avisar ? "?avisar=true" : ""}`, {
+    method: "PUT",
+    body: JSON.stringify(datos),
+  });
 
 export const duplicarEvento = (id, datos) =>
   pedir(`/eventos/${id}/duplicar`, {
@@ -459,8 +553,9 @@ export const duplicarEvento = (id, datos) =>
     body: JSON.stringify(datos),
   });
 
-export const eliminarEvento = (id) =>
-  pedir(`/eventos/${id}`, { method: "DELETE" });
+// avisar: le cuenta por correo a los suscriptores que el evento se canceló.
+export const eliminarEvento = (id, { avisar = false } = {}) =>
+  pedir(`/eventos/${id}${avisar ? "?avisar=true" : ""}`, { method: "DELETE" });
 
 
 // ---------------------------------------------------------

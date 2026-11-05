@@ -62,10 +62,12 @@ const guia = [
           Sí, pero solo durante los eventos y en el lugar, no fuera de ellos.
         </p>
         <p>
-          Si tenés cuenta, también podés reservar un juego de la ludoteca desde
-          el <Link to="/juegos">catálogo</Link>, hasta las 20:00 del día
-          anterior. Lo retirás en el evento y te lo guardamos hasta 30 minutos
-          después de que empiece.
+          Si tenés cuenta con el DNI validado, también podés reservar un juego
+          de la ludoteca desde el <Link to="/juegos">catálogo</Link>, hasta las
+          20:00 del día anterior. Lo retirás en el evento y te lo guardamos
+          hasta 30 minutos después de que empiece. Para validar tu DNI, cargalo
+          en <Link to="/cuenta#mi-dni">tu cuenta</Link> y presentalo en
+          cualquier evento: un administrador lo verifica en el momento.
         </p>
       </>
     ),

@@ -14,7 +14,7 @@ function LineaCarrito({ item }) {
 
   return (
     <li className="carrito-linea">
-      <img src={item.imagen} alt="" />
+      <img src={item.imagen} alt="" loading="lazy" decoding="async" />
 
       <div className="carrito-linea-info">
         <p className="carrito-linea-titulo">{item.titulo}</p>

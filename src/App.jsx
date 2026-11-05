@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "./context/AuthContext.jsx";
@@ -8,30 +8,39 @@ import PanelLayout from "./components/PanelLayout.jsx";
 import CarritoSidebar from "./components/CarritoSidebar.jsx";
 
 import Nosotros from "./pages/Nosotros.jsx";
-import Club from "./pages/Club.jsx";
-import Juegos from "./pages/Juegos.jsx";
-import Favoritos from "./pages/Favoritos.jsx";
 import CuentaLayout from "./components/CuentaLayout.jsx";
-import EditarDni from "./pages/EditarDni.jsx";
-import CambiarContrasena from "./pages/CambiarContrasena.jsx";
-import EliminarCuenta from "./pages/EliminarCuenta.jsx";
-import Contacto from "./pages/Contacto.jsx";
-import Login from "./pages/Login.jsx";
-import Registro from "./pages/Registro.jsx";
-import Prestamos from "./pages/Prestamos.jsx";
-import HistorialPrestamos from "./pages/HistorialPrestamos.jsx";
-import MisPrestamos from "./pages/MisPrestamos.jsx";
-import MisReservas from "./pages/MisReservas.jsx";
-import Reservas from "./pages/Reservas.jsx";
-import Eventos from "./pages/Eventos.jsx";
-import MisCompras from "./pages/MisCompras.jsx";
-import Ventas from "./pages/Ventas.jsx";
-import Reportes from "./pages/Reportes.jsx";
-import Mensajes from "./pages/Mensajes.jsx";
-import MisMensajes from "./pages/MisMensajes.jsx";
-import Checkout from "./pages/Checkout.jsx";
-import CompraResultado from "./pages/CompraResultado.jsx";
-import GestionarUsuarios from "./pages/GestionarUsuarios.jsx";
+
+// Cada página se descarga recién cuando se entra a ella (el sitio abre más rápido).
+const Club = lazy(() => import("./pages/Club.jsx"));
+const Juegos = lazy(() => import("./pages/Juegos.jsx"));
+const Favoritos = lazy(() => import("./pages/Favoritos.jsx"));
+const EditarDni = lazy(() => import("./pages/EditarDni.jsx"));
+const Novedades = lazy(() => import("./pages/Novedades.jsx"));
+const Baja = lazy(() => import("./pages/Baja.jsx"));
+const NovedadesAdmin = lazy(() => import("./pages/NovedadesAdmin.jsx"));
+const CambiarContrasena = lazy(() => import("./pages/CambiarContrasena.jsx"));
+const EliminarCuenta = lazy(() => import("./pages/EliminarCuenta.jsx"));
+const Contacto = lazy(() => import("./pages/Contacto.jsx"));
+const Login = lazy(() => import("./pages/Login.jsx"));
+const Registro = lazy(() => import("./pages/Registro.jsx"));
+const Prestamos = lazy(() => import("./pages/Prestamos.jsx"));
+const HistorialPrestamos = lazy(() => import("./pages/HistorialPrestamos.jsx"));
+const MisPrestamos = lazy(() => import("./pages/MisPrestamos.jsx"));
+const MisReservas = lazy(() => import("./pages/MisReservas.jsx"));
+const Reservas = lazy(() => import("./pages/Reservas.jsx"));
+const Eventos = lazy(() => import("./pages/Eventos.jsx"));
+const MisCompras = lazy(() => import("./pages/MisCompras.jsx"));
+const Ventas = lazy(() => import("./pages/Ventas.jsx"));
+const Reportes = lazy(() => import("./pages/Reportes.jsx"));
+const Clientes = lazy(() => import("./pages/Clientes.jsx"));
+const Mensajes = lazy(() => import("./pages/Mensajes.jsx"));
+const MisMensajes = lazy(() => import("./pages/MisMensajes.jsx"));
+const Checkout = lazy(() => import("./pages/Checkout.jsx"));
+const CompraResultado = lazy(() => import("./pages/CompraResultado.jsx"));
+const GestionarUsuarios = lazy(() => import("./pages/GestionarUsuarios.jsx"));
+const RecuperarContrasena = lazy(() => import("./pages/RecuperarContrasena.jsx"));
+const RestablecerContrasena = lazy(() => import("./pages/RestablecerContrasena.jsx"));
+const NoEncontrada = lazy(() => import("./pages/NoEncontrada.jsx"));
 
 // /cuenta sin subsección: el cliente empieza por el DNI, el admin por la contraseña.
 function CuentaInicio() {
@@ -54,12 +63,19 @@ function leerTemaGuardado() {
 
 function App() {
   const [modoOscuro, setModoOscuro] = useState(leerTemaGuardado);
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
 
   // Checkout y resultado de compra ocupan toda la pantalla.
   const pantallaCompleta =
     pathname === "/checkout" ||
     pathname === "/compra/resultado";
+
+  // Al cambiar de página, vuelve arriba: React Router no lo hace solo, y si venías
+  // scrolleado la página nueva abría a esa misma altura. Con un enlace a una sección
+  // (#algo) no se toca, para respetar el salto.
+  useEffect(() => {
+    if (!hash) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname, hash]);
 
   // Aplica el tema a la página y lo guarda cada vez que cambia.
   useEffect(() => {
@@ -93,6 +109,7 @@ function App() {
       )}
 
       <main id="contenido" tabIndex={-1}>
+        <Suspense fallback={<p className="cargando" role="status">Cargando...</p>}>
         <Routes>
           <Route
             path="/"
@@ -105,6 +122,9 @@ function App() {
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/baja" element={<Baja />} />
+          <Route path="/recuperar" element={<RecuperarContrasena />} />
+          <Route path="/restablecer" element={<RestablecerContrasena />} />
 
           <Route
             path="/checkout"
@@ -142,7 +162,7 @@ function App() {
             }
           />
 
-          {/* Mi cuenta: menú lateral con DNI, contraseña y eliminar cuenta */}
+          {/* Mi cuenta: menú lateral con DNI, novedades, contraseña y eliminar cuenta */}
           <Route
             path="/cuenta"
             element={<RutaProtegida roles={["cliente", "admin"]} />}
@@ -154,6 +174,14 @@ function App() {
                 element={
                   <RutaProtegida roles={["cliente"]}>
                     <EditarDni />
+                  </RutaProtegida>
+                }
+              />
+              <Route
+                path="novedades"
+                element={
+                  <RutaProtegida roles={["cliente"]}>
+                    <Novedades />
                   </RutaProtegida>
                 }
               />
@@ -231,6 +259,11 @@ function App() {
               />
 
               <Route
+                path="clientes"
+                element={<Clientes />}
+              />
+
+              <Route
                 path="reportes"
                 element={<Reportes />}
               />
@@ -243,6 +276,11 @@ function App() {
               <Route
                 path="mensajes"
                 element={<Mensajes />}
+              />
+
+              <Route
+                path="novedades"
+                element={<NovedadesAdmin />}
               />
 
               <Route
@@ -271,7 +309,10 @@ function App() {
             path="/prestamos"
             element={<Navigate to="/panel/prestamos" replace />}
           />
+
+          <Route path="*" element={<NoEncontrada />} />
         </Routes>
+        </Suspense>
       </main>
     </>
   );

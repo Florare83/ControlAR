@@ -32,6 +32,8 @@ const VACIO = {
   aporte: "",
   imagen_url: "",
   permite_reservas: false,
+  // Al crear arranca tildado (no se manda dentro del evento: va como opción aparte).
+  avisar: true,
 };
 
 function desdeEvento(e) {
@@ -50,6 +52,8 @@ function desdeEvento(e) {
     aporte: e.aporte ?? "",
     imagen_url: e.imagen_url ?? "",
     permite_reservas: e.permite_reservas,
+    // Al editar arranca destildado: corregir un error de tipeo no debe mandar mails.
+    avisar: false,
   };
 }
 
@@ -144,10 +148,14 @@ function Eventos() {
 
     try {
       if (editando === "nuevo") {
-        await crearEvento(haciaApi(form));
-        toast.exito("Evento creado.");
+        await crearEvento(haciaApi(form), { avisar: form.avisar });
+        toast.exito(
+          form.avisar
+            ? "Evento creado. Se avisa por correo a los suscriptores."
+            : "Evento creado."
+        );
       } else {
-        await actualizarEvento(editando.id, haciaApi(form));
+        await actualizarEvento(editando.id, haciaApi(form), { avisar: form.avisar });
         toast.exito("Evento actualizado.");
       }
       setEditando(null);
@@ -188,11 +196,19 @@ function Eventos() {
   async function borrar(evento) {
     if (!window.confirm(`¿Eliminar "${evento.titulo}"? No se puede deshacer.`)) return;
 
+    // Si el evento todavía no pasó, se ofrece avisar a los suscriptores que se canceló.
+    const hoy = new Date();
+    const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+    const esProximo = !evento.fecha || evento.fecha >= hoyIso;
+    const avisar =
+      esProximo &&
+      window.confirm("¿Querés avisar por correo a los suscriptores que el evento se canceló?");
+
     setOcupado(evento.id);
 
     try {
-      await eliminarEvento(evento.id);
-      toast.exito("Evento eliminado.");
+      await eliminarEvento(evento.id, { avisar });
+      toast.exito(avisar ? "Evento eliminado. Se avisa a los suscriptores." : "Evento eliminado.");
       await cargar();
     } catch (err) {
       toast.error(err.message);
@@ -308,6 +324,19 @@ function Eventos() {
               <small id="ayuda-reservas" className="ayuda">
                 Para los eventos con préstamo. Necesita fecha exacta y hora de inicio. Los clientes
                 reservan hasta las 20:00 del día anterior.
+              </small>
+            </div>
+
+            <div className="campo">
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input type="checkbox" checked={form.avisar} onChange={(e) => cambiar("avisar", e.target.checked)} style={{ width: "auto" }} aria-describedby="ayuda-avisar-evento" />
+                {editando === "nuevo" ? "Avisar a los suscriptores por correo" : "Avisar del cambio por correo"}
+              </label>
+              <small id="ayuda-avisar-evento" className="ayuda">
+                {editando === "nuevo"
+                  ? "Les llega un mail con los datos del evento (y cómo reservar juegos, si se puede) a quienes se suscribieron a las novedades. "
+                  : "Solo se manda si cambió el nombre, la fecha, el horario o el lugar. Le llega a los suscriptores y a quienes tienen una reserva activa. "}
+                No se avisa de eventos con fecha pasada.
               </small>
             </div>
 

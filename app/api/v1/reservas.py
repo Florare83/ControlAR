@@ -3,6 +3,7 @@
 # Reglas:
 #  - Solo se reserva para el próximo evento que permita reservas.
 #  - Se puede reservar hasta las 20:00 del día anterior al evento.
+#  - Solo reservan las cuentas con el DNI verificado por un administrador (en un evento).
 #  - Una reserva por persona y por evento; un juego en una sola reserva por evento.
 #  - La reserva se guarda hasta 30 minutos después del inicio; pasado ese tiempo vence
 #    y el juego queda libre.
@@ -10,13 +11,15 @@
 #  - El préstamo sigue siendo solo durante el evento: el administrador entrega el juego
 #    en el lugar y ahí se crea el préstamo.
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.v1.auth.dependencies import get_current_user, require_admin
 from app.api.v1.juegos import repository as juegos_repo
+from app.core import avisos
+from app.core.clientes import asegurar_cliente
 from app.core.db import get_db
 from app.core.reservas_reglas import ahora, cierre_reservas, inicio_evento, limite_espera
 from app.models.evento import Evento
@@ -63,8 +66,33 @@ class EntregarReserva(BaseModel):
 
 # ---------------------------------------------------------------- utilidades
 
-def vencer_reservas(db: Session) -> None:
-    """Pasa a "vencida" toda reserva activa cuya espera ya terminó (así el juego se libera)."""
+def exigir_dni_verificado(usuario: Usuario) -> None:
+    """Solo reservan las personas con el DNI validado por un administrador.
+
+    La validación se hace en persona: la cuenta carga su DNI y, cuando la persona va a un
+    evento del club y lo presenta, un administrador lo marca como verificado."""
+    if usuario.dni_verificado:
+        return
+
+    if usuario.dni:
+        detalle = (
+            "Tu DNI todavía no está validado. Presentalo en el próximo evento del Rincón "
+            "de Hermes y un administrador lo valida: desde ese momento vas a poder reservar."
+        )
+    else:
+        detalle = (
+            "Para reservar necesitás tener tu DNI validado. Cargalo en tu cuenta (sección "
+            "Mi DNI) y presentalo en el próximo evento del Rincón de Hermes: un "
+            "administrador lo valida y ahí vas a poder reservar."
+        )
+    raise HTTPException(status_code=403, detail=detalle)
+
+
+def vencer_reservas(db: Session, tareas: BackgroundTasks | None = None) -> None:
+    """Pasa a "vencida" toda reserva activa cuya espera ya terminó (así el juego se libera).
+
+    Si se pasa `tareas`, además se avisa por correo a cada persona cuya reserva venció.
+    Esto ocurre cuando alguien usa la web después del límite (no hay un reloj aparte)."""
     momento = ahora()
     activas = (
         db.query(Reserva)
@@ -72,15 +100,21 @@ def vencer_reservas(db: Session) -> None:
         .filter(Reserva.estado == ACTIVA)
         .all()
     )
-    hubo_cambios = False
+    vencidas = []
     for reserva in activas:
         limite = limite_espera(reserva.evento)
         if limite is not None and limite < momento:
             reserva.estado = VENCIDA
             reserva.cerrada_en = momento
-            hubo_cambios = True
-    if hubo_cambios:
+            vencidas.append(reserva)
+    if vencidas:
         db.commit()
+        if tareas is not None:
+            for reserva in vencidas:
+                tareas.add_task(
+                    avisos.enviar_aviso,
+                    *avisos.correo_reserva_vencida(reserva.usuario, reserva),
+                )
 
 
 def evento_actual(db: Session) -> Evento | None:
@@ -153,9 +187,9 @@ def _formato_cierre(evento: Evento) -> str:
 # ------------------------------------------------------------------ público
 
 @router.get("/estado")
-def estado_reservas(db: Session = Depends(get_db)):
+def estado_reservas(tareas: BackgroundTasks, db: Session = Depends(get_db)):
     """Para el catálogo: evento reservable, si siguen abiertas y qué juegos ya están reservados."""
-    vencer_reservas(db)
+    vencer_reservas(db, tareas)
     evento = evento_actual(db)
 
     if evento is None:
@@ -187,10 +221,11 @@ def estado_reservas(db: Session = Depends(get_db)):
 
 @router.get("/mias")
 def mis_reservas(
+    tareas: BackgroundTasks,
     usuario: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    vencer_reservas(db)
+    vencer_reservas(db, tareas)
     reservas = (
         db.query(Reserva)
         .filter(Reserva.usuario_id == usuario.id)
@@ -203,10 +238,13 @@ def mis_reservas(
 @router.post("/", status_code=201)
 def reservar(
     datos: ReservaCrear,
+    tareas: BackgroundTasks,
     usuario: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    vencer_reservas(db)
+    vencer_reservas(db, tareas)
+
+    exigir_dni_verificado(usuario)
 
     evento = evento_actual(db)
     if evento is None:
@@ -276,16 +314,21 @@ def reservar(
         ) from e
 
     db.refresh(reserva)
+
+    # Confirmación por correo (en segundo plano: si falla, la reserva igual queda hecha).
+    tareas.add_task(avisos.enviar_aviso, *avisos.correo_reserva(usuario, reserva))
+
     return _reserva_dict(reserva)
 
 
 @router.delete("/{reserva_id}")
 def cancelar(
     reserva_id: int,
+    tareas: BackgroundTasks,
     usuario: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    vencer_reservas(db)
+    vencer_reservas(db, tareas)
     reserva = _buscar(db, reserva_id)
 
     # Se responde 404 también si es de otra persona, para no revelar que existe.
@@ -302,6 +345,9 @@ def cancelar(
     reserva.cerrada_en = ahora()
     db.commit()
     db.refresh(reserva)
+
+    tareas.add_task(avisos.enviar_aviso, *avisos.correo_reserva_cancelada(usuario, reserva))
+
     return _reserva_dict(reserva)
 
 
@@ -309,12 +355,13 @@ def cancelar(
 
 @router.get("/")
 def listar_reservas(
+    tareas: BackgroundTasks,
     evento_id: int | None = None,
     db: Session = Depends(get_db),
     _=Depends(require_admin),
 ):
     """Reservas de un evento (por defecto, el próximo con reservas) para la lista del panel."""
-    vencer_reservas(db)
+    vencer_reservas(db, tareas)
 
     if evento_id is not None:
         evento = db.query(Evento).filter(Evento.id == evento_id).first()
@@ -343,11 +390,12 @@ def listar_reservas(
 def entregar(
     reserva_id: int,
     datos: EntregarReserva,
+    tareas: BackgroundTasks,
     db: Session = Depends(get_db),
     _=Depends(require_admin),
 ):
     """Entrega el juego reservado: crea el préstamo y cierra la reserva en una sola operación."""
-    vencer_reservas(db)
+    vencer_reservas(db, tareas)
     reserva = _buscar(db, reserva_id)
 
     if reserva.estado != ACTIVA:
@@ -383,6 +431,7 @@ def entregar(
     try:
         db.add(prestamo)
         db.flush()  # obtiene el id del préstamo sin cerrar todavía la transacción
+        asegurar_cliente(db, prestamo.dni, prestamo.nombre, prestamo.sexo, prestamo.telefono)
 
         reserva.estado = ENTREGADA
         reserva.cerrada_en = ahora()

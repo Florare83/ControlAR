@@ -18,7 +18,7 @@ from app.core.db import Base, SessionLocal, engine
 from app.core import asegurar_esquema  # noqa: F401  (importa todos los modelos)
 from app.main import app
 from app.api.v1.auth import repository as repo_usuarios
-from app.core.limitador import limite_login
+from app.core.limitador import limite_login, limite_recuperar
 from app.core.security import crear_token
 from app.models.categoria import Categoria
 from app.models.evento import Evento
@@ -37,6 +37,7 @@ def base_limpia():
 def limite_login_limpio():
     """Los intentos fallidos de login viven en memoria: cada prueba arranca sin ninguno."""
     limite_login.reiniciar()
+    limite_recuperar.reiniciar()
     yield
 
 
@@ -55,8 +56,14 @@ def client():
     return TestClient(app)
 
 
-def _crear_usuario(db, email, es_admin):
+def _crear_usuario(db, email, es_admin, dni_verificado=None):
+    """dni_verificado: None = sin DNI; un texto = DNI ya validado por un administrador."""
     usuario = repo_usuarios.create(db, "Usuaria Prueba", email, "clave12345", es_admin=es_admin)
+    if dni_verificado:
+        usuario.dni = dni_verificado
+        usuario.dni_verificado = True
+        db.commit()
+        db.refresh(usuario)
     return usuario, {"Authorization": f"Bearer {crear_token(usuario.id)}"}
 
 
@@ -73,6 +80,17 @@ def cliente(db):
 @pytest.fixture
 def cliente2(db):
     return _crear_usuario(db, "cliente2@prueba.com", False)
+
+
+@pytest.fixture
+def cliente_verificado(db):
+    """Cliente con el DNI validado en un evento: es quien puede reservar."""
+    return _crear_usuario(db, "cliente@prueba.com", False, dni_verificado="30111222")
+
+
+@pytest.fixture
+def cliente2_verificado(db):
+    return _crear_usuario(db, "cliente2@prueba.com", False, dni_verificado="30333444")
 
 
 @pytest.fixture

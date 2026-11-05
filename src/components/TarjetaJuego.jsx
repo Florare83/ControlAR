@@ -12,7 +12,7 @@ function TarjetaJuego({
   onToggleFavorito,
   onEditar,
   onEliminar,
-  reservas = null, // { evento, abiertas, reservada, miReserva, tieneOtra, ocupado }
+  reservas = null, // { evento, abiertas, reservada, miReserva, tieneOtra, ocupado, sinDniValidado }
   onReservar,
   onCancelarReserva,
 }) {
@@ -60,6 +60,8 @@ function TarjetaJuego({
         <img
           src={imagen}
           alt={`Imagen de ${juego.titulo}`}
+          loading="lazy"
+          decoding="async"
           onError={() => {
             if (juego.imagen_url && !imagenFallida) {
               setImagenFallida(true);
@@ -211,6 +213,8 @@ function TarjetaJuego({
                         ? "Ya lo reservó otra persona"
                         : !reservas.abiertas
                         ? "Las reservas para el próximo evento ya cerraron"
+                        : reservas.sinDniValidado
+                        ? "Para reservar necesitás tener tu DNI validado"
                         : reservas.tieneOtra
                         ? "Ya tenés una reserva para este evento"
                         : "Reservar para retirarlo en el evento"

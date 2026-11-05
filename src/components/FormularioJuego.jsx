@@ -19,6 +19,9 @@ const VACIO = {
   categoria_id: "",
   imagen_url: "",
   observaciones: "",
+  // Solo al crear: avisar por correo a quienes se suscribieron a las novedades.
+  // Arranca destildado para que cargar muchos juegos seguidos no llene las casillas.
+  avisar: false,
 };
 
 function desdeJuego(juego) {
@@ -108,7 +111,7 @@ function FormularioJuego({
     };
 
     try {
-      await onGuardar(datos);
+      await onGuardar(datos, { avisar: !juego && form.avisar });
     } catch (e) {
       setError(e.message || "No se pudo guardar el juego.");
       setGuardando(false);
@@ -322,6 +325,26 @@ function FormularioJuego({
             {form.observaciones.length}/{OBSERVACIONES_MAX}
           </small>
         </div>
+
+        {!juego && (
+          <div className="campo">
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={form.avisar}
+                onChange={(e) => cambiar("avisar", e.target.checked)}
+                style={{ width: "auto" }}
+                aria-describedby="ayuda-avisar-juego"
+              />
+              Avisar a los suscriptores por correo
+            </label>
+            <small id="ayuda-avisar-juego" className="ayuda">
+              Les llega un mail con este juego a quienes se suscribieron a las
+              novedades. Dejalo destildado si estás cargando varios juegos
+              seguidos.
+            </small>
+          </div>
+        )}
 
         {error && (
           <span className="error" role="alert">

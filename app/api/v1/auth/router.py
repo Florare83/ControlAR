@@ -1,7 +1,7 @@
 
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import or_
@@ -9,8 +9,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import secrets
 
+from app.core import avisos, recuperacion
 from app.core.db import get_db
-from app.core.limitador import limite_login
+from app.core.limitador import limite_login, limite_recuperar
 from app.core.security import (
     crear_token,
     hashear_contrasena,
@@ -22,7 +23,15 @@ from app.models.usuario import Usuario
 from app.models.favorito import Favorito
 from . import repository as repo
 from .dependencies import get_current_user, require_admin
-from .schemas import DniActualizar, Token, UsuarioCreate, UsuarioOut
+from .schemas import (
+    DniActualizar,
+    NovedadesActualizar,
+    RecuperarIn,
+    RestablecerIn,
+    Token,
+    UsuarioCreate,
+    UsuarioOut,
+)
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
@@ -75,6 +84,7 @@ def registrar(datos: UsuarioCreate, db: Session = Depends(get_db)):
         datos.email,
         datos.contrasena,
         dni=datos.dni,
+        suscrito_novedades=datos.suscrito_novedades,
     )
 
 
@@ -134,6 +144,77 @@ def actualizar_mi_dni(
         db.refresh(usuario)
 
     return usuario
+
+
+@router.put("/me/novedades", response_model=UsuarioOut)
+def actualizar_mis_novedades(
+    datos: NovedadesActualizar,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    """La persona se suscribe o se da de baja de los correos de novedades."""
+    if usuario.suscrito_novedades != datos.suscrito:
+        usuario.suscrito_novedades = datos.suscrito
+        db.commit()
+        db.refresh(usuario)
+
+    return usuario
+
+
+@router.post("/recuperar")
+def recuperar_contrasena(
+    datos: RecuperarIn,
+    request: Request,
+    tareas: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """«Olvidé mi contraseña»: manda por correo un enlace para elegir una nueva. Responde
+    siempre lo mismo, exista o no la cuenta, para que nadie pueda averiguar qué correos
+    están registrados."""
+    origen = request.client.host if request.client else "desconocido"
+    clave = f"recuperar|{origen}"
+
+    espera = limite_recuperar.segundos_de_espera(clave)
+    if espera:
+        minutos = max(1, round(espera / 60))
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Pediste demasiados enlaces. "
+                f"Probá de nuevo en {minutos} {'minuto' if minutos == 1 else 'minutos'}."
+            ),
+            headers={"Retry-After": str(espera)},
+        )
+    limite_recuperar.registrar_fallo(clave)  # cada pedido cuenta, exista o no el correo
+
+    usuario = repo.get_by_email(db, datos.email)
+    if usuario is not None and usuario.activo:
+        correo = avisos.correo_recuperar_contrasena(usuario, recuperacion.crear_token(usuario))
+        tareas.add_task(avisos.enviar_aviso, *correo)
+
+    return {
+        "mensaje": "Si el correo está registrado, te mandamos un enlace para elegir una contraseña nueva."
+    }
+
+
+@router.post("/restablecer")
+def restablecer_contrasena(datos: RestablecerIn, db: Session = Depends(get_db)):
+    """Elige la contraseña nueva con el enlace que llegó por correo. El enlace se puede usar
+    una sola vez y vence a la hora."""
+    leido = recuperacion.leer_token(datos.token)
+    usuario = repo.get_by_id(db, leido[0]) if leido else None
+
+    if (
+        usuario is None
+        or not usuario.activo
+        or not recuperacion.sigue_vigente(usuario, leido[1])
+    ):
+        raise HTTPException(400, "El enlace venció o ya se usó. Pedí uno nuevo.")
+
+    usuario.contrasena_hash = hashear_contrasena(datos.contrasena)
+    db.commit()
+
+    return {"mensaje": "Listo, ya podés iniciar sesión con tu contraseña nueva."}
 
 
 @router.post("/cambiar-contrasena")
@@ -199,6 +280,7 @@ def eliminar_cuenta(
     # Se libera el DNI para que pueda verificarse en otra cuenta.
     usuario.dni = None
     usuario.dni_verificado = False
+    usuario.suscrito_novedades = False
 
     db.commit()
 

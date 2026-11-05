@@ -213,7 +213,7 @@ function descargarCsv(ventas) {
 
 export default function Ventas() {
   const toast = useToast();
-  const [estado, setEstado] = useState("aprobado");
+  const [estado, setEstado] = useState("");
   const [buscar, setBuscar] = useState("");
   const [buscarAplicado, setBuscarAplicado] = useState("");
 
@@ -283,9 +283,6 @@ export default function Ventas() {
 
   const resumen = datos ? datos.resumen : null;
   const ventas = datos ? datos.pedidos : [];
-  const maximo = resumen && resumen.mas_vendidos.length
-    ? resumen.mas_vendidos[0].cantidad
-    : 1;
 
   const opciones = [
     { valor: "aprobado", texto: `Pagadas${resumen ? ` (${resumen.pagados})` : ""}` },
@@ -299,8 +296,7 @@ export default function Ventas() {
     <section className="ventas">
       <h1>Ventas</h1>
       <p className="ventas-subtitulo">
-        Seguí lo que se vendió en la tienda: ingresos, pedidos y juegos más
-        elegidos.
+        Seguí lo que se vendió en la tienda: ingresos y pedidos.
       </p>
 
       {error && (
@@ -330,28 +326,6 @@ export default function Ventas() {
               <dt>Compra promedio</dt>
             </div>
           </dl>
-
-          {resumen.mas_vendidos.length > 0 && (
-            <div className="ventas-top">
-              <h2>Juegos más vendidos</h2>
-
-              <ol>
-                {resumen.mas_vendidos.map((juego) => (
-                  <li key={juego.titulo}>
-                    <span className="ventas-top-nombre">{juego.titulo}</span>
-                    <span
-                      className="ventas-top-barra"
-                      style={{ width: `${(juego.cantidad / maximo) * 100}%` }}
-                      aria-hidden="true"
-                    />
-                    <span className="ventas-top-cantidad">
-                      {juego.cantidad} {juego.cantidad === 1 ? "unidad" : "unidades"}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
         </>
       )}
 

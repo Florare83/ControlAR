@@ -25,8 +25,8 @@ function EditarDni() {
       nuevo !== usuario.dni &&
       !window.confirm(
         "Tu DNI ya está verificado. Si lo cambiás, un administrador tendrá " +
-          "que volver a verificarlo y mientras tanto no vas a ver tus " +
-          "préstamos. ¿Querés continuar?"
+          "que volver a verificarlo y mientras tanto no vas a poder reservar " +
+          "ni ver tus préstamos. ¿Querés continuar?"
       )
     ) {
       return;
@@ -52,18 +52,19 @@ function EditarDni() {
 
       {usuario?.dni_verificado ? (
         <p className="subtitulo">
-          ✓ Tu DNI está verificado. Ya podés ver tus préstamos.
+          ✓ Tu DNI está verificado. Ya podés reservar juegos y ver tus préstamos.
         </p>
       ) : usuario?.dni ? (
         <p className="subtitulo">
           Pendiente de verificación: mostrale tu DNI a un administrador en el
-          próximo evento. Cuando lo verifique, vas a ver tus préstamos en la
-          sección "Mis préstamos".
+          próximo evento. Cuando lo verifique, vas a poder reservar juegos y
+          ver tus préstamos en la sección "Mis préstamos".
         </p>
       ) : (
         <p className="subtitulo">
-          Cargá tu DNI para poder ver tus préstamos. Un administrador lo
-          verifica con tu documento en el próximo evento.
+          Cargá tu DNI para poder reservar juegos y ver tus préstamos. Un
+          administrador lo verifica con tu documento cuando vengas a un
+          evento del Rincón.
         </p>
       )}
 
