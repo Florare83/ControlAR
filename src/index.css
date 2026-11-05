@@ -4086,3 +4086,116 @@ body.oscuro .hilo-burbuja.propia {
     max-width: 480px;
   }
 }
+
+
+/* ============================================
+   Footer y botón flotante de WhatsApp
+   ============================================ */
+/* El pie queda siempre al fondo, aunque la página tenga poco contenido. */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#root > main {
+  flex: 1 0 auto;
+}
+
+.footer {
+  background: #161c3f;
+  color: #ffffff;
+  padding: 32px 32px 20px;
+  margin-top: 40px;
+}
+
+.footer-contenido {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.footer p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.footer .footer-marca {
+  font-size: 18px;
+  font-weight: 700;
+  opacity: 1;
+}
+
+.footer .footer-titulo {
+  font-weight: 700;
+  opacity: 1;
+}
+
+.footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.footer a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer a:hover {
+  opacity: 0.8;
+}
+
+.footer .footer-copy {
+  max-width: 1400px;
+  margin: 24px auto 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.boton-whatsapp {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 900;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.boton-whatsapp:hover {
+  transform: scale(1.08);
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding: 24px 16px 16px;
+  }
+
+  .boton-whatsapp {
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boton-whatsapp {
+    transition: none;
+  }
+}

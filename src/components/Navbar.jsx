@@ -60,18 +60,16 @@ function Navbar({ modoOscuro, onCambiarTema }) {
 
   return (
     <nav className="navbar" aria-label="Principal">
-      <Link to="/" className="marca-contenedor">
+      <Link
+        to="/nosotros"
+        className="marca-contenedor"
+        aria-label="El Rincón de Hermes: ir a Nosotros"
+      >
         <img src={logo} alt="" />
         <span className="marca">El Rincón de Hermes</span>
       </Link>
 
       <ul className="links">
-        <li>
-          <NavLink to="/nosotros" className={clase}>
-            NOSOTROS
-          </NavLink>
-        </li>
-
         <li>
           <NavLink to="/club" className={clase}>
             CLUB
@@ -112,16 +110,6 @@ function Navbar({ modoOscuro, onCambiarTema }) {
             </span>
           </li>
         )}
-
-        <li>
-          <button
-            type="button"
-            className="boton-tema"
-            onClick={onCambiarTema}
-          >
-            {modoOscuro ? "☀ Modo claro" : "🌙 Modo oscuro"}
-          </button>
-        </li>
 
         <li className="acciones-sesion">
           {usuario ? (
@@ -231,6 +219,20 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   <button
                     type="button"
                     className="btn-login"
+                    onClick={onCambiarTema}
+                    aria-pressed={modoOscuro}
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      padding: 10,
+                    }}
+                  >
+                    {modoOscuro ? "☀️" : "🌙"} Tema
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-login"
                     onClick={cerrarSesion}
                     style={{
                       width: "100%",
@@ -244,15 +246,9 @@ function Navbar({ modoOscuro, onCambiarTema }) {
               )}
             </div>
           ) : (
-            <>
-              <NavLink to="/login" className="btn-login">
-                Iniciar sesión
-              </NavLink>
-
-              <NavLink to="/registro" className="btn-registro">
-                Registrarse
-              </NavLink>
-            </>
+            <NavLink to="/login" className="btn-login">
+              Iniciar sesión
+            </NavLink>
           )}
         </li>
       </ul>

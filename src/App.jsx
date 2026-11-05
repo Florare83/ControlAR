@@ -6,6 +6,8 @@ import Navbar from "./components/Navbar.jsx";
 import RutaProtegida from "./components/RutaProtegida.jsx";
 import PanelLayout from "./components/PanelLayout.jsx";
 import CarritoSidebar from "./components/CarritoSidebar.jsx";
+import Footer from "./components/Footer.jsx";
+import BotonWhatsApp from "./components/BotonWhatsApp.jsx";
 
 import Nosotros from "./pages/Nosotros.jsx";
 import CuentaLayout from "./components/CuentaLayout.jsx";
@@ -314,6 +316,13 @@ function App() {
         </Routes>
         </Suspense>
       </main>
+
+      {!pantallaCompleta && (
+        <>
+          <Footer />
+          <BotonWhatsApp />
+        </>
+      )}
     </>
   );
 }
