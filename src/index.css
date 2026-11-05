@@ -4105,61 +4105,35 @@ body.oscuro .hilo-burbuja.propia {
 .footer {
   background: #161c3f;
   color: #ffffff;
-  padding: 32px 32px 20px;
+  padding: 12px 32px;
   margin-top: 40px;
-}
-
-.footer-contenido {
-  max-width: 1400px;
-  margin: 0 auto;
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-}
-
-.footer p {
-  margin: 0 0 6px;
-  font-size: 14px;
-  opacity: 0.9;
-}
-
-.footer .footer-marca {
-  font-size: 18px;
-  font-weight: 700;
-  opacity: 1;
-}
-
-.footer .footer-titulo {
-  font-weight: 700;
-  opacity: 1;
-}
-
-.footer ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-  font-size: 14px;
-}
-
-.footer a {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.footer a:hover {
-  opacity: 0.8;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
 
 .footer .footer-copy {
-  max-width: 1400px;
-  margin: 24px auto 0;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 0;
   font-size: 13px;
-  opacity: 0.75;
+  opacity: 0.8;
+}
+
+.footer .footer-redes {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer .footer-redes a {
+  display: flex;
+  color: #ffffff;
+  opacity: 0.85;
+}
+
+.footer .footer-redes a:hover {
+  opacity: 1;
 }
 
 .boton-whatsapp {
@@ -4185,7 +4159,7 @@ body.oscuro .hilo-burbuja.propia {
 
 @media (max-width: 640px) {
   .footer {
-    padding: 24px 16px 16px;
+    padding: 12px 16px;
   }
 
   .boton-whatsapp {

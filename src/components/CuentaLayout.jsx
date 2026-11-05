@@ -30,7 +30,7 @@ function CuentaLayout() {
               {rol === "cliente" && (
                 <li>
                   <NavLink to="/cuenta/novedades" className={clase}>
-                    📬 Novedades
+                    📬 Suscripción
                   </NavLink>
                 </li>
               )}

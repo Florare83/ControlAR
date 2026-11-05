@@ -82,18 +82,6 @@ function Nosotros() {
 
       {/* Los 3 últimos juegos cargados (se actualizan solos) */}
       <JuegosNovedades />
-
-      {/* Cierre */}
-      <aside className="pg-cierre">
-        <div>
-          <h2>¿Te quedó alguna duda?</h2>
-          <p>Escribinos y te respondemos.</p>
-        </div>
-
-        <Link to="/contacto" className="pg-boton pg-boton-claro">
-          Contactanos
-        </Link>
-      </aside>
     </div>
   );
 }

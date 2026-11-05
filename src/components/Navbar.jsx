@@ -123,7 +123,8 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   setMenuCuentaAbierto((abierto) => !abierto)
                 }
               >
-                {usuario.nombre} {menuCuentaAbierto ? "▲" : "▼"}
+                <span aria-hidden="true">👤</span> {usuario.nombre}{" "}
+                {menuCuentaAbierto ? "▲" : "▼"}
                 {mensajesSinLeer > 0 && (
                   <span className="punto-aviso" role="status">
                     <span className="solo-lectores">
@@ -213,7 +214,7 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                     onClick={cerrarMenuCuenta}
                     style={{ padding: 10 }}
                   >
-                    👤 Mi cuenta
+                    ⚙️ Mi cuenta
                   </NavLink>
 
                   <button
