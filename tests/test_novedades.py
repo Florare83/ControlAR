@@ -542,3 +542,73 @@ def test_el_automatico_envia_y_no_repite_enseguida(client, admin, db, correos, m
     assert primera.status_code == 200 and primera.json()["enviados"] == 1
     assert segunda.json()["enviados"] == 0
     assert len(correos) == 1
+
+
+# ------------------------------------------- resumen: el administrador elige qué mandar
+
+def test_el_panel_lista_eventos_y_juegos_para_elegir(client, admin, db, hacer_juego):
+    _, h_admin = admin
+    _persona(db, "ana@prueba.com")
+    _crear_evento(client, h_admin)
+    client.post("/suscripcion/resumen/enviar", headers=h_admin)  # punto de partida
+    hacer_juego("Azul")
+
+    estado = client.get("/suscripcion/resumen", headers=h_admin).json()
+
+    assert [e["titulo"] for e in estado["eventos"]] == ["Torneo de Catan"]
+    assert [j["titulo"] for j in estado["juegos_nuevos"]] == ["Azul"]
+
+
+def test_se_puede_mandar_solo_lo_elegido(client, admin, db, correos, hacer_juego):
+    _, h_admin = admin
+    _persona(db, "ana@prueba.com")
+    _crear_evento(client, h_admin)
+    client.post("/suscripcion/resumen/enviar", headers=h_admin)  # punto de partida
+    correos.clear()
+    azul = hacer_juego("Azul")
+    hacer_juego("Catan")
+
+    r = client.post(
+        "/suscripcion/resumen/enviar",
+        headers=h_admin,
+        json={"eventos_ids": [], "juegos_ids": [azul.id], "incluir_favoritos": False},
+    )
+
+    assert r.json()["enviados"] == 1
+    cuerpo = correos[0][2]
+    assert "Azul" in cuerpo and "Catan" not in cuerpo
+    assert "PRÓXIMOS EVENTOS" not in cuerpo
+
+
+def test_lo_que_no_se_mando_sigue_pendiente(client, admin, db, correos, hacer_juego):
+    _, h_admin = admin
+    _persona(db, "ana@prueba.com")
+    client.post("/suscripcion/resumen/enviar", headers=h_admin)  # punto de partida
+    azul = hacer_juego("Azul")
+    hacer_juego("Catan")
+
+    client.post(
+        "/suscripcion/resumen/enviar",
+        headers=h_admin,
+        json={"eventos_ids": [], "juegos_ids": [azul.id], "incluir_favoritos": True},
+    )
+    estado = client.get("/suscripcion/resumen", headers=h_admin).json()
+
+    # No salieron todos los juegos nuevos: el punto de partida no avanza.
+    assert estado["pendiente"]["juegos_nuevos"] == 2
+
+
+def test_sin_elegir_nada_no_se_manda_ni_se_guarda(client, admin, db, correos):
+    _, h_admin = admin
+    _persona(db, "ana@prueba.com")
+    _crear_evento(client, h_admin)
+
+    r = client.post(
+        "/suscripcion/resumen/enviar",
+        headers=h_admin,
+        json={"eventos_ids": [], "juegos_ids": [], "incluir_favoritos": False},
+    )
+    estado = client.get("/suscripcion/resumen", headers=h_admin).json()
+
+    assert r.json()["enviados"] == 0 and correos == []
+    assert estado["primera_vez"] is True

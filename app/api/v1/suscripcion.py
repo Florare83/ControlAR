@@ -25,6 +25,14 @@ class BajaIn(BaseModel):
     token: str = Field(min_length=10, max_length=1000)
 
 
+class EnviarResumenIn(BaseModel):
+    """Qué mandar en el resumen. Sin este cuerpo (o con None) se manda todo, como siempre."""
+
+    eventos_ids: list[int] | None = None
+    juegos_ids: list[int] | None = None
+    incluir_favoritos: bool = True
+
+
 @router.post("/baja")
 def darse_de_baja(datos: BajaIn, db: Session = Depends(get_db)):
     """Da de baja de las novedades a quien tiene el enlace. Se puede repetir sin problema."""
@@ -57,17 +65,33 @@ def estado_del_resumen(db: Session = Depends(get_db), _=Depends(require_admin)):
             "juegos_nuevos": len(contexto["nuevos"]),
             "personas_con_favoritos": len(contexto["favoritos"]),
         },
+        # El detalle, para que el administrador elija qué mandar.
+        "eventos": [
+            {"id": e.id, "titulo": e.titulo, "fecha": e.fecha.isoformat() if e.fecha else None}
+            for e in contexto["eventos"]
+        ],
+        "juegos_nuevos": [{"id": j.id, "titulo": j.titulo} for j in contexto["nuevos"]],
     }
 
 
 @router.post("/resumen/enviar")
 def enviar_resumen(
     tareas: BackgroundTasks,
+    datos: EnviarResumenIn | None = None,
     db: Session = Depends(get_db),
     _=Depends(require_admin),
 ):
-    """El administrador manda el resumen ahora."""
-    return {"enviados": resumen.enviar(db, tareas)}
+    """El administrador manda el resumen ahora, con lo que haya elegido (o todo)."""
+    datos = datos or EnviarResumenIn()
+    return {
+        "enviados": resumen.enviar(
+            db,
+            tareas,
+            eventos_ids=datos.eventos_ids,
+            juegos_ids=datos.juegos_ids,
+            incluir_favoritos=datos.incluir_favoritos,
+        )
+    }
 
 
 @router.post("/resumen/automatico")

@@ -10,6 +10,7 @@ function Footer() {
     <footer className="footer">
       <p className="footer-copy">
         © {anio} El Rincón de Hermes. Todos los derechos reservados.
+        <span className="footer-lugar"> · Salta, Argentina</span>
       </p>
 
       <div className="footer-redes">

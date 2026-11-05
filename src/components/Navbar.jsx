@@ -123,7 +123,7 @@ function Navbar({ modoOscuro, onCambiarTema }) {
                   setMenuCuentaAbierto((abierto) => !abierto)
                 }
               >
-                <span aria-hidden="true">👤</span> {usuario.nombre}{" "}
+                <span aria-hidden="true">👤</span> Hola {usuario.nombre}{" "}
                 {menuCuentaAbierto ? "▲" : "▼"}
                 {mensajesSinLeer > 0 && (
                   <span className="punto-aviso" role="status">

@@ -4173,3 +4173,28 @@ body.oscuro .hilo-burbuja.propia {
     transition: none;
   }
 }
+
+
+/* ============================================
+   Panel > Novedades: elegir qué incluir en el resumen
+   ============================================ */
+.resumen-opcion {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  max-width: 640px;
+}
+
+.resumen-opcion legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.resumen-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}

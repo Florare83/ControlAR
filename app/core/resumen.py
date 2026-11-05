@@ -76,30 +76,63 @@ def armar(db: Session) -> dict:
     }
 
 
-def enviar(db: Session, tareas) -> int:
+def enviar(
+    db: Session,
+    tareas,
+    eventos_ids: list[int] | None = None,
+    juegos_ids: list[int] | None = None,
+    incluir_favoritos: bool = True,
+) -> int:
     """Arma el resumen para cada suscriptor, programa el envío y guarda el punto de partida
     del próximo. Devuelve a cuántas personas se les manda. A quien no le toca nada (sin
-    eventos, sin juegos nuevos y sin favoritos) no se le escribe."""
+    eventos, sin juegos nuevos y sin favoritos) no se le escribe.
+
+    El administrador puede elegir qué incluir: eventos_ids y juegos_ids limitan a esos
+    eventos y juegos (None = todos) e incluir_favoritos apaga los favoritos. Lo que se deja
+    afuera sigue pendiente: los juegos nuevos solo se dan por contados si salieron todos, y
+    los favoritos solo si se incluyeron."""
     usuarios = suscripciones.suscriptores(db)
     if not usuarios:
         return 0  # sin suscriptores no se guarda nada: lo nuevo sigue "pendiente"
 
     contexto = armar(db)
+    previo = contexto["previo"]
+
+    eventos = contexto["eventos"]
+    if eventos_ids is not None:
+        eventos = [e for e in eventos if e.id in set(eventos_ids)]
+
+    todos_nuevos = contexto["nuevos"]
+    nuevos = todos_nuevos
+    if juegos_ids is not None:
+        nuevos = [j for j in todos_nuevos if j.id in set(juegos_ids)]
+
+    favoritos_por_persona = contexto["favoritos"] if incluir_favoritos else {}
+
+    if not eventos and not nuevos and not incluir_favoritos:
+        return 0  # no se eligió nada: no se manda ni se guarda nada
 
     # Los correos se arman ANTES del commit, mientras los objetos siguen cargados.
     correos = []
     for usuario in usuarios:
-        favoritos = contexto["favoritos"].get(usuario.id, [])
-        if not (contexto["eventos"] or contexto["nuevos"] or favoritos):
+        favoritos = favoritos_por_persona.get(usuario.id, [])
+        if not (eventos or nuevos or favoritos):
             continue
-        correos.append(
-            avisos.correo_resumen(usuario, contexto["eventos"], contexto["nuevos"], favoritos)
-        )
+        correos.append(avisos.correo_resumen(usuario, eventos, nuevos, favoritos))
+
+    # Punto de partida del próximo resumen: solo avanza en lo que se mandó completo.
+    # En el primer envío no hay con qué comparar, así que siempre arranca de cero.
+    juegos_completos = previo is None or len(nuevos) == len(todos_nuevos)
+    ultimo_juego_id = contexto["maximo_juego"] if juegos_completos else previo.ultimo_juego_id
+    if previo is None or incluir_favoritos:
+        disponibles = json.dumps(sorted(contexto["disponibles"]))
+    else:
+        disponibles = previo.disponibles
 
     db.add(
         ResumenNovedades(
-            ultimo_juego_id=contexto["maximo_juego"],
-            disponibles=json.dumps(sorted(contexto["disponibles"])),
+            ultimo_juego_id=ultimo_juego_id,
+            disponibles=disponibles,
             destinatarios=len(correos),
         )
     )

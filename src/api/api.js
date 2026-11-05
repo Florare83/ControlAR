@@ -167,8 +167,12 @@ export const guardarNovedades = (suscrito) =>
 // Resumen de novedades (administración): qué llevaría y envío manual.
 export const obtenerResumenNovedades = () => pedir("/suscripcion/resumen");
 
-export const enviarResumenNovedades = () =>
-  pedir("/suscripcion/resumen/enviar", { method: "POST" });
+// seleccion: { eventos_ids, juegos_ids, incluir_favoritos }. Sin ella se manda todo.
+export const enviarResumenNovedades = (seleccion) =>
+  pedir("/suscripcion/resumen/enviar", {
+    method: "POST",
+    ...(seleccion ? { body: JSON.stringify(seleccion) } : {}),
+  });
 
 // Baja con el enlace de un correo (no hace falta iniciar sesión).
 export const darseDeBajaNovedades = (token) =>
