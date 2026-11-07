@@ -24,6 +24,7 @@ from app.api.v1.clientes import router as clientes_router
 from app.api.v1.suscripcion import router as suscripcion_router
 
 from app.core.asegurar_esquema import asegurar_esquema
+from app.core.cors import origenes_permitidos
 
 
 @asynccontextmanager
@@ -44,21 +45,10 @@ app = FastAPI(
 # CORS: permitir el frontend local y el publicado en Render
 # ---------------------------------------------------------
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
-extra = os.getenv("CORS_ORIGINS", "")
-
-origins += [
-    origen.strip().rstrip("/")
-    for origen in extra.split(",")
-    if origen.strip()
-]
-
-# Evitar orígenes duplicados conservando el orden.
-origins = list(dict.fromkeys(origins))
+origins = origenes_permitidos(
+    os.getenv("CORS_ORIGINS", ""),
+    os.getenv("FRONTEND_URL", ""),
+)
 
 
 app.add_middleware(

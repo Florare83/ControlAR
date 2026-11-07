@@ -11,7 +11,7 @@
 #  - El préstamo sigue siendo solo durante el evento: el administrador entrega el juego
 #    en el lugar y ahí se crea el préstamo.
 import logging
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
@@ -20,6 +20,7 @@ from app.api.v1.auth.dependencies import get_current_user, require_admin
 from app.api.v1.juegos import repository as juegos_repo
 from app.core import avisos
 from app.core.clientes import asegurar_cliente
+from app.core.cron import exigir_clave_cron
 from app.core.db import get_db
 from app.core.reservas_reglas import ahora, cierre_reservas, inicio_evento, limite_espera
 from app.models.evento import Evento
@@ -88,11 +89,12 @@ def exigir_dni_verificado(usuario: Usuario) -> None:
     raise HTTPException(status_code=403, detail=detalle)
 
 
-def vencer_reservas(db: Session, tareas: BackgroundTasks | None = None) -> None:
+def vencer_reservas(db: Session, tareas: BackgroundTasks | None = None) -> int:
     """Pasa a "vencida" toda reserva activa cuya espera ya terminó (así el juego se libera).
 
     Si se pasa `tareas`, además se avisa por correo a cada persona cuya reserva venció.
-    Esto ocurre cuando alguien usa la web después del límite (no hay un reloj aparte)."""
+    Esto ocurre cuando alguien usa la web después del límite o cuando un cron externo llama a
+    `POST /reservas/vencer/automatico`. Devuelve cuántas reservas venció."""
     momento = ahora()
     activas = (
         db.query(Reserva)
@@ -115,6 +117,7 @@ def vencer_reservas(db: Session, tareas: BackgroundTasks | None = None) -> None:
                     avisos.enviar_aviso,
                     *avisos.correo_reserva_vencida(reserva.usuario, reserva),
                 )
+    return len(vencidas)
 
 
 def evento_actual(db: Session) -> Evento | None:
@@ -448,3 +451,16 @@ def entregar(
 
     db.refresh(reserva)
     return _reserva_dict(reserva, con_usuario=True)
+
+
+@router.post("/vencer/automatico")
+def vencer_automatico(
+    tareas: BackgroundTasks,
+    db: Session = Depends(get_db),
+    x_cron_clave: str | None = Header(default=None),
+):
+    """Para un cron externo cada 10 o 15 minutos: vence las reservas cuya espera terminó y
+    manda el correo de «reserva vencida» a su hora, sin esperar a que alguien entre a la web.
+    Se activa con CRON_CLAVE (la misma del resumen de novedades) en el encabezado X-Cron-Clave."""
+    exigir_clave_cron(x_cron_clave)
+    return {"vencidas": vencer_reservas(db, tareas)}
