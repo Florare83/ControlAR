@@ -1,8 +1,9 @@
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { imagenDeJuego } from "../api/imagenes.js";
 import { useCarrito } from "../context/CarritoContext.jsx";
 import { formatearPrecio } from "./LineaCarrito.jsx";
+import "./animacionesJuegos.css";
 
 function TarjetaJuego({
   juego,
@@ -38,6 +39,22 @@ function TarjetaJuego({
       ? juego.imagen_url.trim()
       : imagenAlternativa;
 
+  // Animación de carga: mientras la imagen llega se ve un brillo suave, y al terminar aparece
+  // con un fundido. Se guarda QUÉ imagen terminó de cargar (no un sí/no), así, si hay que
+  // cambiar a la imagen de reemplazo, la animación vuelve a empezar sola.
+  const imgRef = useRef(null);
+  const [imagenCargada, setImagenCargada] = useState("");
+  const cargada = imagenCargada === imagen;
+
+  // Si la imagen ya estaba en caché, puede estar lista antes de que React escuche "onLoad".
+  useEffect(() => {
+    const el = imgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) setImagenCargada(imagen);
+  }, [imagen]);
+
+  // Pequeño "latido" del corazón al marcar o desmarcar un favorito.
+  const [latido, setLatido] = useState(false);
+
   // Botón "me gusta": sobre la foto, solo para visitantes y clientes.
   const propsFavorito = {
     type: "button",
@@ -47,7 +64,10 @@ function TarjetaJuego({
       ? `Quitar ${juego.titulo} de favoritos`
       : `Agregar ${juego.titulo} a favoritos`,
     title: esFavorito ? "Quitar de favoritos" : "Me gusta",
-    onClick: onToggleFavorito,
+    onClick: () => {
+      setLatido(true);
+      onToggleFavorito?.();
+    },
   };
   const corazon = esFavorito ? "❤️" : "♡";
 
@@ -56,15 +76,20 @@ function TarjetaJuego({
       className={`tarjeta tarjeta-juego ${esAdmin ? "tarjeta-juego-admin" : ""}`}
       aria-labelledby={idTitulo}
     >
-      <div className="juego-foto">
+      <div className={`juego-foto ${cargada ? "cargada" : "cargando"}`}>
         <img
+          ref={imgRef}
           src={imagen}
           alt={`Imagen de ${juego.titulo}`}
           loading="lazy"
           decoding="async"
+          onLoad={() => setImagenCargada(imagen)}
           onError={() => {
             if (juego.imagen_url && !imagenFallida) {
               setImagenFallida(true);
+            } else {
+              // Tampoco carga la de reemplazo: se deja de animar la espera.
+              setImagenCargada(imagen);
             }
           }}
         />
@@ -72,7 +97,8 @@ function TarjetaJuego({
         {!esAdmin && (
           <button
             {...propsFavorito}
-            className={`favorito-foto ${esFavorito ? "activo" : ""}`}
+            className={`favorito-foto ${esFavorito ? "activo" : ""} ${latido ? "latido" : ""}`}
+            onAnimationEnd={() => setLatido(false)}
           >
             {corazon}
           </button>

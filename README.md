@@ -684,6 +684,7 @@ Lo ya consultado se guarda en memoria mientras la página está abierta: volver 
 - Accesibilidad: enlace «Saltar al contenido», regiones *aria-live* para avisos y manejo de foco en el carrito.
 - Modo claro/oscuro desde la barra de navegación (no se guarda entre visitas). Los reportes también lo respetan.
 - Las pantallas se cargan bajo demanda (`React.lazy`) y las imágenes usan `loading="lazy"`.
+- **Animaciones de las imágenes de juegos** (`src/components/animacionesJuegos.css`): brillo mientras carga y fundido al aparecer, tarjetas que entran de a una, zoom y elevación al pasar el mouse (solo en pantallas con mouse) y «latido» del corazón de favoritos. Se desactivan si el dispositivo pide reducir el movimiento.
 - El número de WhatsApp de la tienda está definido en `src/pages/Checkout.jsx`.
 
 ---
