@@ -4198,3 +4198,44 @@ body.oscuro .hilo-burbuja.propia {
   display: grid;
   gap: 6px;
 }
+
+
+/* ===== Pulido visual ===== */
+@media (prefers-reduced-motion: no-preference) {
+  .tarjeta.tarjeta-juego {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .tarjeta.tarjeta-juego:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(22, 28, 63, 0.14);
+  }
+
+  .boton {
+    transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  .boton:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .navbar .links a {
+    transition: opacity 0.15s ease;
+  }
+
+  .pagina {
+    animation: aparecer 0.3s ease both;
+  }
+
+  .toast {
+    animation: entrar-toast 0.25s ease both;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @keyframes entrar-toast {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
