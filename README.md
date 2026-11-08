@@ -462,7 +462,7 @@ Leyenda de acceso: **Público**, **Usuario** (cualquier sesión), **Admin**. Có
 | POST | `/auth/cambiar-contrasena` | Usuario | Requiere la actual; la nueva, de 8 o más y distinta |
 | DELETE | `/auth/me` | Usuario | Desactiva la cuenta (pide la contraseña) |
 | GET | `/auth/admin/usuarios` | Admin | Lista usuarios (`?buscar=` por nombre, email o DNI, también con puntos). Incluye `prestamos_cantidad` y `prestamo_nombre` (a nombre de quién están los préstamos con el DNI de la cuenta) para compararlos antes de verificar |
-| PATCH | `/auth/admin/usuarios/{id}` | Admin | Cambia `es_admin`, `activo` y/o `dni_verificado` (los dos primeros no sobre uno mismo). `dni_verificado` exige que la cuenta tenga DNI y que ninguna otra lo tenga verificado |
+| PATCH | `/auth/admin/usuarios/{id}` | Admin | Cambia `nombre`, `es_admin`, `activo` y/o `dni_verificado` (`es_admin` y `activo` no sobre uno mismo; el nombre sí se puede cambiar, de 2 a 100 caracteres). `dni_verificado` exige que la cuenta tenga DNI y que ninguna otra lo tenga verificado |
 
 ### Juegos y categorías
 

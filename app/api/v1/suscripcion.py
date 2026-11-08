@@ -24,6 +24,14 @@ class BajaIn(BaseModel):
     token: str = Field(min_length=10, max_length=1000)
 
 
+class SeleccionResumenIn(BaseModel):
+    """Qué incluir en el resumen. None = todo (eventos_ids / juegos_ids)."""
+
+    eventos_ids: list[int] | None = None
+    juegos_ids: list[int] | None = None
+    incluir_favoritos: bool = True
+
+
 @router.post("/baja")
 def darse_de_baja(datos: BajaIn, db: Session = Depends(get_db)):
     """Da de baja de las novedades a quien tiene el enlace. Se puede repetir sin problema."""
@@ -51,6 +59,18 @@ def estado_del_resumen(db: Session = Depends(get_db), _=Depends(require_admin)):
         "primera_vez": previo is None,
         "ultimo_envio": previo.enviado_en.isoformat() if previo else None,
         "ultimo_destinatarios": previo.destinatarios if previo else None,
+        # Para que el panel deje elegir qué incluir.
+        "eventos": [
+            {
+                "id": e.id,
+                "titulo": e.titulo,
+                "fecha": e.fecha.isoformat() if e.fecha else None,
+            }
+            for e in contexto["eventos"]
+        ],
+        "juegos_nuevos": [
+            {"id": j.id, "titulo": j.titulo} for j in contexto["nuevos"]
+        ],
         "pendiente": {
             "eventos": len(contexto["eventos"]),
             "juegos_nuevos": len(contexto["nuevos"]),
@@ -62,11 +82,21 @@ def estado_del_resumen(db: Session = Depends(get_db), _=Depends(require_admin)):
 @router.post("/resumen/enviar")
 def enviar_resumen(
     tareas: BackgroundTasks,
+    seleccion: SeleccionResumenIn | None = None,
     db: Session = Depends(get_db),
     _=Depends(require_admin),
 ):
-    """El administrador manda el resumen ahora."""
-    return {"enviados": resumen.enviar(db, tareas)}
+    """El administrador manda el resumen ahora. Sin cuerpo manda todo; con cuerpo,
+    solo lo que eligió (eventos, juegos nuevos y si incluye favoritos)."""
+    seleccion = seleccion or SeleccionResumenIn()
+    enviados = resumen.enviar(
+        db,
+        tareas,
+        eventos_ids=seleccion.eventos_ids,
+        juegos_ids=seleccion.juegos_ids,
+        incluir_favoritos=seleccion.incluir_favoritos,
+    )
+    return {"enviados": enviados}
 
 
 @router.post("/resumen/automatico")

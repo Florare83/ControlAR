@@ -3,7 +3,7 @@ import re
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -64,10 +64,24 @@ class UsuarioAdminOut(BaseModel):
 
 
 class ActualizarUsuarioAdmin(BaseModel):
+    # Nombre que se ve en "Hola ..." y en el panel. Se guarda sin espacios sobrantes.
+    nombre: str | None = None
     es_admin: bool | None = None
     activo: bool | None = None
     # El administrador lo marca después de mirar el DNI físico de la persona.
     dni_verificado: bool | None = None
+
+    @field_validator("nombre")
+    @classmethod
+    def validar_nombre(cls, valor):
+        if valor is None:
+            return None
+        valor = " ".join(valor.split())  # recorta y junta espacios repetidos
+        if len(valor) < 2:
+            raise ValueError("El nombre debe tener al menos 2 caracteres")
+        if len(valor) > 100:
+            raise ValueError("El nombre no puede superar los 100 caracteres")
+        return valor
 
 
 @router.post("/register", response_model=UsuarioOut, status_code=201)
@@ -423,6 +437,9 @@ def actualizar_usuario_admin(
                     "Quitale la verificación a esa cuenta primero."
                 ),
             )
+
+    if cambios.get("nombre") is not None:
+        usuario.nombre = cambios["nombre"]
 
     if cambios.get("activo") is not None:
         usuario.activo = cambios["activo"]
