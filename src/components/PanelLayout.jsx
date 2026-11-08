@@ -7,6 +7,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 // Solo accede el administrador (la ruta /panel está protegida en App.jsx).
 function PanelLayout() {
   const { usuario } = useAuth();
+  // Saludo con el primer nombre (el nombre completo ya figura en el menú de la cuenta).
+  const primerNombre = (usuario?.nombre || "").trim().split(/\s+/)[0];
   const clase = ({ isActive }) => (isActive ? "activo" : "");
 
   // Cantidad de mensajes de contacto sin leer.
@@ -38,8 +40,8 @@ function PanelLayout() {
       <aside className="panel-menu">
         <div className="panel-menu-fijo">
         <p className="panel-rol">
-          <strong>Administrador</strong>
-          <span>{usuario.nombre}</span>
+          <strong>{primerNombre ? `Hola, ${primerNombre}` : "Hola"}</strong>
+          <span>Administrador</span>
         </p>
 
         <nav aria-label="Navegación del panel">

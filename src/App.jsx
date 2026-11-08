@@ -66,6 +66,7 @@ function leerTemaGuardado() {
 function App() {
   const [modoOscuro, setModoOscuro] = useState(leerTemaGuardado);
   const { pathname, hash } = useLocation();
+  const { rol } = useAuth();  
 
   // Checkout y resultado de compra ocupan toda la pantalla.
   const pantallaCompleta =
@@ -320,7 +321,7 @@ function App() {
       {!pantallaCompleta && (
         <>
           <Footer />
-          <BotonWhatsApp />
+          {rol !== "admin" && <BotonWhatsApp />}   {/* ← condición nueva */}
         </>
       )}
     </>

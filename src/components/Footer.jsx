@@ -1,10 +1,7 @@
-import { enlaceWhatsApp } from "./BotonWhatsApp.jsx";
-
 const INSTAGRAM = "https://www.instagram.com/elrincondehermes";
 
 function Footer() {
   const anio = new Date().getFullYear();
-  const wa = enlaceWhatsApp();
 
   return (
     <footer className="footer">
