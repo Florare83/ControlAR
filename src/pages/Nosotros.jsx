@@ -22,7 +22,7 @@ function Nosotros() {
       {/* Portada: quiénes somos + la foto del grupo */}
       <header className="pg-hero pg-hero-con-imagen">
         <div className="pg-hero-contenido">
-          <h1>Quiénes somos</h1>
+          <h1>Bienvenidos al Rincón</h1>
           <p className="pg-hero-texto">
             El Rincón de Hermes es un club de juegos de mesa modernos de Salta,
             pensado para reunir a la comunidad a pasar un rato socializando,

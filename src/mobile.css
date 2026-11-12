@@ -230,7 +230,7 @@ body.oscuro .boton:disabled {
     bottom: 0;
     z-index: 900;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 2px;
     height: var(--barra-inferior);
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
@@ -850,4 +850,17 @@ body.oscuro .boton:disabled {
   .barra-inferior button {
     transition: none;
   }
+}
+
+/* Íconos de la barra de pestañas inferior */
+.barra-inferior .icono-tab {
+  display: block;
+  width: 24px;
+  height: 24px;
+  transition: transform 0.15s ease;
+}
+
+.barra-inferior .activo .icono-tab {
+  stroke-width: 2.4;
+  transform: translateY(-1px);
 }
