@@ -15,6 +15,8 @@ function Navbar({ modoOscuro, onCambiarTema }) {
   const ubicacion = useLocation();
 
   const [menuCuentaAbierto, setMenuCuentaAbierto] = useState(false);
+  // Menú hamburguesa del navbar (solo se usa en celular).
+  const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
   // Respuestas del equipo que el cliente todavía no leyó.
   const [mensajesSinLeer, setMensajesSinLeer] = useState(0);
 
@@ -47,6 +49,22 @@ function Navbar({ modoOscuro, onCambiarTema }) {
 
   const clase = ({ isActive }) => (isActive ? "activo" : "");
 
+  // Al cambiar de página se cierran los menús.
+  useEffect(() => {
+    setMenuMovilAbierto(false);
+    setMenuCuentaAbierto(false);
+  }, [ubicacion.pathname]);
+
+  // Escape cierra el menú hamburguesa.
+  useEffect(() => {
+    if (!menuMovilAbierto) return undefined;
+    const alTeclear = (e) => {
+      if (e.key === "Escape") setMenuMovilAbierto(false);
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [menuMovilAbierto]);
+
   function cerrarSesion() {
     setMenuCuentaAbierto(false);
     logout();
@@ -69,7 +87,24 @@ function Navbar({ modoOscuro, onCambiarTema }) {
         <span className="marca">El Rincón de Hermes</span>
       </Link>
 
-      <ul className="links">
+      <button
+        type="button"
+        className="navbar-hamburguesa"
+        aria-expanded={menuMovilAbierto}
+        aria-controls="navbar-links"
+        aria-label={menuMovilAbierto ? "Cerrar menú" : "Abrir menú"}
+        onClick={() => setMenuMovilAbierto((abierto) => !abierto)}
+      >
+        <span aria-hidden="true">{menuMovilAbierto ? "✕" : "☰"}</span>
+        {!menuMovilAbierto && mensajesSinLeer > 0 && (
+          <span className="punto-aviso" aria-hidden="true" />
+        )}
+      </button>
+
+      <ul
+        id="navbar-links"
+        className={`links${menuMovilAbierto ? " abierto" : ""}`}
+      >
         <li>
           <NavLink to="/club" className={clase}>
             CLUB

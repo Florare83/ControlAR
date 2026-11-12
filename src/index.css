@@ -109,6 +109,11 @@ a {
   font-weight: 600;
 }
 
+/* Botón hamburguesa del navbar: solo visible en celular */
+.navbar .navbar-hamburguesa {
+  display: none;
+}
+
 /* Menú desplegable de la cuenta */
 .navbar .menu-cuenta-contenedor {
   position: relative;
@@ -886,30 +891,97 @@ html {
 
 /* Tablets y celulares: 2 juegos por fila */
 @media (max-width: 640px) {
+  /* Navbar: marca + botón ☰ en una sola línea; los links van desplegados abajo */
   .navbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 16px;
+  }
+
+  .navbar .marca-contenedor img {
+    height: 38px;
+    width: auto;
+  }
+
+  .navbar .marca {
+    font-size: 19px;
+  }
+
+  .navbar .navbar-hamburguesa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 12px;
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .navbar .navbar-hamburguesa .punto-aviso {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    margin: 0;
   }
 
   .navbar .links {
-    flex-wrap: wrap;
-    gap: 14px;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
   }
 
-  /* En celular el botón queda a la izquierda: el menú se ancla al ancho
-     del navbar para que no se salga de la pantalla ni tape las letras. */
+  .navbar .links.abierto {
+    display: flex;
+  }
+
+  .navbar .links > li {
+    width: 100%;
+  }
+
+  .navbar .links > li > a {
+    display: block;
+    padding: 12px 8px;
+    font-size: 16px;
+  }
+
+  .navbar .acciones-sesion {
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: 6px;
+  }
+
+  .navbar .acciones-sesion > .btn-login,
+  .navbar .menu-cuenta-contenedor > .btn-login {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    text-align: center;
+  }
+
+  /* El menú de la cuenta se abre dentro del menú, sin salirse de la pantalla */
   .navbar .menu-cuenta-contenedor {
     position: static;
   }
 
   .navbar .menu-cuenta {
-    left: 12px;
-    right: 12px;
+    position: static;
     min-width: 0;
     max-width: none;
-    max-height: calc(100vh - var(--navbar-alto) - 24px);
-    overflow-y: auto;
+    margin-top: 8px;
   }
 
   .grilla-juegos {
