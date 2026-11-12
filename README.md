@@ -150,14 +150,15 @@ ControlAR/
 │   └── models/                       # Modelos SQLAlchemy (una tabla por archivo)
 ├── src/                              # Frontend (React + Vite)
 │   ├── main.jsx  App.jsx  index.css
+│   ├── mobile.css                    # Diseño para celulares (se carga después de index.css)
 │   ├── api/api.js                    # Cliente HTTP y manejo del token
 │   ├── context/                      # AuthContext, CarritoContext, ToastContext
 │   ├── components/                   # Navbar, TarjetaJuego, CarritoSidebar, Modal, Graficos, ...
 │   ├── pages/                        # Una pantalla por ruta
 │   │   └── reportes/                 # Pestañas de Reportes: préstamos, ventas, reservas, tabla dinámica
 │   ├── data/eventos.js               # Funciones para mostrar eventos
-│   ├── hooks/useEventos.js           # Carga de eventos desde la API
-│   ├── utils/                        # prestamos.js, validacionesContacto.js
+│   ├── hooks/                        # useEventos.js, useChipActivo.js
+│   ├── utils/                        # prestamos.js, validacionesContacto.js, tablasResponsivas.js
 │   └── img/                          # Imágenes y logos
 ├── tests/                            # Pruebas automáticas (pytest)
 ├── docs/capturas/                    # Capturas usadas en este README
@@ -686,6 +687,17 @@ Lo ya consultado se guarda en memoria mientras la página está abierta: volver 
 - Las pantallas se cargan bajo demanda (`React.lazy`) y las imágenes usan `loading="lazy"`.
 - **Animaciones de las imágenes de juegos** (`src/components/animacionesJuegos.css`): brillo mientras carga y fundido al aparecer, tarjetas que entran de a una, zoom y elevación al pasar el mouse (solo en pantallas con mouse) y «latido» del corazón de favoritos. Se desactivan si el dispositivo pide reducir el movimiento.
 - El número de WhatsApp de la tienda está definido en `src/pages/Checkout.jsx`.
+
+### Diseño para celulares
+
+Todo vive en `src/mobile.css` (se importa en `main.jsx` después de `index.css`, así no se tocan los estilos de escritorio). Hay dos puntos de corte:
+
+- **Hasta 860 px** (celulares y tablets en vertical): barra superior corta (logo, tema y carrito) y **barra de pestañas abajo** (Inicio, Club, Juegos o Panel, Contacto y Cuenta), al alcance del pulgar. El menú de la cuenta y el carrito suben desde abajo como paneles. La barra inferior se oculta mientras se escribe en un campo. Respeta las zonas seguras del teléfono (`viewport-fit=cover` y `env(safe-area-inset-*)`).
+- **Hasta 700 px** (celulares): campos de 16 px y botones de 46 px de alto (evita el zoom de iPhone y facilita tocar), filtros del catálogo apilados, menú del panel y de «Mi cuenta» como botones que se deslizan hacia los costados, ventanas (modales) que suben desde abajo y **tablas del panel como tarjetas** (una por fila, con el título de cada dato; el orden por columna se conserva como botones «Ordenar»).
+
+Las tablas se convierten solas: `src/utils/tablasResponsivas.js` copia el texto de cada encabezado a las celdas de su columna (`data-label`) y vigila la página porque React vuelve a dibujar las filas. Cualquier tabla nueva con la clase `tabla` o `ventas-tabla` funciona sin cambios.
+
+El tema claro/oscuro ahora también se cambia desde la barra superior (antes solo estaba dentro del menú de la cuenta, y los visitantes sin sesión no podían cambiarlo). En modo oscuro se corrigieron los botones azules, cuyo texto no se leía.
 
 ---
 

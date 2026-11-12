@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { listarMensajes } from "../api/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import useChipActivo from "../hooks/useChipActivo.js";
 
 // Estructura común de los paneles: menú lateral + contenido.
 // Solo accede el administrador (la ruta /panel está protegida en App.jsx).
 function PanelLayout() {
   const { usuario } = useAuth();
+  useChipActivo(); // en celular, deja visible la sección activa del menú
   // Saludo con el primer nombre (el nombre completo ya figura en el menú de la cuenta).
   const primerNombre = (usuario?.nombre || "").trim().split(/\s+/)[0];
   const clase = ({ isActive }) => (isActive ? "activo" : "");

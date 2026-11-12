@@ -8,6 +8,7 @@ import PanelLayout from "./components/PanelLayout.jsx";
 import CarritoSidebar from "./components/CarritoSidebar.jsx";
 import Footer from "./components/Footer.jsx";
 import BotonWhatsApp from "./components/BotonWhatsApp.jsx";
+import { iniciarTablasResponsivas } from "./utils/tablasResponsivas.js";
 
 import Nosotros from "./pages/Nosotros.jsx";
 import CuentaLayout from "./components/CuentaLayout.jsx";
@@ -79,6 +80,9 @@ function App() {
   useEffect(() => {
     if (!hash) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [pathname, hash]);
+
+  // En celular las tablas del panel se ven como tarjetas: esto les pone el título a cada celda.
+  useEffect(() => iniciarTablasResponsivas(), []);
 
   // Aplica el tema a la página y lo guarda cada vez que cambia.
   useEffect(() => {

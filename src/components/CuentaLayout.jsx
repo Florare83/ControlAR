@@ -1,11 +1,13 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import useChipActivo from "../hooks/useChipActivo.js";
 
 // Estructura de "Mi cuenta": menú lateral + contenido.
 // Reutiliza los estilos del panel de administración (.pagina.panel).
 // El DNI solo se muestra a los clientes (es lo que les permite ver sus préstamos).
 function CuentaLayout() {
   const { usuario, rol } = useAuth();
+  useChipActivo(); // en celular, deja visible la sección activa del menú
   const clase = ({ isActive }) => (isActive ? "activo" : "");
 
   return (
