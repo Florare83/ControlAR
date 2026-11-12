@@ -109,6 +109,36 @@ a {
   font-weight: 600;
 }
 
+/* Menú desplegable de la cuenta */
+.navbar .menu-cuenta-contenedor {
+  position: relative;
+}
+
+.navbar .menu-cuenta {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  min-width: 220px;
+  max-width: calc(100vw - 24px);
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--fondo, #fff);
+  color: var(--texto, #222);
+  border: 1px solid var(--borde, #ccc);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: grid;
+  gap: 4px;
+}
+
+.navbar .menu-cuenta a,
+.navbar .menu-cuenta .btn-login {
+  padding: 10px;
+  white-space: normal;
+}
+
 /* ============================================
    Layout general de página
    ============================================ */
@@ -649,6 +679,11 @@ body.oscuro {
   min-width: 0;
 }
 
+/* Botón hamburguesa: solo visible en celular */
+.panel-hamburguesa {
+  display: none;
+}
+
 /* ============================================
    Responsive del panel
    ============================================ */
@@ -673,6 +708,53 @@ body.oscuro {
     width: auto;
     max-height: none;
     overflow-y: visible;
+    padding: 8px;
+  }
+
+  .panel-hamburguesa {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .panel-hamburguesa-icono {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .panel-hamburguesa-texto {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Opciones ocultas hasta tocar el botón */
+  .panel-menu-cuerpo {
+    display: none;
+    padding: 8px 4px 4px;
+    border-top: 1px solid var(--borde);
+    margin-top: 6px;
+  }
+
+  .panel-menu-cuerpo.abierto {
+    display: block;
+  }
+
+  .panel-menu a {
+    padding: 12px 10px;
   }
 }
 
@@ -813,6 +895,21 @@ html {
   .navbar .links {
     flex-wrap: wrap;
     gap: 14px;
+  }
+
+  /* En celular el botón queda a la izquierda: el menú se ancla al ancho
+     del navbar para que no se salga de la pantalla ni tape las letras. */
+  .navbar .menu-cuenta-contenedor {
+    position: static;
+  }
+
+  .navbar .menu-cuenta {
+    left: 12px;
+    right: 12px;
+    min-width: 0;
+    max-width: none;
+    max-height: calc(100vh - var(--navbar-alto) - 24px);
+    overflow-y: auto;
   }
 
   .grilla-juegos {
