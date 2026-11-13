@@ -51,6 +51,10 @@ def _comillas(nombre: str) -> str:
 
 def _valor_de_relleno(columna):
     """Valor con el que se completan los registros viejos en una columna nueva."""
+    # Hay datos que no se inventan para lo ya cargado (p. ej. la fecha de alta de un juego viejo).
+    if columna.info.get("sin_relleno"):
+        return None
+
     # Una referencia a otra tabla no se inventa: un 0 apuntaría a un registro inexistente.
     if columna.foreign_keys:
         return None

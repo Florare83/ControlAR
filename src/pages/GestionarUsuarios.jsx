@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import Modal from "../components/Modal.jsx";
 import FiltroSelect from "../components/FiltroSelect.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import { nombresCompatibles } from "../utils/nombres.js";
 import {
   actualizarUsuarioAdmin,
@@ -24,6 +25,7 @@ const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function GestionarUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const toast = useToast();
+  const { usuario: yo, recargarPerfil } = useAuth();
   const [busqueda, setBusqueda] = useState("");
   const [buscar, setBuscar] = useState(""); // la búsqueda se envía con una pequeña demora
   const [filtroRol, setFiltroRol] = useState("todos");
@@ -37,6 +39,11 @@ export default function GestionarUsuarios() {
   const [form, setForm] = useState(FORMULARIO_VACIO);
   const [errorForm, setErrorForm] = useState("");
   const [creando, setCreando] = useState(false);
+
+  // Edición del nombre de una cuenta (una a la vez, dentro de la propia fila).
+  const [editandoId, setEditandoId] = useState(null);
+  const [nombreEditado, setNombreEditado] = useState("");
+  const [errorNombre, setErrorNombre] = useState("");
 
   const cargarUsuarios = useCallback(async () => {
     setError("");
@@ -69,6 +76,48 @@ export default function GestionarUsuarios() {
       await cargarUsuarios();
     } catch (e) {
       toast.error(e.message || "No se pudo actualizar el usuario.");
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  function empezarEdicion(usuario) {
+    setEditandoId(usuario.id);
+    setNombreEditado(usuario.nombre);
+    setErrorNombre("");
+  }
+
+  function cancelarEdicion() {
+    setEditandoId(null);
+    setErrorNombre("");
+  }
+
+  async function guardarNombre(usuario) {
+    const nombre = nombreEditado.trim().replace(/\s+/g, " ");
+
+    if (nombre.length < 2) {
+      setErrorNombre("El nombre debe tener al menos 2 caracteres.");
+      return;
+    }
+
+    if (nombre === usuario.nombre) {
+      cancelarEdicion();
+      return;
+    }
+
+    setProcesando(usuario.id);
+    setErrorNombre("");
+
+    try {
+      await actualizarUsuarioAdmin(usuario.id, { nombre });
+      toast.exito("Nombre actualizado.");
+      cancelarEdicion();
+      await cargarUsuarios();
+
+      // Si el administrador se cambió el suyo, el saludo de la barra se actualiza ya.
+      if (yo?.id === usuario.id) await recargarPerfil();
+    } catch (e) {
+      setErrorNombre(e.message || "No se pudo cambiar el nombre.");
     } finally {
       setProcesando(null);
     }
@@ -394,7 +443,67 @@ export default function GestionarUsuarios() {
                 {visibles.map((usuario) => (
                   <tr key={usuario.id} className={usuario.activo ? undefined : "fila-inactiva"}>
                     <td>
-                      <strong>{usuario.nombre}</strong>
+                      {editandoId === usuario.id ? (
+                        <form
+                          className="usuarios-editar-nombre"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            guardarNombre(usuario);
+                          }}
+                        >
+                          <label
+                            htmlFor={`nombre-usuario-${usuario.id}`}
+                            className="solo-lectores"
+                          >
+                            Nombre de {usuario.nombre}
+                          </label>
+                          <input
+                            id={`nombre-usuario-${usuario.id}`}
+                            type="text"
+                            value={nombreEditado}
+                            maxLength={100}
+                            autoFocus
+                            onChange={(e) => setNombreEditado(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") cancelarEdicion();
+                            }}
+                          />
+                          {errorNombre && (
+                            <small role="alert" className="error">
+                              {errorNombre}
+                            </small>
+                          )}
+                          <div className="acciones-fila">
+                            <button
+                              type="submit"
+                              className="boton boton-chico"
+                              disabled={procesando === usuario.id}
+                            >
+                              {procesando === usuario.id ? "Guardando..." : "Guardar"}
+                            </button>
+                            <button
+                              type="button"
+                              className="boton boton-secundario boton-chico"
+                              onClick={cancelarEdicion}
+                              disabled={procesando === usuario.id}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <strong>{usuario.nombre}</strong>{" "}
+                          <button
+                            type="button"
+                            className="boton boton-secundario boton-chico"
+                            aria-label={`Editar el nombre de ${usuario.nombre}`}
+                            onClick={() => empezarEdicion(usuario)}
+                          >
+                            Editar
+                          </button>
+                        </>
+                      )}
                       <br />
                       <small>{usuario.email}</small>
                     </td>

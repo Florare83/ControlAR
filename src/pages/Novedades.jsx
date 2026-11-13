@@ -3,7 +3,7 @@ import { guardarNovedades } from "../api/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
-// "Mi cuenta > Novedades": el cliente elige si quiere recibir por correo los avisos
+// "Mi cuenta > Suscripción": el cliente elige si quiere recibir por correo los avisos
 // de eventos y juegos nuevos. Se cambia con un botón y se guarda al instante.
 function Novedades() {
   const { usuario, recargarPerfil } = useAuth();
@@ -32,7 +32,7 @@ function Novedades() {
 
   return (
     <section>
-      <h1>📬 Novedades</h1>
+      <h1>📬 Suscripción</h1>
 
       <p className="subtitulo">
         Si te suscribís, te mandamos un correo a <strong>{usuario?.email}</strong>{" "}

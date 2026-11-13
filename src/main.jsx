@@ -6,6 +6,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 import { CarritoProvider } from "./context/CarritoContext.jsx";
 import "./index.css";
+import "./mobile.css"; // ajustes para celulares: va después para poder redefinir estilos
 
 // Este es el punto de entrada de toda la aplicación.
 // BrowserRouter es lo que le permite a React Router manejar

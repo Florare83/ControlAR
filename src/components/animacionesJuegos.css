@@ -1,0 +1,149 @@
+/* Animaciones de las imágenes de los juegos (tarjetas del catálogo, portada y favoritos).
+   Todo es CSS: la única ayuda de React es la clase .cargando / .cargada de .juego-foto.
+   Los efectos de pasar el mouse solo se aplican en pantallas con mouse (no en el celular) y
+   todo se apaga para quien tiene activada la opción «reducir movimiento». */
+
+/* ---------- Carga: brillo mientras llega la imagen y fundido al aparecer ---------- */
+.tarjeta-juego .juego-foto {
+  overflow: hidden;
+  border-radius: 8px;
+  isolation: isolate;
+  background: var(--borde);
+  margin-bottom: 8px;
+}
+
+.tarjeta-juego .juego-foto img {
+  margin-bottom: 0;
+  opacity: 0;
+  transform: scale(1.06);
+  transition: opacity 0.55s ease, transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.tarjeta-juego .juego-foto.cargada img {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.tarjeta-juego .juego-foto.cargando::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--texto) 12%, transparent) 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  animation: juego-brillo 1.3s linear infinite;
+}
+
+/* El corazón siempre por encima del brillo */
+.tarjeta-juego .favorito-foto {
+  z-index: 2;
+}
+
+@keyframes juego-brillo {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---------- Entrada: las tarjetas suben y aparecen de a una ---------- */
+.grilla-juegos > * {
+  /* "backwards": solo afecta antes de empezar, así no pisa el efecto del mouse después. */
+  animation: juego-entra 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+
+.grilla-juegos > :nth-child(2) { animation-delay: 0.05s; }
+.grilla-juegos > :nth-child(3) { animation-delay: 0.1s; }
+.grilla-juegos > :nth-child(4) { animation-delay: 0.15s; }
+.grilla-juegos > :nth-child(5) { animation-delay: 0.2s; }
+.grilla-juegos > :nth-child(6) { animation-delay: 0.25s; }
+.grilla-juegos > :nth-child(7) { animation-delay: 0.3s; }
+.grilla-juegos > :nth-child(8) { animation-delay: 0.35s; }
+.grilla-juegos > :nth-child(n + 9) { animation-delay: 0.4s; }
+
+@keyframes juego-entra {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+/* ---------- Mouse encima: la tarjeta se levanta y la imagen se acerca ---------- */
+@media (hover: hover) {
+  .tarjeta.tarjeta-juego:not(.tarjeta-juego-admin) {
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+
+  .tarjeta.tarjeta-juego:not(.tarjeta-juego-admin):hover,
+  .tarjeta.tarjeta-juego:not(.tarjeta-juego-admin):focus-within {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+  }
+
+  .tarjeta-juego:not(.tarjeta-juego-admin):hover .juego-foto.cargada img,
+  .tarjeta-juego:not(.tarjeta-juego-admin):focus-within .juego-foto.cargada img {
+    transform: scale(1.08);
+  }
+}
+
+/* ---------- Corazón: late al marcar o desmarcar ---------- */
+.tarjeta-juego .favorito-foto {
+  transition: transform 0.15s ease;
+}
+
+.tarjeta-juego .favorito-foto:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.tarjeta-juego .favorito-foto.latido {
+  animation: juego-latido 0.45s ease;
+}
+
+@keyframes juego-latido {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---------- Quien prefiere menos movimiento ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .grilla-juegos > * {
+    animation: none;
+  }
+
+  .tarjeta-juego .juego-foto img {
+    transform: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .tarjeta-juego .juego-foto.cargando::before {
+    animation: none;
+  }
+
+  .tarjeta.tarjeta-juego:not(.tarjeta-juego-admin):hover,
+  .tarjeta.tarjeta-juego:not(.tarjeta-juego-admin):focus-within,
+  .tarjeta-juego:not(.tarjeta-juego-admin):hover .juego-foto.cargada img,
+  .tarjeta-juego:not(.tarjeta-juego-admin):focus-within .juego-foto.cargada img {
+    transform: none;
+  }
+
+  .tarjeta-juego .favorito-foto.latido {
+    animation: none;
+  }
+}

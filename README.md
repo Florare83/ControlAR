@@ -1,4 +1,4 @@
-git hstatus# ControlAR — El Rincón de Hermes
+# ControlAR — El Rincón de Hermes
 
 Sitio web y sistema de gestión de **El Rincón de Hermes**, un club de juegos de mesa modernos de Salta. Combina tres cosas en una sola aplicación:
 
@@ -135,6 +135,8 @@ ControlAR/
 │   │   ├── validaciones.py           # Validaciones del formulario de contacto y escape de búsquedas LIKE
 │   │   ├── limitador.py              # Límites de intentos (login y recuperación), en memoria
 │   │   ├── avisos.py                 # Todos los correos al cliente y su envío en segundo plano
+│   │   ├── cron.py                   # Clave (CRON_CLAVE) de las tareas que dispara un cron externo
+│   │   ├── cors.py                   # Orígenes permitidos (CORS)
 │   │   ├── clientes.py               # Fichas de clientes: alta automática y carga desde préstamos
 │   │   ├── recuperacion.py           # Enlace firmado de «olvidé mi contraseña»
 │   │   ├── suscripciones.py          # Token de baja de novedades
@@ -148,14 +150,15 @@ ControlAR/
 │   └── models/                       # Modelos SQLAlchemy (una tabla por archivo)
 ├── src/                              # Frontend (React + Vite)
 │   ├── main.jsx  App.jsx  index.css
+│   ├── mobile.css                    # Diseño para celulares (se carga después de index.css)
 │   ├── api/api.js                    # Cliente HTTP y manejo del token
 │   ├── context/                      # AuthContext, CarritoContext, ToastContext
 │   ├── components/                   # Navbar, TarjetaJuego, CarritoSidebar, Modal, Graficos, ...
 │   ├── pages/                        # Una pantalla por ruta
 │   │   └── reportes/                 # Pestañas de Reportes: préstamos, ventas, reservas, tabla dinámica
 │   ├── data/eventos.js               # Funciones para mostrar eventos
-│   ├── hooks/useEventos.js           # Carga de eventos desde la API
-│   ├── utils/                        # prestamos.js, validacionesContacto.js
+│   ├── hooks/                        # useEventos.js, useChipActivo.js
+│   ├── utils/                        # prestamos.js, validacionesContacto.js, tablasResponsivas.js
 │   └── img/                          # Imágenes y logos
 ├── tests/                            # Pruebas automáticas (pytest)
 ├── docs/capturas/                    # Capturas usadas en este README
@@ -211,7 +214,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-Son más de 180 pruebas sobre un SQLite temporal (no usan la base real ni mandan correos: el envío se reemplaza por una lista). Cubren permisos, préstamos, reservas y su regla del DNI, compras, clientes, correos, novedades, recuperación de contraseña y reportes.
+Son casi 200 pruebas sobre un SQLite temporal (no usan la base real ni mandan correos: el envío se reemplaza por una lista). Cubren permisos, préstamos, reservas y su regla del DNI, compras, clientes, correos, novedades, recuperación de contraseña y reportes.
 
 La URL de la API sale de `VITE_API_URL`. En desarrollo ya está definida en `.env.development` (`http://localhost:8000`). Vite la incorpora al compilar: si se cambia en Render, hay que **volver a desplegar** el Static Site.
 
@@ -226,8 +229,8 @@ La URL de la API sale de `VITE_API_URL`. En desarrollo ya está definida en `.en
 | `DATABASE_URL` | Sí | — | URL de PostgreSQL. Local: *External Database URL* de Render; dentro de Render: *Internal Database URL*. Debe empezar con `postgresql://` |
 | `SECRET_KEY` | Sí | — | Clave para firmar los JWT. Sin ella la app no arranca |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | Duración del token |
-| `CORS_ORIGINS` | No | — | Orígenes extra permitidos, separados por coma y sin barra final. Ya están permitidos `localhost:5173`, `127.0.0.1:5173` y el dominio **anterior** `controlarstaticsite.onrender.com` (fijo en `main.py`). Para la cuenta actual hay que agregar `https://controlar-de64.onrender.com` aquí |
-| `FRONTEND_URL` | No | `http://localhost:5173` | A dónde vuelve el cliente desde Mercado Pago. Con `https://` se activa `auto_return` |
+| `CORS_ORIGINS` | No | — | Orígenes extra permitidos, separados por coma y sin barra final. Ya se permiten `localhost:5173`, `127.0.0.1:5173` y la URL de `FRONTEND_URL`, así que normalmente no hace falta definirla |
+| `FRONTEND_URL` | No | `http://localhost:5173` | A dónde vuelve el cliente desde Mercado Pago. Con `https://` se activa `auto_return`. También se permite como origen CORS |
 | `BACKEND_URL` | No | — | URL pública de la API. Solo con `https://` se informa el *webhook* a Mercado Pago |
 | `MP_ACCESS_TOKEN` | Para pagos | — | Token de Mercado Pago. Con credenciales de **prueba** todo funciona en *sandbox*. Si falta, el checkout responde 503 |
 | `BREVO_API_KEY` | Opción A | — | Clave de Brevo (`xkeysib-...`). Si está definida, los correos van por HTTPS y se ignora el SMTP |
@@ -238,7 +241,7 @@ La URL de la API sale de `VITE_API_URL`. En desarrollo ya está definida en `.en
 | `SMTP_USER` / `SMTP_PASSWORD` | Opción B | — | Credenciales (en Gmail, una *contraseña de aplicación*) |
 | `SMTP_FROM` | Sí para correo | `SMTP_USER` | Remitente. Con Brevo debe ser un remitente **verificado** |
 | `SMTP_FROM_NAME` | No | `ControlAR` | Nombre del remitente |
-| `CRON_CLAVE` | No | — | Clave para que un cron externo dispare el resumen mensual de novedades (`POST /suscripcion/resumen/automatico`, encabezado `X-Cron-Clave`). Sin ella el envío automático queda desactivado |
+| `CRON_CLAVE` | No | — | Clave para las tareas que dispara un cron externo, con el encabezado `X-Cron-Clave`: el resumen mensual de novedades (`POST /suscripcion/resumen/automatico`) y el vencimiento de reservas a su hora (`POST /reservas/vencer/automatico`). Sin ella esas rutas responden `404` |
 
 El archivo `.env.example` sirve como plantilla de estas variables.
 
@@ -307,7 +310,7 @@ erDiagram
 | `clientes` | Personas registradas por un administrador **sin cuenta**: `dni` (único), `nombre`, `sexo` y `telefono` (opcionales), `creado_en`. No tienen correo ni contraseña, así que no pueden iniciar sesión |
 | `resumenes_novedades` | Un envío del resumen de novedades: `enviado_en`, `ultimo_juego_id`, `disponibles` (JSON) y `destinatarios`. El último sirve de punto de partida del siguiente |
 | `categorias` | `nombre` (único) |
-| `juegos` | `titulo`, `editorial`, `cantidad_jugadores` (p. ej. `"2-4"`), `duracion_minutos`, `edad_minima`, `precio`, `stock`, `en_venta`, **`se_presta`** (pertenece a la ludoteca), `imagen_url` (HTTPS), `observaciones` (nota interna, solo visible para admin), `categoria_id` |
+| `juegos` | `titulo`, `editorial`, `cantidad_jugadores` (p. ej. `"2-4"`), `duracion_minutos`, `edad_minima`, `precio`, `stock`, `en_venta`, **`se_presta`** (pertenece a la ludoteca), `imagen_url` (HTTPS), `observaciones` (nota interna, solo visible para admin), `creado_en` (fecha de alta; vacía en los juegos cargados antes de existir la columna), `categoria_id` |
 | `favoritos` | `usuario_id`, `juego_id`; único por par |
 | `prestamos` | `dni`, `nombre`, `sexo`, `telefono`, `estado` (`activo`/`cerrado`), `fecha_inicio`, `fecha_cierre`, `juego_id`, `titulo_juego` (copia del título al prestar). La columna `email` quedó solo por datos viejos: ya no se pide ni se muestra |
 | `eventos` | `tipo`, `titulo`, `descripcion`, `fecha` (exacta) o `fecha_texto`/`mes_corto`, `hora_inicio`, `hora_texto`, `lugar`, `direccion`, `inscripcion`, `aporte`, `imagen_url`, `permite_reservas` |
@@ -353,12 +356,12 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 - Las reservas se aceptan **hasta las 20:00 del día anterior** al evento.
 - **Una reserva por persona y por evento**; un juego solo puede estar en una reserva por evento. Se puede cancelar mientras esté activa.
 - La reserva se guarda **hasta 30 minutos después de la hora de inicio**; pasado ese tiempo pasa a `vencida` y el juego queda libre.
-- El vencimiento se aplica al consultar (cada endpoint de reservas llama a `vencer_reservas`); no hay un proceso programado.
+- El vencimiento se aplica al consultar (cada endpoint de reservas llama a `vencer_reservas`) y, si se configura el cron, también **a su hora**: `POST /reservas/vencer/automatico` cada 10 o 15 minutos (ver [Despliegue](#13-despliegue-en-render)).
 - Para **entregar**, el administrador pide DNI, sexo y teléfono (la cuenta no los tiene). En una sola operación se crea el préstamo y la reserva pasa a `entregada`.
 - Para permitir reservas, un evento necesita fecha exacta y hora de inicio.
 - No se puede eliminar un evento que tenga reservas.
 - Todas las reglas de hora usan UTC-3 fijo (Argentina no tiene horario de verano).
-- El correo de «reserva vencida» sale cuando alguien usa la web después del límite (no hay un reloj aparte), así que puede demorar si nadie entra.
+- El correo de «reserva vencida» sale cuando se vence la reserva: con el cron, a la hora; sin él, cuando alguien usa la web después del límite.
 
 ### Compras
 - El servidor **recalcula** precios y stock desde la base: nunca confía en los valores del cliente. Un juego debe estar `en_venta`, tener precio mayor a 0 y stock suficiente.
@@ -368,7 +371,7 @@ Son índices únicos **parciales**: protegen las reglas incluso si dos personas 
 
 ### Juegos populares y novedades
 - Los **populares** son los juegos **en venta** con más favoritos, con desempate por título. La portada muestra 2 (`/juegos/populares?limite=2`).
-- Las **novedades** de la portada son los últimos juegos cargados (`/juegos/novedades?limite=3`). Como la tabla no guarda fecha de alta, el orden sale del `id`, que crece con cada juego nuevo. No filtra por «en venta»: aparece cualquier juego cargado.
+- Las **novedades** de la portada son los últimos juegos cargados (`/juegos/novedades?limite=3`). Se ordenan por fecha de alta (`creado_en`); los juegos cargados antes de existir esa fecha van después y se ordenan entre ellos por `id`. No filtra por «en venta»: aparece cualquier juego cargado.
 
 ### Mensajes de contacto
 - Cualquiera puede escribir desde **Contacto** (con al menos un email o un teléfono). Si tiene sesión iniciada, el mensaje queda vinculado a su cuenta.
@@ -460,7 +463,7 @@ Leyenda de acceso: **Público**, **Usuario** (cualquier sesión), **Admin**. Có
 | POST | `/auth/cambiar-contrasena` | Usuario | Requiere la actual; la nueva, de 8 o más y distinta |
 | DELETE | `/auth/me` | Usuario | Desactiva la cuenta (pide la contraseña) |
 | GET | `/auth/admin/usuarios` | Admin | Lista usuarios (`?buscar=` por nombre, email o DNI, también con puntos). Incluye `prestamos_cantidad` y `prestamo_nombre` (a nombre de quién están los préstamos con el DNI de la cuenta) para compararlos antes de verificar |
-| PATCH | `/auth/admin/usuarios/{id}` | Admin | Cambia `es_admin`, `activo` y/o `dni_verificado` (los dos primeros no sobre uno mismo). `dni_verificado` exige que la cuenta tenga DNI y que ninguna otra lo tenga verificado |
+| PATCH | `/auth/admin/usuarios/{id}` | Admin | Cambia `nombre`, `es_admin`, `activo` y/o `dni_verificado` (`es_admin` y `activo` no sobre uno mismo; el nombre sí se puede cambiar, de 2 a 100 caracteres). `dni_verificado` exige que la cuenta tenga DNI y que ninguna otra lo tenga verificado |
 
 ### Juegos y categorías
 
@@ -541,6 +544,7 @@ La imagen (`imagen_url`) debe ser una URL **HTTPS** válida.
 | GET | `/reservas/mias` | Usuario | Mis reservas |
 | POST | `/reservas/` | Usuario | Reserva un juego (`{ "juego_id": 1 }`). `403` si el DNI no está cargado o validado (el mensaje explica cómo hacerlo). `409` si no hay evento, ya cerraron, ya tenés una reserva o el juego está tomado |
 | DELETE | `/reservas/{id}` | Usuario | Cancela una reserva propia y activa (`404` si es de otra persona) |
+| POST | `/reservas/vencer/automatico` | Clave | Para un cron externo cada 10 o 15 minutos (`X-Cron-Clave` = `CRON_CLAVE`): vence las reservas cuya espera terminó y avisa por correo. Devuelve `{"vencidas": N}`. `404` si está desactivado, `401` si la clave no coincide |
 | GET | `/reservas/` | Admin | Reservas de un evento (`?evento_id=`; por defecto, el próximo) |
 | POST | `/reservas/{id}/entregar` | Admin | Entrega el juego: crea el préstamo y cierra la reserva (`dni`, `sexo`, `telefono`, `nombre` opcional) |
 
@@ -681,7 +685,19 @@ Lo ya consultado se guarda en memoria mientras la página está abierta: volver 
 - Accesibilidad: enlace «Saltar al contenido», regiones *aria-live* para avisos y manejo de foco en el carrito.
 - Modo claro/oscuro desde la barra de navegación (no se guarda entre visitas). Los reportes también lo respetan.
 - Las pantallas se cargan bajo demanda (`React.lazy`) y las imágenes usan `loading="lazy"`.
+- **Animaciones de las imágenes de juegos** (`src/components/animacionesJuegos.css`): brillo mientras carga y fundido al aparecer, tarjetas que entran de a una, zoom y elevación al pasar el mouse (solo en pantallas con mouse) y «latido» del corazón de favoritos. Se desactivan si el dispositivo pide reducir el movimiento.
 - El número de WhatsApp de la tienda está definido en `src/pages/Checkout.jsx`.
+
+### Diseño para celulares
+
+Todo vive en `src/mobile.css` (se importa en `main.jsx` después de `index.css`, así no se tocan los estilos de escritorio). Hay dos puntos de corte:
+
+- **Hasta 860 px** (celulares y tablets en vertical): barra superior corta (logo, tema y carrito) y **barra de pestañas abajo** (Inicio, Club, Juegos o Panel, Contacto y Cuenta), al alcance del pulgar. El menú de la cuenta y el carrito suben desde abajo como paneles. La barra inferior se oculta mientras se escribe en un campo. Respeta las zonas seguras del teléfono (`viewport-fit=cover` y `env(safe-area-inset-*)`).
+- **Hasta 700 px** (celulares): campos de 16 px y botones de 46 px de alto (evita el zoom de iPhone y facilita tocar), filtros del catálogo apilados, menú del panel y de «Mi cuenta» como botones que se deslizan hacia los costados, ventanas (modales) que suben desde abajo y **tablas del panel como tarjetas** (una por fila, con el título de cada dato; el orden por columna se conserva como botones «Ordenar»).
+
+Las tablas se convierten solas: `src/utils/tablasResponsivas.js` copia el texto de cada encabezado a las celdas de su columna (`data-label`) y vigila la página porque React vuelve a dibujar las filas. Cualquier tabla nueva con la clase `tabla` o `ventas-tabla` funciona sin cambios.
+
+El tema claro/oscuro ahora también se cambia desde la barra superior (antes solo estaba dentro del menú de la cuenta, y los visitantes sin sesión no podían cambiarlo). En modo oscuro se corrigieron los botones azules, cuyo texto no se leía.
 
 ---
 
@@ -736,7 +752,9 @@ PostgreSQL de Render. Dentro de Render, usar la **Internal Database URL**.
   `python -m app.core.crear_tablas && python -m app.core.cargar_categorias && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - **Variables**: `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS` (URL del Static Site, sin barra final; varias separadas por coma). Para pagos y correo: `MP_ACCESS_TOKEN`, `FRONTEND_URL`, `BACKEND_URL`, `BREVO_API_KEY`, `SMTP_FROM`, `SMTP_FROM_NAME`. Para el resumen mensual automático: `CRON_CLAVE`.
 - **Health Check Path** (opcional): `/health`.
-- **Resumen mensual automático** (opcional): en un cron externo (por ejemplo cron-job.org) programar `POST {BACKEND_URL}/suscripcion/resumen/automatico` con el encabezado `X-Cron-Clave` igual a `CRON_CLAVE`. No repite si ya salió uno en los últimos 20 días.
+- **Tareas automáticas** (opcionales): en un cron externo (por ejemplo cron-job.org), con el encabezado `X-Cron-Clave` igual a `CRON_CLAVE` y el tiempo de espera en 30 segundos (el máximo de cron-job.org). Si Render gratis estaba dormido, esa primera llamada puede fallar por tiempo, pero lo despierta y la siguiente funciona:
+  - **Resumen mensual**: `POST {BACKEND_URL}/suscripcion/resumen/automatico`, una vez por mes. No repite si ya salió uno en los últimos 20 días.
+  - **Vencimiento de reservas**: `POST {BACKEND_URL}/reservas/vencer/automatico`, cada 10 o 15 minutos. Es seguro repetirlo: solo vence lo que ya corresponde y cada reserva avisa una vez.
 
 ### Frontend (Static Site)
 - **Build Command**: `npm install && npm run build`
@@ -770,15 +788,12 @@ El plan gratuito de Render duerme el servicio sin uso: la primera carga puede ta
 
 Limitaciones conocidas y cosas para tener presentes:
 
-- **Vencimiento de reservas sin reloj**: se aplica cuando alguien consulta la web. El correo de «reserva vencida» puede demorar si nadie entra. Para que salga a la hora exacta haría falta una tarea programada.
+- **Cron externo**: el resumen mensual y el vencimiento de reservas a su hora necesitan `CRON_CLAVE` y un cron que llame a la API. Sin eso, el resumen se manda a mano desde el panel y las reservas vencen (y avisan) cuando alguien usa la web después del límite.
 - **Límites de intentos en memoria** (login, contacto, recuperación): se reinician con el servidor y no se comparten entre varias instancias.
 - **Tope de correos de Brevo gratuito** (unos 300 por día): lo comparten reservas, compras, novedades y recuperación. Con muchos suscriptores, el resumen podría agotarlo.
-- **Resumen mensual**: solo es automático si se configura `CRON_CLAVE` y un cron externo; si no, se manda a mano desde el panel.
-- **`CORS_ORIGINS`**: debe incluir el dominio del Static Site actual; en `main.py` quedó fijo el dominio anterior.
-- **«Novedades» de la portada** ordena por `id` porque la tabla de juegos no guarda fecha de alta. Si se necesita una fecha real, habría que agregar una columna.
+- **Fecha de alta de los juegos**: los juegos cargados antes de agregar la columna `creado_en` no tienen fecha y, en las novedades, se ordenan por `id`. Los nuevos sí la guardan.
 - **Reportes** calculan en Python sobre las filas del período (es suficiente para el volumen de un club). Si los datos crecieran mucho, convendría pasar las agregaciones a SQL.
 - **JWT sin refresh token**: al vencer (60 minutos por defecto) hay que iniciar sesión de nuevo.
-- **`PanelResumen.jsx`** es una pantalla base sin ruta ni contenido; hoy no se usa.
 - **Correos en texto plano**: `enviar_correo` todavía no soporta HTML.
 
 ---

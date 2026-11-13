@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 from app.models.juego import Juego
 from app.models.categoria import Categoria
@@ -68,10 +68,16 @@ def list_populares(db: Session, limite: int = 2) -> list[Juego]:
 def list_novedades(db: Session, limite: int = 3) -> list[Juego]:
     """Los últimos juegos cargados, del más nuevo al más viejo.
 
-    No hay fecha de alta en la tabla, pero el id crece con cada juego nuevo,
-    así que ordenar por id descendente da el orden de carga.
+    Se ordena por fecha de alta; los juegos cargados antes de que existiera esa fecha no la
+    tienen, así que van después de los que sí y se ordenan entre ellos por id (que crece con
+    cada juego nuevo). El id también desempata.
     """
-    juegos = db.query(Juego).order_by(Juego.id.desc()).limit(limite).all()
+    juegos = (
+        db.query(Juego)
+        .order_by(case((Juego.creado_en.is_(None), 1), else_=0), Juego.creado_en.desc(), Juego.id.desc())
+        .limit(limite)
+        .all()
+    )
     return marcar_en_prestamo(db, juegos)
 
 

@@ -13,6 +13,14 @@ function fechaLarga(iso) {
   });
 }
 
+function fechaCorta(iso) {
+  if (!iso) return "";
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "long",
+  });
+}
+
 // Panel del administrador: resumen de novedades por correo (próximos eventos, juegos
 // nuevos y, para cada persona, sus favoritos que ya están a la venta).
 function NovedadesAdmin() {
@@ -21,9 +29,18 @@ function NovedadesAdmin() {
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
+  // Qué se va a mandar. Al cargar, todo viene tildado; el administrador destilda lo que no quiera.
+  const [eventosSel, setEventosSel] = useState(new Set());
+  const [juegosSel, setJuegosSel] = useState(new Set());
+  const [incluirFavoritos, setIncluirFavoritos] = useState(true);
+
   const cargar = useCallback(async () => {
     try {
-      setEstado(await obtenerResumenNovedades());
+      const datos = await obtenerResumenNovedades();
+      setEstado(datos);
+      setEventosSel(new Set(datos.eventos.map((e) => e.id)));
+      setJuegosSel(new Set(datos.juegos_nuevos.map((j) => j.id)));
+      setIncluirFavoritos(true);
       setError("");
     } catch (e) {
       setError(e.message);
@@ -34,12 +51,21 @@ function NovedadesAdmin() {
     cargar();
   }, [cargar]);
 
+  function alternar(setConjunto, id) {
+    setConjunto((actual) => {
+      const nuevo = new Set(actual);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
+  }
+
   async function enviar() {
     const cantidad = estado?.suscriptores ?? 0;
 
     if (
       !window.confirm(
-        `Se va a mandar el resumen a los ${cantidad} suscriptores. ¿Continuar?`
+        `Se va a mandar el resumen con lo que elegiste a los ${cantidad} suscriptores. ¿Continuar?`
       )
     ) {
       return;
@@ -48,7 +74,11 @@ function NovedadesAdmin() {
     setEnviando(true);
 
     try {
-      const { enviados } = await enviarResumenNovedades();
+      const { enviados } = await enviarResumenNovedades({
+        eventos_ids: [...eventosSel],
+        juegos_ids: [...juegosSel],
+        incluir_favoritos: incluirFavoritos,
+      });
       toast.exito(
         enviados > 0
           ? `Resumen enviado a ${enviados} ${enviados === 1 ? "persona" : "personas"}.`
@@ -81,6 +111,10 @@ function NovedadesAdmin() {
   }
 
   const { pendiente } = estado;
+  const hayAlgoElegido =
+    eventosSel.size > 0 ||
+    juegosSel.size > 0 ||
+    (incluirFavoritos && !estado.primera_vez);
 
   return (
     <div>
@@ -97,32 +131,104 @@ function NovedadesAdmin() {
 
       <p>Último envío: {fechaLarga(estado.ultimo_envio)}.</p>
 
-      <p>Lo que llevaría el próximo resumen:</p>
-      <ul>
-        <li>{pendiente.eventos} próximos eventos</li>
-        <li>
-          {estado.primera_vez
-            ? "Juegos nuevos: se empiezan a contar desde este primer envío"
-            : `${pendiente.juegos_nuevos} juegos nuevos`}
-        </li>
-        <li>
-          {estado.primera_vez
-            ? "Favoritos a la venta: se empiezan a contar desde este primer envío"
-            : `${pendiente.personas_con_favoritos} personas con favoritos que ya están a la venta`}
-        </li>
-      </ul>
+      <p>Elegí qué querés incluir en el resumen:</p>
+
+      <fieldset className="resumen-opcion">
+        <legend>Próximos eventos ({eventosSel.size} de {estado.eventos.length})</legend>
+        {estado.eventos.length === 0 ? (
+          <p className="ayuda">No hay eventos próximos.</p>
+        ) : (
+          <ul className="resumen-lista">
+            {estado.eventos.map((evento) => (
+              <li key={evento.id}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={eventosSel.has(evento.id)}
+                    onChange={() => alternar(setEventosSel, evento.id)}
+                  />{" "}
+                  {evento.titulo}
+                  {evento.fecha && ` · ${fechaCorta(evento.fecha)}`}
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </fieldset>
+
+      <fieldset className="resumen-opcion">
+        <legend>
+          Juegos nuevos
+          {!estado.primera_vez &&
+            ` (${juegosSel.size} de ${estado.juegos_nuevos.length})`}
+        </legend>
+        {estado.primera_vez ? (
+          <p className="ayuda">
+            Se empiezan a contar desde este primer envío.
+          </p>
+        ) : estado.juegos_nuevos.length === 0 ? (
+          <p className="ayuda">No hay juegos nuevos desde el último envío.</p>
+        ) : (
+          <>
+            <ul className="resumen-lista">
+              {estado.juegos_nuevos.map((juego) => (
+                <li key={juego.id}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={juegosSel.has(juego.id)}
+                      onChange={() => alternar(setJuegosSel, juego.id)}
+                    />{" "}
+                    {juego.titulo}
+                  </label>
+                </li>
+              ))}
+            </ul>
+            {juegosSel.size < estado.juegos_nuevos.length && (
+              <p className="ayuda">
+                Si dejás juegos sin tildar, siguen pendientes para el próximo
+                resumen.
+              </p>
+            )}
+          </>
+        )}
+      </fieldset>
+
+      <fieldset className="resumen-opcion">
+        <legend>Favoritos a la venta</legend>
+        {estado.primera_vez ? (
+          <p className="ayuda">
+            Se empiezan a contar desde este primer envío.
+          </p>
+        ) : (
+          <label>
+            <input
+              type="checkbox"
+              checked={incluirFavoritos}
+              onChange={(e) => setIncluirFavoritos(e.target.checked)}
+            />{" "}
+            Avisar a cada persona de sus favoritos que ya están a la venta (
+            {pendiente.personas_con_favoritos}{" "}
+            {pendiente.personas_con_favoritos === 1 ? "persona" : "personas"})
+          </label>
+        )}
+      </fieldset>
 
       <button
         type="button"
         className="boton"
         onClick={enviar}
-        disabled={enviando || estado.suscriptores === 0}
+        disabled={enviando || estado.suscriptores === 0 || !hayAlgoElegido}
       >
         {enviando ? "Enviando..." : "Enviar resumen ahora"}
       </button>
 
       {estado.suscriptores === 0 && (
         <p className="ayuda">Todavía no hay suscriptores.</p>
+      )}
+
+      {estado.suscriptores > 0 && !hayAlgoElegido && (
+        <p className="ayuda">Elegí al menos algo para enviar.</p>
       )}
     </div>
   );

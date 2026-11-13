@@ -4086,3 +4086,156 @@ body.oscuro .hilo-burbuja.propia {
     max-width: 480px;
   }
 }
+
+
+/* ============================================
+   Footer y botón flotante de WhatsApp
+   ============================================ */
+/* El pie queda siempre al fondo, aunque la página tenga poco contenido. */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#root > main {
+  flex: 1 0 auto;
+}
+
+.footer {
+  background: #161c3f;
+  color: #ffffff;
+  margin-top: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px 88px 12px 32px;
+}
+
+.footer .footer-copy {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.footer .footer-redes {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer .footer-redes a {
+  display: flex;
+  color: #ffffff;
+  opacity: 0.85;
+}
+
+.footer .footer-redes a:hover {
+  opacity: 1;
+}
+
+.boton-whatsapp {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 900;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.boton-whatsapp:hover {
+  transform: scale(1.08);
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding: 12px 82px 12px 16px;   /* 14 + 56 + 12 */
+  }
+
+  .boton-whatsapp {
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boton-whatsapp {
+    transition: none;
+  }
+}
+
+
+/* ============================================
+   Panel > Novedades: elegir qué incluir en el resumen
+   ============================================ */
+.resumen-opcion {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  max-width: 640px;
+}
+
+.resumen-opcion legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.resumen-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+
+/* ===== Pulido visual ===== */
+@media (prefers-reduced-motion: no-preference) {
+  .tarjeta.tarjeta-juego {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .tarjeta.tarjeta-juego:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(22, 28, 63, 0.14);
+  }
+
+  .boton {
+    transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  .boton:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .navbar .links a {
+    transition: opacity 0.15s ease;
+  }
+
+  .pagina {
+    animation: aparecer 0.3s ease both;
+  }
+
+  .toast {
+    animation: entrar-toast 0.25s ease both;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @keyframes entrar-toast {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
